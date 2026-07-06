@@ -1,0 +1,106 @@
+-- contentagent 双轨内容后台 · Supabase schema
+-- 在 Supabase Dashboard → SQL Editor 里整段执行一次。
+-- 注意：本文件必须以 UTF-8 保存。
+
+create type track_id as enum ('x', 'wechat');
+
+create type run_status as enum (
+  'created',          -- 已建 run，素材就绪，尚未出大纲
+  'outlining',        -- Hop1 进行中
+  'outline_review',   -- 大纲已出，等人改/确认（替代 CLI 的 input() 暂停）
+  'drafting',         -- Hop2 进行中
+  'gating',           -- Gate 进行中
+  'draft_review',     -- 成稿+checklist 已出，等人核对/润色
+  'published',        -- 已发布（人工确认后记录）
+  'aborted',          -- 人工放弃
+  'failed'            -- LLM 调用失败，可重试
+);
+
+create type feed_item_status as enum ('new', 'scored', 'shortlisted', 'used', 'discarded');
+
+create table sources (
+  id uuid primary key default gen_random_uuid(),
+  track track_id not null default 'wechat',
+  name text not null,
+  feed_url text not null unique,
+  enabled boolean not null default true,
+  last_fetched_at timestamptz,
+  last_error text,
+  created_at timestamptz not null default now()
+);
+
+create table feed_items (
+  id uuid primary key default gen_random_uuid(),
+  source_id uuid not null references sources(id) on delete cascade,
+  track track_id not null default 'wechat',
+  guid text not null,                -- rss item guid，缺失时用 link
+  title text not null,
+  link text not null,
+  summary text,                      -- contentSnippet，截断到 ~500 字
+  published_at timestamptz,
+  fetched_at timestamptz not null default now(),
+  status feed_item_status not null default 'new',
+  score numeric(3,1),                -- LLM 相关性 0-10
+  suggested_angle text,              -- LLM 建议的切入角度
+  score_reason text,
+  unique (source_id, guid)           -- 去重锚点
+);
+create index on feed_items (status, score desc);
+
+create table runs (
+  id uuid primary key default gen_random_uuid(),
+  track track_id not null,
+  status run_status not null default 'created',
+  feed_item_id uuid references feed_items(id),
+  title text,                        -- 从大纲首行提取，列表页显示用
+  material text not null,
+  outline_generated text,
+  outline_final text,
+  outline_edited boolean,
+  draft text,                        -- Hop2 原始输出
+  draft_final text,                  -- 人工润色后（发布用）
+  checklist text,
+  models jsonb,                      -- {"strong": "...", "gate": "..."}
+  token_usage jsonb,                 -- {"input_tokens": n, "output_tokens": n}
+  error text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index on runs (track, status, created_at desc);
+
+create table llm_calls (
+  id bigint generated always as identity primary key,
+  run_id uuid references runs(id) on delete cascade,  -- 选题打分调用为 null
+  step text not null,                -- hop1_outline / hop2_draft / gate_factcheck / score_topics
+  model text not null,
+  prompt text not null,              -- 全量保留，延续 run.json 的可回放设计
+  response text not null,
+  input_tokens int not null default 0,
+  output_tokens int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create table publications (
+  id uuid primary key default gen_random_uuid(),
+  run_id uuid not null references runs(id) on delete cascade,
+  channel text not null,             -- 'wechat_clipboard' 现在；'wechat_api'/'x_api' 留位
+  title text,
+  html text,                         -- 复制那一刻的内联 HTML 快照
+  published_at timestamptz not null default now(),
+  notes text
+);
+
+-- RLS：全部开启但不建 policy —— Next.js 服务端用 service_role key 访问（绕过 RLS），
+-- 浏览器永远不直连 Supabase，anon key 不发给任何人。
+alter table sources enable row level security;
+alter table feed_items enable row level security;
+alter table runs enable row level security;
+alter table llm_calls enable row level security;
+alter table publications enable row level security;
+
+-- 预置公众号轨道 RSS 源（全部 UTF-8 输出）
+insert into sources (track, name, feed_url) values
+  ('wechat', '少数派', 'https://sspai.com/feed'),
+  ('wechat', '爱范儿', 'https://www.ifanr.com/feed'),
+  ('wechat', '36氪', 'https://36kr.com/feed'),
+  ('wechat', 'InfoQ 中文', 'https://www.infoq.cn/feed');
