@@ -1,5 +1,11 @@
 export type TrackId = "x" | "wechat";
 
+export const TRACKS: TrackId[] = ["wechat", "x"];
+
+export function isTrackId(v: string): v is TrackId {
+  return v === "x" || v === "wechat";
+}
+
 export type RunStatus =
   | "created"
   | "outlining"

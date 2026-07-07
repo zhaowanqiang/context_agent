@@ -14,7 +14,7 @@ const COLORS: Record<RunStatus, string> = {
 
 export default function RunStatusBadge({ status }: { status: RunStatus }) {
   return (
-    <span className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${COLORS[status]}`}>
+    <span className={`inline-block shrink-0 whitespace-nowrap rounded px-2 py-0.5 text-xs font-medium ${COLORS[status]}`}>
       {STATUS_LABEL[status]}
     </span>
   );

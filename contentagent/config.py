@@ -57,7 +57,8 @@ THINKING = _p["thinking"]
 
 MAX_TOKENS_OUTLINE = 2000
 MAX_TOKENS_DRAFT = 4000
-MAX_TOKENS_GATE = 2000
+# gate 用的 flash 是推理模型，思考链也计入 output 预算——2000 曾被烧光导致正文为空
+MAX_TOKENS_GATE = 4000
 
 REQUEST_TIMEOUT = 300.0  # 单次请求超时（秒）
 MAX_RETRIES = 1          # API 失败重试一次（SDK 自带指数退避）

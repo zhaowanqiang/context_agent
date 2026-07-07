@@ -8,7 +8,7 @@ export default function WeChatPreview({ html }: { html: string }) {
       srcDoc={doc}
       sandbox=""
       title="公众号预览"
-      className="h-[560px] w-[375px] shrink-0 rounded border border-neutral-300 bg-white"
+      className="h-[560px] w-full max-w-[375px] shrink-0 self-center rounded border border-neutral-300 bg-white lg:self-auto"
     />
   );
 }

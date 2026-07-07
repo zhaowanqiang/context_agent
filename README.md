@@ -55,7 +55,7 @@ tracks/
 └── wechat/style.md      # 公众号轨道风格指纹 + fewshot/
 webadmin/                # Next.js 本地后台（Supabase 云库）
 ├── supabase/schema.sql  # 建表脚本（含 4 个预置 RSS 源）
-├── app/                 # 仪表盘 / 选题池 / RSS源 / Runs 工作台
+├── app/                 # 平台选择首页 + /wechat、/x 两个独立模块（各自仪表盘/选题池/内容源/Runs）
 ├── lib/wechat/          # md → 公众号内联 HTML 排版
 └── lib/publishers/      # 发布通道接口（现为剪贴板，认证号 API 留位）
 runs/                    # CLI 模式运行记录（Web 模式记录在 Supabase）

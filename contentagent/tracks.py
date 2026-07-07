@@ -14,7 +14,8 @@ TRACKS = {
         "fewshot_dir": config.PROJECT_ROOT / "tracks" / "x" / "fewshot",
         "redline": prompts.REDLINES["x"],
         "prompts": prompts.PROMPTS["x"],
-        "max_tokens": {"outline": 2000, "draft": 4000, "gate": 2000},
+        # gate/review 用的 flash 是推理模型，思考链计入 output 预算，2000 曾被烧光导致正文为空
+        "max_tokens": {"outline": 2000, "draft": 4000, "gate": 4000, "review": 3000},
     },
     "wechat": {
         "id": "wechat",
@@ -23,7 +24,7 @@ TRACKS = {
         "redline": prompts.REDLINES["wechat"],
         "prompts": prompts.PROMPTS["wechat"],
         # 长文：outline 略放宽，draft 加倍
-        "max_tokens": {"outline": 2500, "draft": 8000, "gate": 2000},
+        "max_tokens": {"outline": 2500, "draft": 8000, "gate": 4000, "review": 3000},
     },
 }
 

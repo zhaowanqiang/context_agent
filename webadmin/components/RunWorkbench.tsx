@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   abortRun,
   autoRunToDraft,
@@ -63,8 +65,23 @@ function ChecklistPanel({ text }: { text: string }) {
   const redlineFailed = text.includes("必须删除");
   const fabricated = text.includes("素材无依据");
   const passed = !redlineFailed && text.includes("红线检查：通过");
+  // 质量自检分（confirmOutline 拼进 checklist 头部；低分在自动产线里已触发过一次重写）
+  const quality = text.match(/【质量自检】([\d.]+)\/10/)?.[1];
   return (
     <div className="space-y-3">
+      {quality && (
+        <div
+          className={`rounded-md border px-4 py-2.5 text-sm font-medium ${
+            Number(quality) >= 8
+              ? "border-green-200 bg-green-50 text-green-800"
+              : Number(quality) >= 7
+                ? "border-neutral-200 bg-neutral-50 text-neutral-700"
+                : "border-amber-300 bg-amber-50 text-amber-800"
+          }`}
+        >
+          ✎ 质量自检 {quality}/10{Number(quality) < 7 ? "——低于发布线，建议按下方问题清单润色" : ""}
+        </div>
+      )}
       {redlineFailed && (
         <div className="rounded-md border border-red-300 bg-red-50 px-4 py-2.5 text-sm font-medium text-red-800">
           ⛔ 红线未通过 —— 下方标「必须删除」的句子处理完才能发布
@@ -85,22 +102,39 @@ function ChecklistPanel({ text }: { text: string }) {
   );
 }
 
-export default function RunWorkbench({ run }: { run: Run }) {
-  const [isPending, startTransition] = useTransition();
+export default function RunWorkbench({ run, fewshotFile = null }: { run: Run; fewshotFile?: string | null }) {
+  // 不用 useTransition：Next 16 捆绑的 React 19 有 transition 竞态 bug（vercel/next.js#88767）——
+  // action resolve 后 replay 丢失，isPending 卡死、状态流转不上屏
+  const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [outline, setOutline] = useState(run.outline_final ?? run.outline_generated ?? "");
   const [draftFinal, setDraftFinal] = useState(run.draft_final ?? run.draft ?? "");
   const [savedTip, setSavedTip] = useState<string | null>(null);
   const [showDraftPreview, setShowDraftPreview] = useState(false);
+  const router = useRouter();
 
-  const act = (fn: () => Promise<ActionResult>, tip?: string) => {
+  // 生成是在别处发起的（产线/另一个标签页/中途关过页面）时，本页不会自己更新——
+  // 每 5s 拉一次最新状态。本页自己发起的操作（isPending）不轮询，避免打断进行中的 transition。
+  const inFlight = ["outlining", "drafting", "gating"].includes(run.status);
+  useEffect(() => {
+    if (!inFlight || isPending) return;
+    const t = setInterval(() => router.refresh(), 5000);
+    return () => clearInterval(t);
+  }, [inFlight, isPending, router]);
+
+  const act = async (fn: () => Promise<ActionResult>, tip?: string) => {
     setError(null);
     setSavedTip(null);
-    startTransition(async () => {
+    setIsPending(true);
+    try {
       const r = await fn();
       if (r.error) setError(r.error);
-      else if (tip) setSavedTip(tip);
-    });
+      else setSavedTip(r.message ?? tip ?? null); // 服务端带回的话（如自动喂库结果）优先
+      // action 内的 revalidatePath 不可靠（同一 bug 的另一面），显式刷新拿最新状态
+      router.refresh();
+    } finally {
+      setIsPending(false);
+    }
   };
 
   const busy = isPending || ["outlining", "drafting", "gating"].includes(run.status);
@@ -222,7 +256,8 @@ export default function RunWorkbench({ run }: { run: Run }) {
           >
             {run.status === "draft_review" ? (
               <>
-                <div className="flex gap-5">
+                {/* 手机：编辑区在上、公众号预览在下；lg 起左右并排 */}
+                <div className="flex flex-col gap-5 lg:flex-row">
                   {showDraftPreview ? (
                     <div className="min-w-0 flex-1 rounded-md border border-neutral-100 bg-neutral-50/50 px-5 py-4">
                       <Markdown text={draftFinal} />
@@ -288,24 +323,40 @@ export default function RunWorkbench({ run }: { run: Run }) {
               </>
             ) : (
               <>
-                <div className="mb-4 flex items-center gap-2">
-                  <Btn
-                    variant="secondary"
-                    onClick={() =>
-                      act(async () => {
-                        const r = await saveToFewshot(run.id);
-                        if (r.error) return { error: r.error };
-                        setSavedTip(r.message ?? "已入库");
-                        return {};
-                      })
-                    }
-                    disabled={isPending}
-                  >
-                    ★ 存入 few-shot 范例库（喂回我的语气）
-                  </Btn>
-                  <span className="text-xs text-neutral-400">
-                    发布效果好的才存——范例库决定以后每篇的味道
-                  </span>
+                <div className="mb-4 flex flex-wrap items-center gap-2">
+                  {fewshotFile ? (
+                    <>
+                      <span className="rounded-md border border-green-200 bg-green-50 px-3 py-1.5 text-sm font-medium text-green-800">
+                        ✓ 已在范例库：{fewshotFile}
+                      </span>
+                      <Link href={`/${run.track}/fewshot`} className="text-xs text-blue-600 hover:underline">
+                        查看范例库与质量走势 →
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <Btn
+                        variant="secondary"
+                        onClick={() =>
+                          act(async () => {
+                            const r = await saveToFewshot(run.id);
+                            if (r.error) return { error: r.error };
+                            setSavedTip(r.message ?? "已入库");
+                            return {};
+                          })
+                        }
+                        disabled={isPending}
+                      >
+                        ★ 存入 few-shot 范例库（喂回我的语气）
+                      </Btn>
+                      <span className="text-xs text-neutral-400">
+                        发布时质检达标会自动入库；这篇还不在库里——效果好可手动存入。
+                        <Link href={`/${run.track}/fewshot`} className="ml-1 text-blue-600 hover:underline">
+                          查看范例库 →
+                        </Link>
+                      </span>
+                    </>
+                  )}
                 </div>
                 <Markdown text={run.draft_final ?? run.draft ?? ""} />
               </>

@@ -26,14 +26,20 @@ export interface TopicScore {
   reason: string;
 }
 
+export interface DraftReview {
+  score: number;
+  problems: string[];
+  better_title: string | null;
+}
+
 export class AgentError extends Error {}
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function request<T>(path: string, init?: RequestInit, timeoutMs = TIMEOUT_MS): Promise<T> {
   let res: Response;
   try {
     res = await fetch(`${BASE}${path}`, {
       ...init,
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+      signal: AbortSignal.timeout(timeoutMs),
     });
   } catch (e: unknown) {
     const cause = (e as { cause?: { code?: string } }).cause;
@@ -41,7 +47,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       throw new AgentError("Python 服务未启动 —— 在项目根目录运行 start.ps1（或 python -m uvicorn contentagent.server:app --port 8600）");
     }
     if ((e as Error).name === "TimeoutError") {
-      throw new AgentError(`LLM 调用超时（${TIMEOUT_MS / 1000}s）`);
+      throw new AgentError(`LLM 调用超时（${timeoutMs / 1000}s）`);
     }
     throw new AgentError(`调用 Python 服务失败：${(e as Error).message}`);
   }
@@ -66,14 +72,17 @@ function post<T>(path: string, body: unknown): Promise<T> {
 }
 
 export const agent = {
+  // 健康检查是本机请求，3s 足够；不能吃 LLM 的 320s 超时，否则服务卡住会拖死首页
   health: () =>
-    request<{ status: string; provider: string; strong_model: string; gate_model: string; tracks: string[] }>("/health"),
+    request<{ status: string; provider: string; strong_model: string; gate_model: string; tracks: string[] }>("/health", undefined, 3_000),
   outline: (track: TrackId, material: string) =>
     post<StepResult>("/steps/outline", { track, material }),
   draft: (track: TrackId, outline: string) =>
     post<StepResult>("/steps/draft", { track, outline }),
   gate: (track: TrackId, draft: string, material: string) =>
     post<StepResult>("/steps/gate", { track, draft, material }),
-  scoreTopics: (track: TrackId, items: { id: string; title: string; summary: string }[]) =>
-    post<{ scores: TopicScore[]; call: LLMCallPayload }>("/topics/score", { track, items }),
+  review: (track: TrackId, draft: string) =>
+    post<{ review: DraftReview; call: LLMCallPayload }>("/steps/review", { track, draft }),
+  scoreTopics: (track: TrackId, items: { id: string; title: string; summary: string }[], recentTitles: string[] = []) =>
+    post<{ scores: TopicScore[]; call: LLMCallPayload }>("/topics/score", { track, items, recent_titles: recentTitles }),
 };

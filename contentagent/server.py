@@ -69,6 +69,11 @@ class GateReq(BaseModel):
     material: str = ""  # 实测声明核查用；空则该项核查退化
 
 
+class ReviewReq(BaseModel):
+    track: TrackId
+    draft: str = Field(min_length=1)
+
+
 class TopicItem(BaseModel):
     id: str
     title: str
@@ -78,6 +83,7 @@ class TopicItem(BaseModel):
 class ScoreReq(BaseModel):
     track: TrackId
     items: list[TopicItem] = Field(min_length=1, max_length=20)
+    recent_titles: list[str] = []  # 查重：最近已用/候选的选题标题
 
 
 def _call_payload(c: llm.LLMCall) -> dict:
@@ -122,7 +128,13 @@ def step_gate(req: GateReq):
     return {"text": c.response, "call": _call_payload(c)}
 
 
+@app.post("/steps/review")
+def step_review(req: ReviewReq):
+    review, c = steps.review_draft(req.track, req.draft)
+    return {"review": review, "call": _call_payload(c)}
+
+
 @app.post("/topics/score")
 def topics_score(req: ScoreReq):
-    scores, c = steps.score_topics(req.track, [i.model_dump() for i in req.items])
+    scores, c = steps.score_topics(req.track, [i.model_dump() for i in req.items], req.recent_titles)
     return {"scores": scores, "call": _call_payload(c)}

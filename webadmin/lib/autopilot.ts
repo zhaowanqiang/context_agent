@@ -1,14 +1,17 @@
 import "server-only";
 import { db } from "./supabase";
 import { fetchAllSources } from "./rss";
-import { fetchArticle } from "./fetchArticle";
+import { assembleMaterial, fetchSeedContent } from "./material";
 import { scoreNewTopics } from "@/app/actions/topics";
 import { autoRunToDraft } from "@/app/actions/runs";
-import type { FeedItem } from "./types";
+import type { FeedItem, Run, TrackId } from "./types";
 
 export interface AutopilotReport {
+  track: TrackId;
+  ranAt: string;
   fetched: string;
   scored: string;
+  retried: { run_id: string; title: string; ok: boolean }[];
   created: { run_id: string; title: string; ok: boolean; error?: string }[];
   skipped: string[];
 }
@@ -17,60 +20,71 @@ const SCORE_MIN = Number(process.env.AUTOPILOT_SCORE_MIN ?? 8);
 const MAX_RUNS = Number(process.env.AUTOPILOT_MAX_RUNS ?? 2);
 
 /**
- * 全自动产线：抓取 → 打分 → 挑高分选题 → 抓原文 → 建 run → 直通成稿。
+ * 单轨道全自动产线：抓取 → 打分 → 挑高分选题 → 抓原文 → 建 run → 直通成稿。
  * 产出停在 draft_review（等人核对+发布）——这是刻意保留的最后闸口。
+ *
+ * 轨道差异：公众号轨全部高分选题可进产线；
+ * X 轨常规选题是实测教程、必须有作者一手实测，只放行 GitHub 开源库解读
+ * （素材来自官方 README，不依赖一手实测）。
  */
-export async function runAutopilot(maxRuns: number = MAX_RUNS): Promise<AutopilotReport> {
-  const report: AutopilotReport = { fetched: "", scored: "", created: [], skipped: [] };
+export async function runAutopilot(track: TrackId, maxRuns: number = MAX_RUNS): Promise<AutopilotReport> {
+  const report: AutopilotReport = {
+    track,
+    ranAt: new Date().toISOString(),
+    fetched: "",
+    scored: "",
+    retried: [],
+    created: [],
+    skipped: [],
+  };
 
-  // 1. 抓取全部源
-  const fetchResults = await fetchAllSources();
+  // 0. 先重试近 3 天失败的 run（LLM 超时/瞬时故障的兜底；每次产线最多补 2 个）
+  const { data: failedRuns } = await db()
+    .from("runs")
+    .select("*")
+    .eq("track", track)
+    .eq("status", "failed")
+    .gte("updated_at", new Date(Date.now() - 3 * 86400_000).toISOString())
+    .order("updated_at", { ascending: false })
+    .limit(2);
+  for (const fr of (failedRuns ?? []) as Run[]) {
+    const r = await autoRunToDraft(fr.id);
+    report.retried.push({ run_id: fr.id, title: (fr.title ?? fr.material.slice(0, 30)) + "", ok: !r.error });
+  }
+
+  // 1. 抓取该轨道全部源
+  const fetchResults = await fetchAllSources(track);
   report.fetched = fetchResults.map((r) => `${r.source}+${r.added}${r.error ? "(失败)" : ""}`).join(" ");
 
   // 2. 打分
-  const scoreRes = await scoreNewTopics();
+  const scoreRes = await scoreNewTopics(track);
   report.scored = scoreRes.message ?? scoreRes.error ?? "";
 
-  // 3. 挑高分选题（≥SCORE_MIN 且未使用）。产线只做公众号轨——
-  //    X 轨是实测教程，必须有作者一手实测，不适合无人值守生成
-  const { data } = await db()
+  // 3. 挑高分选题（≥SCORE_MIN 且未使用）
+  let q = db()
     .from("feed_items")
     .select("*")
     .eq("status", "scored")
-    .eq("track", "wechat")
-    .gte("score", SCORE_MIN)
-    .order("score", { ascending: false })
-    .limit(maxRuns * 2); // 多取一倍：原文抓取失败时有备胎
+    .eq("track", track)
+    .gte("score", SCORE_MIN);
+  if (track === "x") q = q.ilike("link", "%github.com%");
+  const { data } = await q.order("score", { ascending: false }).limit(maxRuns * 2); // 多取一倍：原文抓取失败时有备胎
   const candidates = (data ?? []) as FeedItem[];
 
   // 4. 逐条：抓原文 → 建 run → 直通成稿（串行，控制并发成本）
   for (const item of candidates) {
     if (report.created.filter((c) => c.ok).length >= maxRuns) break;
 
-    const article = await fetchArticle(item.link);
-    if (!article) {
-      report.skipped.push(`${item.title.slice(0, 30)}（原文抓取失败）`);
+    const content = await fetchSeedContent(item.link);
+    if (!content) {
+      report.skipped.push(`${item.title.slice(0, 30)}（原文/README 抓取失败）`);
       continue;
     }
-
-    const material = [
-      `【选题】${item.title}`,
-      `【建议角度】${item.suggested_angle ?? "（无）"}`,
-      `【原文链接】${item.link}`,
-      ``,
-      `【原文全文】`,
-      article.text,
-      ``,
-      `【原文图片】`,
-      article.images.length > 0 ? article.images.map((u, i) => `${i + 1}. ${u}`).join("\n") : "（原文无可用图片）",
-      ``,
-      `【我的补充观点】`,
-      `（全自动产线生成，无人工补充观点）`,
-    ].join("\n");
+    const material = assembleMaterial(item, content, "（全自动产线生成，无人工补充观点）");
 
     const { data: run, error } = await db()
       .from("runs")
-      .insert({ track: "wechat", material, feed_item_id: item.id, status: "created" })
+      .insert({ track: item.track, material, feed_item_id: item.id, status: "created" })
       .select("id")
       .single();
     if (error) {
@@ -87,6 +101,10 @@ export async function runAutopilot(maxRuns: number = MAX_RUNS): Promise<Autopilo
       error: result.error,
     });
   }
+
+  // 5. 报告落盘（runs/autopilot/），仪表盘「上次产线」读它
+  const { saveReport } = await import("./pipelineLog");
+  await saveReport(report);
 
   return report;
 }

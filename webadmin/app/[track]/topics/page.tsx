@@ -1,12 +1,14 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
 import { db } from "@/lib/supabase";
 import type { FeedItem, FeedItemStatus } from "@/lib/types";
+import { isTrackId, TRACK_LABEL } from "@/lib/types";
 import TopicToolbar from "@/components/TopicToolbar";
 import TopicRowActions from "@/components/TopicRowActions";
-import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-const STATUS_TAB: { key: FeedItemStatus | "all"; label: string }[] = [
+const STATUS_TAB: { key: FeedItemStatus; label: string }[] = [
   { key: "scored", label: "已打分" },
   { key: "shortlisted", label: "候选" },
   { key: "new", label: "未打分" },
@@ -15,18 +17,22 @@ const STATUS_TAB: { key: FeedItemStatus | "all"; label: string }[] = [
 ];
 
 export default async function TopicsPage({
+  params,
   searchParams,
 }: {
-  searchParams: Promise<{ status?: FeedItemStatus; track?: "x" | "wechat" }>;
+  params: Promise<{ track: string }>;
+  searchParams: Promise<{ status?: FeedItemStatus }>;
 }) {
-  const { status = "scored", track } = await searchParams;
+  const { track } = await params;
+  if (!isTrackId(track)) notFound();
+  const { status = "scored" } = await searchParams;
 
   let q = db()
     .from("feed_items")
     .select("*")
+    .eq("track", track)
     .eq("status", status)
     .limit(100);
-  if (track) q = q.eq("track", track);
   q = status === "scored" ? q.order("score", { ascending: false }) : q.order("fetched_at", { ascending: false });
   const { data, error } = await q;
   if (error) {
@@ -36,37 +42,19 @@ export default async function TopicsPage({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between">
-        <h1 className="font-semibold">选题池（公众号轨道）</h1>
-        <TopicToolbar />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <h1 className="font-semibold">选题池 · {TRACK_LABEL[track]}</h1>
+        <TopicToolbar track={track} />
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {STATUS_TAB.map((t) => (
           <Link
             key={t.key}
-            href={`/topics?status=${t.key}${track ? `&track=${track}` : ""}`}
+            href={`/${track}/topics?status=${t.key}`}
             className={`rounded px-2 py-1 text-xs ${
               status === t.key
                 ? "bg-neutral-900 text-white"
-                : "border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-100"
-            }`}
-          >
-            {t.label}
-          </Link>
-        ))}
-        <span className="mx-1 text-neutral-300">|</span>
-        {([
-          { key: undefined, label: "全部轨道" },
-          { key: "wechat", label: "公众号" },
-          { key: "x", label: "X" },
-        ] as const).map((t) => (
-          <Link
-            key={t.label}
-            href={`/topics?status=${status}${t.key ? `&track=${t.key}` : ""}`}
-            className={`rounded px-2 py-1 text-xs ${
-              track === t.key
-                ? "bg-blue-700 text-white"
                 : "border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-100"
             }`}
           >
@@ -101,7 +89,7 @@ export default async function TopicsPage({
                   <span className="block truncate text-xs text-neutral-400">{it.score_reason}</span>
                 )}
               </span>
-              <TopicRowActions id={it.id} status={it.status} />
+              <TopicRowActions id={it.id} status={it.status} track={track} />
             </li>
           ))}
         </ul>

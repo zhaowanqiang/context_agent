@@ -8,7 +8,15 @@ import type { Run, RunStatus, TrackId } from "@/lib/types";
 
 export interface ActionResult {
   error?: string;
+  /** 操作成功时给用户看的一句话（比调用方写死的提示优先） */
+  message?: string;
+  /** 成稿质检分（confirmOutline 流程回传，自动产线据此决定是否重写） */
+  quality?: number;
+  qualityProblems?: string[];
 }
+
+/** 质检分低于该值时，自动产线带着问题清单重写一次（人工流程只展示不重写） */
+const QUALITY_MIN = Number(process.env.QUALITY_MIN ?? 7);
 
 /** 大纲首个有效行 → 列表页标题（跳过「大纲」「标题：」类前缀行，去掉 markdown 记号） */
 function extractTitle(outline: string): string {
@@ -16,8 +24,9 @@ function extractTitle(outline: string): string {
     .split("\n")
     .map((l) =>
       l
+        .replace(/\*\*/g, "") // 去 markdown 加粗，避免「**标题**：」漏匹配
         .replace(/^[#\-*>【\s]+|】\s*$/g, "")
-        .replace(/^(标题|题目)\s*[:：]\s*/, "")
+        .replace(/^(标题|题目|大纲)\s*[:：]\s*/, "")
         .trim()
     )
     .find((l) => l.length > 0 && !/^(大纲|标题|题目|outline)$/i.test(l));
@@ -62,17 +71,22 @@ async function addTokenUsage(runId: string, ...calls: LLMCallPayload[]) {
   });
 }
 
+/** run 详情/列表页都在轨道前缀下 */
+function runPath(track: TrackId, runId?: string): string {
+  return runId ? `/${track}/runs/${runId}` : `/${track}/runs`;
+}
+
 /** 统一收口：异常 → { error }，LLM 失败时把 run 置 failed */
-async function guard(runId: string | null, fn: () => Promise<void>): Promise<ActionResult> {
+async function guard(runId: string | null, fn: () => Promise<ActionResult | void>): Promise<ActionResult> {
   try {
-    await fn();
-    return {};
+    return (await fn()) ?? {};
   } catch (e) {
     const message = e instanceof AgentError || e instanceof Error ? e.message : `${e}`;
     if (runId && e instanceof AgentError) {
       try {
+        const run = await getRun(runId);
         await updateRun(runId, { status: "failed" satisfies RunStatus, error: message });
-        revalidatePath(`/runs/${runId}`);
+        revalidatePath(runPath(run.track, runId));
       } catch { /* 置 failed 本身失败时，保留原始错误 */ }
     }
     return { error: message };
@@ -122,7 +136,7 @@ export async function createRun(
   if (feedItemId) {
     await db().from("feed_items").update({ status: "used" }).eq("id", feedItemId);
   }
-  redirect(`/runs/${data.id}`);
+  redirect(runPath(track, data.id));
 }
 
 // ── Hop 1：生成大纲 ──────────────────────────────────────────────────
@@ -134,7 +148,7 @@ export async function generateOutline(runId: string): Promise<ActionResult> {
       throw new Error(`当前状态 ${run.status} 不能生成大纲`);
     }
     await updateRun(runId, { status: "outlining", error: null });
-    revalidatePath(`/runs/${runId}`);
+    revalidatePath(runPath(run.track, runId));
 
     const result = await agent.outline(run.track, run.material);
     await saveCall(runId, result.call);
@@ -144,39 +158,64 @@ export async function generateOutline(runId: string): Promise<ActionResult> {
       title: extractTitle(result.text),
     });
     await addTokenUsage(runId, result.call);
-    revalidatePath(`/runs/${runId}`);
-    revalidatePath("/runs");
+    revalidatePath(runPath(run.track, runId));
+    revalidatePath(runPath(run.track));
   });
 }
 
 // ── 人工闸口确认 → Hop 2 + Gate（串行，单次动作最长 ~5 分钟）─────────
 
-export async function confirmOutline(runId: string, outlineFinal: string): Promise<ActionResult> {
+export async function confirmOutline(
+  runId: string,
+  outlineFinal: string,
+  markEdited = true // 自动重写传 false：机器追加反馈不算人工改稿信号
+): Promise<ActionResult> {
   return guard(runId, async () => {
     const run = await getRun(runId);
     if (run.status !== "outline_review") throw new Error(`当前状态 ${run.status} 不能确认大纲`);
     if (!outlineFinal.trim()) throw new Error("大纲不能为空");
 
-    const edited = outlineFinal.trim() !== (run.outline_generated ?? "").trim();
+    const edited = markEdited && outlineFinal.trim() !== (run.outline_generated ?? "").trim();
     await updateRun(runId, {
       status: "drafting",
       outline_final: outlineFinal,
       outline_edited: edited,
       error: null,
     });
-    revalidatePath(`/runs/${runId}`);
+    revalidatePath(runPath(run.track, runId));
 
     const draftRes = await agent.draft(run.track, outlineFinal);
     await saveCall(runId, draftRes.call);
     await updateRun(runId, { status: "gating", draft: draftRes.text, draft_final: draftRes.text });
-    revalidatePath(`/runs/${runId}`);
+    revalidatePath(runPath(run.track, runId));
 
     const gateRes = await agent.gate(run.track, draftRes.text, run.material);
     await saveCall(runId, gateRes.call);
-    await updateRun(runId, { status: "draft_review", checklist: gateRes.text });
-    await addTokenUsage(runId, draftRes.call, gateRes.call);
-    revalidatePath(`/runs/${runId}`);
-    revalidatePath("/runs");
+
+    // 成稿质检：对照风格指纹打分（flash，便宜）。失败不阻塞——Gate 已过，质检只是增强
+    let quality: number | undefined;
+    let qualityProblems: string[] = [];
+    let checklist = gateRes.text;
+    const usageCalls = [draftRes.call, gateRes.call];
+    try {
+      const { review, call } = await agent.review(run.track, draftRes.text);
+      await saveCall(runId, call);
+      usageCalls.push(call);
+      quality = review.score;
+      qualityProblems = review.problems;
+      const block = [
+        `【质量自检】${review.score.toFixed(1)}/10${review.score < QUALITY_MIN ? `（低于发布线 ${QUALITY_MIN}）` : ""}`,
+        ...(review.problems.length > 0 ? review.problems.map((p) => `- ${p}`) : ["- 无明显问题"]),
+        ...(review.better_title ? [`建议标题：${review.better_title}`] : []),
+      ].join("\n");
+      checklist = `${block}\n\n---\n\n${gateRes.text}`;
+    } catch { /* 质检挂了不影响主流程 */ }
+
+    await updateRun(runId, { status: "draft_review", checklist });
+    await addTokenUsage(runId, ...usageCalls);
+    revalidatePath(runPath(run.track, runId));
+    revalidatePath(runPath(run.track));
+    return { quality, qualityProblems };
   });
 }
 
@@ -187,7 +226,22 @@ export async function autoRunToDraft(runId: string): Promise<ActionResult> {
   if (r1.error) return r1;
   const run = await getRun(runId);
   // 大纲原样确认（outline_edited=false），draft_review 仍是发布前的人工检查点
-  return confirmOutline(runId, run.outline_generated ?? "");
+  const r2 = await confirmOutline(runId, run.outline_generated ?? "");
+  if (r2.error || r2.quality === undefined || r2.quality >= QUALITY_MIN) return r2;
+
+  // 质检不及格：带着问题清单重写一次（只重写一次，防成本失控）
+  const problems = (r2.qualityProblems ?? []).map((p) => `- ${p}`).join("\n");
+  const outlineWithFeedback = [
+    run.outline_generated ?? "",
+    ``,
+    `（上一稿质量自检 ${r2.quality.toFixed(1)} 分，低于发布线 ${QUALITY_MIN}。本稿必须修正以下问题，其余保持：`,
+    problems || "- 整体质量不足，提高观点密度与结构清晰度",
+    `）`,
+  ].join("\n");
+  await updateRun(runId, { status: "outline_review" });
+  const r3 = await confirmOutline(runId, outlineWithFeedback, false);
+  // 重写后仍低分也停下来交给人（draft_review），不无限循环
+  return r3;
 }
 
 // ── 重跑成稿（draft_review 下不满意时，从当前 outline_final 重来）────
@@ -209,15 +263,16 @@ export async function saveDraftFinal(runId: string, draftFinal: string): Promise
     const run = await getRun(runId);
     if (run.status !== "draft_review") throw new Error(`当前状态 ${run.status} 不能保存润色稿`);
     await updateRun(runId, { draft_final: draftFinal });
-    revalidatePath(`/runs/${runId}`);
+    revalidatePath(runPath(run.track, runId));
   });
 }
 
 export async function abortRun(runId: string): Promise<ActionResult> {
   return guard(null, async () => {
+    const run = await getRun(runId);
     await updateRun(runId, { status: "aborted" });
-    revalidatePath(`/runs/${runId}`);
-    revalidatePath("/runs");
+    revalidatePath(runPath(run.track, runId));
+    revalidatePath(runPath(run.track));
   });
 }
 
@@ -237,8 +292,15 @@ export async function markPublished(
     });
     if (error) throw new Error(`记录发布失败：${error.message}`);
     await updateRun(runId, { status: "published" });
-    revalidatePath(`/runs/${runId}`);
-    revalidatePath("/runs");
+
+    // 发布 = 终稿定版 → 自动喂回 few-shot 范例库（质检分不够/重复时内部自行跳过，失败不挡发布）
+    const { autoFeedFewshot } = await import("./fewshot");
+    const feedNote = await autoFeedFewshot({ ...run, status: "published" });
+
+    revalidatePath(runPath(run.track, runId));
+    revalidatePath(runPath(run.track));
+    revalidatePath(`/${run.track}/fewshot`);
+    return { message: `已标记发布${feedNote ? ` —— ${feedNote}` : ""}` };
   });
 }
 
@@ -256,6 +318,6 @@ export async function resetStuckRun(runId: string): Promise<ActionResult> {
     if (!target) throw new Error(`当前状态 ${run.status} 无需重置`);
     if (stuckFor < 10 * 60 * 1000) throw new Error("生成可能仍在进行，10 分钟后再重置");
     await updateRun(runId, { status: target, error: "上次生成中断，已重置" });
-    revalidatePath(`/runs/${runId}`);
+    revalidatePath(runPath(run.track, runId));
   });
 }

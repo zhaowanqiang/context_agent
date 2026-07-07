@@ -1,17 +1,23 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { triggerAutopilot } from "@/app/actions/autopilot";
+import type { TrackId } from "@/lib/types";
 
-export default function AutopilotButton() {
-  const [isPending, startTransition] = useTransition();
+export default function AutopilotButton({ track }: { track: TrackId }) {
+  // 不用 useTransition：Next 16 的 React transition 竞态 bug（#88767）会让 isPending 卡死
+  const [isPending, setIsPending] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);
+  const router = useRouter();
 
-  const run = () => {
+  const run = async () => {
     setMsg(null);
-    startTransition(async () => {
-      const r = await triggerAutopilot();
+    setIsPending(true);
+    try {
+      const r = await triggerAutopilot(track);
+      router.refresh(); // 刷新仪表盘统计/待审列表
       if (r.error) {
         setIsError(true);
         setMsg(r.error);
@@ -26,7 +32,9 @@ export default function AutopilotButton() {
       if (failed.length > 0) m += `；失败 ${failed.length} 篇（详见 Runs）`;
       if (rep.skipped.length > 0) m += `；跳过：${rep.skipped.join("，")}`;
       setMsg(m);
-    });
+    } finally {
+      setIsPending(false);
+    }
   };
 
   return (
@@ -38,6 +46,9 @@ export default function AutopilotButton() {
       >
         {isPending ? "产线运行中…（每篇 3–5 分钟，别关页面）" : "🤖 跑一次全自动产线"}
       </button>
+      {track === "x" && (
+        <p className="text-xs text-neutral-400 sm:text-right">X 轨产线只放行 GitHub 库解读（其余选题需一手实测）</p>
+      )}
       {msg && (
         <p className={`text-sm ${isError ? "text-red-700" : "text-neutral-600"}`}>{msg}</p>
       )}

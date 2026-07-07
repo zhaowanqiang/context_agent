@@ -4,6 +4,7 @@
 """
 
 import json
+import re
 
 from . import config, llm, loader, tracks
 
@@ -27,6 +28,14 @@ def generate_draft(track_id: str, outline: str) -> llm.LLMCall:
     prompt = t["prompts"]["draft"].format(
         redline=t["redline"], style=style, fewshot=fewshot, outline=outline,
     )
+    # 大纲末尾若带「（成稿要求：…）」（如 GitHub 库短篇推介的字数限制），
+    # 只放在长 prompt 末尾权重不够会被无视——顶格注入开头作为最高优先级指令
+    m = re.search(r"（成稿要求：[^）]*）", outline)
+    if m:
+        prompt = (
+            f"【本篇硬性要求 · 优先级最高，覆盖下方一切默认篇幅/结构】\n{m.group(0)}\n"
+            f"字数指的是正文总字数，超出即不合格。\n\n{prompt}"
+        )
     c = llm.call("hop2_draft", prompt,
                  config.STRONG_MODEL, t["max_tokens"]["draft"], thinking=True)
     if track_id == "wechat":
@@ -47,8 +56,8 @@ def run_gate(track_id: str, draft: str, material: str = "") -> llm.LLMCall:
                     config.GATE_MODEL, t["max_tokens"]["gate"])
 
 
-def _parse_json_array(text: str) -> list:
-    """解析模型输出的 JSON 数组；剥一层 ``` 围栏后重试一次。"""
+def _parse_json(step: str, text: str):
+    """解析模型输出的 JSON；剥一层 ``` 围栏后重试一次。"""
     from .errors import LLMAPIError
     try:
         return json.loads(text)
@@ -60,20 +69,44 @@ def _parse_json_array(text: str) -> list:
                 return json.loads(stripped)
             except json.JSONDecodeError:
                 pass
-        raise LLMAPIError(f"[score_topics] 模型输出不是合法 JSON：{text[:200]}")
+        raise LLMAPIError(f"[{step}] 模型输出不是合法 JSON：{text[:200]}")
 
 
-def score_topics(track_id: str, items: list[dict]) -> tuple[list[dict], llm.LLMCall]:
+def review_draft(track_id: str, draft: str) -> tuple[dict, llm.LLMCall]:
+    """成稿质检：对照风格指纹打质量分（小模型省钱）。
+
+    返回 ({"score": float, "problems": [str], "better_title": str|None}, call)。
+    自动产线用它决定是否带着问题清单重写一次；人工流程只做展示。
+    """
+    from . import prompts
+    from .errors import LLMAPIError
+    t = tracks.get_track(track_id)
+    style = loader.load_style(t)
+    prompt = prompts.REVIEW_PROMPTS[track_id].format(style=style, draft=draft)
+    c = llm.call("review_draft", prompt, config.GATE_MODEL, t["max_tokens"]["review"])
+    review = _parse_json(("review_draft"), c.response)
+    if not isinstance(review, dict) or "score" not in review:
+        raise LLMAPIError(f"[review_draft] 输出缺少 score 字段：{c.response[:200]}")
+    review.setdefault("problems", [])
+    review.setdefault("better_title", None)
+    review["score"] = float(review["score"])
+    return review, c
+
+
+def score_topics(track_id: str, items: list[dict],
+                 recent_titles: list[str] | None = None) -> tuple[list[dict], llm.LLMCall]:
     """选题打分：RSS 条目列表 → [{id, score, angle, reason}]（小模型省钱）。
 
     items: [{"id": str, "title": str, "summary": str}]，调用方每批 ≤20 条。
+    recent_titles: 最近已用/候选的选题标题 —— 同一事件重复的候选会被打低分。
     """
     from . import prompts
     t = tracks.get_track(track_id)
     prompt = prompts.TOPIC_SCORE_PROMPTS[track_id].format(
         redline=t["redline"],
+        recent_titles="\n".join(f"- {t_}" for t_ in (recent_titles or [])) or "（无）",
         items_json=json.dumps(items, ensure_ascii=False, indent=1),
     )
     # 英文候选（Reddit/HN）标题摘要长、angle/reason 要中文，输出预算给足
     c = llm.call("score_topics", prompt, config.GATE_MODEL, 5000)
-    return _parse_json_array(c.response), c
+    return _parse_json(("score_topics"), c.response), c

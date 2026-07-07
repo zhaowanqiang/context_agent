@@ -76,6 +76,12 @@ def call(step: str, prompt: str, model: str, max_tokens: int,
         raise LLMConnectionError(f"[{step}] 网络连接失败：{e}")
 
     text = "".join(b.text for b in msg.content if b.type == "text")
+    if not text.strip():
+        # 推理模型思考链耗尽 max_tokens 时正文为空——静默放行会产出空 checklist/空稿
+        raise LLMAPIError(
+            f"[{step}] 模型输出正文为空（output_tokens={msg.usage.output_tokens}，"
+            f"可能是思考链耗尽 max_tokens={max_tokens}，调大该步骤预算后重试）"
+        )
     usage = {
         "input_tokens": msg.usage.input_tokens,
         "output_tokens": msg.usage.output_tokens,

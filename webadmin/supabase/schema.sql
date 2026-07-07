@@ -104,3 +104,9 @@ insert into sources (track, name, feed_url) values
   ('wechat', '爱范儿', 'https://www.ifanr.com/feed'),
   ('wechat', '36氪', 'https://36kr.com/feed'),
   ('wechat', 'InfoQ 中文', 'https://www.infoq.cn/feed');
+
+-- GitHub 热门库源（lib/github.ts 识别 trending URL 走专用解析器；
+-- feed_url 有唯一约束，X 轨用 #x 后缀区分，抓取时 hash 不参与请求）
+insert into sources (track, name, feed_url) values
+  ('wechat', 'GitHub 热门库（公众号）', 'https://github.com/trending?since=daily'),
+  ('x', 'GitHub 热门库（X）', 'https://github.com/trending?since=daily#x');
