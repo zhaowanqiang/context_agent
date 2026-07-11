@@ -20,37 +20,38 @@ export default async function PostsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl py-8">
-      <h1 className="text-2xl font-bold tracking-tight text-neutral-900">文章</h1>
-      <p className="mt-2 text-[14px] text-neutral-500">
+    <div className="mx-auto max-w-2xl py-10">
+      <h1 className="font-display text-3xl font-bold tracking-tight text-neutral-900">
+        文章<span className="text-amber-500">.</span>
+      </h1>
+      <p className="mt-3 text-[14.5px] leading-relaxed text-neutral-500">
         实测干货的公开存档——同步发布于公众号与 X，原文以这里为准。
+        也可以用 <a href="/rss.xml" className="text-amber-700 underline decoration-amber-300 underline-offset-4">RSS</a> 订阅。
       </p>
 
       {posts.length === 0 ? (
-        <p className="mt-10 rounded-xl border border-dashed border-neutral-200 p-8 text-center text-[13px] text-neutral-400">
-          还没有文章。工作台里发布 run 后点「回流到个人站」即可上架。
+        <p className="mt-16 text-center text-[13.5px] text-neutral-400">
+          还没有文章——第一篇正在产线上。
         </p>
       ) : (
-        <ul className="mt-8 divide-y divide-neutral-200">
+        <ul className="mt-10 divide-y divide-neutral-200/70 border-t border-neutral-200">
           {posts.map((p) => (
             <li key={p.id}>
-              <Link href={`/posts/${p.slug}`} className="group block py-5">
-                <div className="flex items-baseline justify-between gap-4">
-                  <h2 className="min-w-0 flex-1 truncate text-[16px] font-bold text-neutral-900 transition group-hover:text-amber-700">
+              <Link href={`/posts/${p.slug}`} className="group grid gap-x-5 py-6 sm:grid-cols-[92px_1fr]">
+                <time className="pt-0.5 text-[12.5px] tabular-nums text-neutral-400">
+                  {new Date(p.published_at).toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" })}
+                </time>
+                <div className="min-w-0">
+                  <h2 className="text-[17px] font-semibold leading-snug text-neutral-900 transition group-hover:text-amber-700">
                     {p.title}
                   </h2>
-                  <time className="shrink-0 text-[12px] text-neutral-400">
-                    {new Date(p.published_at).toLocaleDateString("zh-CN")}
-                  </time>
+                  {p.summary && (
+                    <p className="mt-2 line-clamp-2 text-[13.5px] leading-relaxed text-neutral-500">{p.summary}</p>
+                  )}
+                  {p.track && (
+                    <p className="mt-2.5 text-[11.5px] text-neutral-400">{TRACK_LABEL[p.track]}</p>
+                  )}
                 </div>
-                {p.summary && (
-                  <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-neutral-500">{p.summary}</p>
-                )}
-                {p.track && (
-                  <span className="mt-2 inline-block rounded-full border border-neutral-200 px-2 py-0.5 text-[11px] text-neutral-400">
-                    {TRACK_LABEL[p.track]}
-                  </span>
-                )}
               </Link>
             </li>
           ))}

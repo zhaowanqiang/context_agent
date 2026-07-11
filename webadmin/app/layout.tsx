@@ -3,6 +3,7 @@ import Link from "next/link";
 import { isAdminAuthed } from "@/lib/adminAuth";
 import { MODULES } from "@/lib/modules";
 import { SITE, siteUrl } from "@/lib/site";
+import NavLinks from "@/components/NavLinks";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -30,36 +31,34 @@ const PUBLIC_NAV = [
 ];
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  // 导航按登录态分层：访客只看公开层，登录后追加工作台模块
+  // 布局按登录态分层：访客 = 窄栏编辑部版式（header/正文/页脚同一条 42rem 网格），
+  // 登录后 = 宽幅工作台（xl 起 1480px 给轨道双侧栏让位）
   const authed = await isAdminAuthed();
+  const container = authed ? "max-w-5xl xl:max-w-[1480px]" : "max-w-2xl";
 
   return (
     <html lang="zh-CN">
       <body className="flex min-h-screen flex-col bg-neutral-50 text-neutral-800 antialiased">
-        <header className="sticky top-0 z-40 border-b border-neutral-200/80 bg-neutral-50/90 backdrop-blur">
-          <nav className="mx-auto flex max-w-5xl items-center gap-6 px-4 py-3 xl:max-w-[1480px]">
-            <Link href="/" className="flex items-center gap-2 font-bold tracking-tight hover:text-neutral-600">
-              <span className="inline-block h-2 w-2 rounded-full bg-amber-500" aria-hidden />
+        <header className="sticky top-0 z-40 border-b border-neutral-200/70 bg-neutral-50/90 backdrop-blur">
+          <nav className={`mx-auto flex ${container} items-center gap-7 px-4 py-3.5`}>
+            <Link
+              href="/"
+              className="font-display flex items-baseline gap-0.5 text-[17px] font-bold tracking-tight hover:text-neutral-600"
+            >
               {SITE.name}
+              <span className="text-amber-500" aria-hidden>.</span>
             </Link>
-            <div className="flex flex-1 items-center gap-4 text-sm text-neutral-500">
-              {PUBLIC_NAV.map((l) => (
-                <Link key={l.href} href={l.href} className="transition-colors hover:text-neutral-900">
-                  {l.label}
-                </Link>
-              ))}
-              {authed &&
-                MODULES.filter((m) => m.status === "active").map((m) =>
-                  m.external ? (
-                    <a key={m.id} href={m.href} className="transition-colors hover:text-neutral-900">
-                      {m.name} ↗
-                    </a>
-                  ) : (
-                    <Link key={m.id} href={m.href} className="transition-colors hover:text-neutral-900">
-                      {m.name}
-                    </Link>
-                  )
-                )}
+            <div className="flex flex-1 items-center gap-6 text-sm">
+              <NavLinks items={PUBLIC_NAV} />
+              {authed && (
+                <NavLinks
+                  items={MODULES.filter((m) => m.status === "active").map((m) => ({
+                    label: m.name,
+                    href: m.href,
+                    external: m.external,
+                  }))}
+                />
+              )}
             </div>
             {!authed && (
               <Link
@@ -71,14 +70,29 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             )}
           </nav>
         </header>
-        {/* xl 起加宽给轨道内双侧栏让位；窄屏维持 5xl 单栏 */}
-        <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 xl:max-w-[1480px]">{children}</main>
-        <footer className="border-t border-neutral-200/80">
-          <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4 text-[12px] text-neutral-400 xl:max-w-[1480px]">
-            <span>© {new Date().getFullYear()} {SITE.name} · 实测为本，AI 起草，人工把关</span>
-            <a href="/rss.xml" className="transition-colors hover:text-neutral-600">
-              RSS
-            </a>
+        <main className={`mx-auto w-full ${container} flex-1 px-4 py-6`}>{children}</main>
+        <footer className="mt-16 border-t border-neutral-200/70">
+          <div className={`mx-auto ${container} px-4 py-8`}>
+            <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-3">
+              <div>
+                <span className="font-display text-[15px] font-bold tracking-tight text-neutral-700">
+                  {SITE.name}<span className="text-amber-500">.</span>
+                </span>
+                <p className="mt-1.5 text-[12px] leading-relaxed text-neutral-400">
+                  实测为本，AI 起草，人工把关 · © {new Date().getFullYear()}
+                </p>
+              </div>
+              <div className="flex gap-5 text-[13px] text-neutral-500">
+                {SITE.links.map((l) => (
+                  <a key={l.href} href={l.href} target="_blank" rel="noreferrer" className="transition-colors hover:text-neutral-900">
+                    {l.label}
+                  </a>
+                ))}
+                <a href="/rss.xml" className="transition-colors hover:text-neutral-900">
+                  RSS
+                </a>
+              </div>
+            </div>
           </div>
         </footer>
       </body>

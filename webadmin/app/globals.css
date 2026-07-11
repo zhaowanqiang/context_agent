@@ -20,6 +20,12 @@
   --color-neutral-800: #292524;
   --color-neutral-900: #1c1917;
   --color-neutral-950: #0c0a09;
+
+  /* 展示字体（font-display 工具类）：拉丁字用 Georgia 衬线做记忆点，
+   * 中文回落系统无衬线——不引外部 webfont（本地优先 + 大陆网络），
+   * 也不用 SimSun 合成粗体（大字号发虚）。 */
+  --font-display: Georgia, "Times New Roman", -apple-system, "Microsoft YaHei UI",
+    "PingFang SC", serif;
 }
 
 :root {
@@ -41,6 +47,12 @@ body {
   font-size: 15px;
   line-height: 1.75;
   letter-spacing: 0.01em;
+}
+
+/* 选中文本给一点品牌色——细节层面的「有人在意」信号 */
+::selection {
+  background: #fde68a; /* amber-200 */
+  color: #451a03; /* amber-950 */
 }
 
 /* 渲染后的 markdown 正文（checklist、成稿预览等） */
@@ -147,6 +159,40 @@ body {
 }
 .md-body strong {
   color: #1c1917;
+}
+
+/* 公开层文章阅读版式：叠在 .md-body 上放大阅读尺寸（工作台预览不受影响）。
+ * 阅读页的正文要比后台预览舒展：字号 +1.5px、行距 2.05、标题留白加倍。 */
+.md-article {
+  font-size: 16.5px;
+  line-height: 2.05;
+  color: #44403c;
+}
+.md-article h1,
+.md-article h2 {
+  font-size: 20px;
+  margin: 2.2em 0 0.9em;
+  line-height: 1.5;
+}
+.md-article h3,
+.md-article h4 {
+  font-size: 17px;
+  margin: 1.8em 0 0.7em;
+}
+.md-article p {
+  margin: 1em 0;
+}
+.md-article img {
+  border-radius: 8px;
+  border: 1px solid #e7e5e4;
+  margin: 1.2em 0;
+}
+.md-article blockquote {
+  margin: 1.2em 0;
+  padding: 0.7em 1.2em;
+}
+.md-article code {
+  font-size: 14px;
 }
 
 /* 素材等预格式化长文本：不用等宽，保留换行 */

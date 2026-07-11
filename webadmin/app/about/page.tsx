@@ -9,10 +9,12 @@ export const metadata: Metadata = {
 /** 公开层：关于页。纯静态内容，直接改这个文件即可。 */
 export default function AboutPage() {
   return (
-    <div className="mx-auto max-w-3xl py-8">
-      <h1 className="text-2xl font-bold tracking-tight text-neutral-900">关于</h1>
+    <div className="mx-auto max-w-2xl py-10">
+      <h1 className="font-display text-3xl font-bold tracking-tight text-neutral-900">
+        关于<span className="text-amber-500">.</span>
+      </h1>
 
-      <div className="md-body mt-6">
+      <div className="md-body md-article mt-8 border-t border-neutral-200 pt-8">
         <p>
           我是 <strong>zynqorw</strong>，全栈开发者。这个站点由两部分组成：对外的内容存档，
           和一套只有我自己能进的 AI 工作台——文章就是从那条产线上下来的。
