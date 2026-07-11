@@ -23,25 +23,40 @@ export async function smartFetch(url: string, timeoutMs = 15_000): Promise<Respo
   } catch {
     const proxy = process.env.AGENT_FETCH_PROXY;
     if (!proxy) throw new Error(`直连失败且未配置 AGENT_FETCH_PROXY：${url}`);
-    return curlFetch(url, proxy, timeoutMs + 15_000);
+    // 代理路径重试一次：本地代理节点偶发抖动/超时是常态，别让单次失败污染整期简报
+    try {
+      return await curlFetch(url, proxy, timeoutMs + 15_000);
+    } catch {
+      await new Promise((r) => setTimeout(r, 1_500));
+      return curlFetch(url, proxy, timeoutMs + 15_000);
+    }
   }
 }
 
 async function curlFetch(url: string, proxy: string, timeoutMs: number): Promise<Response> {
-  const { stdout } = await execFileP(
-    "curl",
-    [
-      "-s",
-      "-L",
-      "-m", String(Math.ceil(timeoutMs / 1000)),
-      "-x", proxy,
-      "-A", UA,
-      "-H", "Accept: text/html,application/xhtml+xml,application/xml,*/*",
-      "-w", "\n__HTTP_STATUS__%{http_code}",
-      url,
-    ],
-    { maxBuffer: 20 * 1024 * 1024, windowsHide: true }
-  );
+  let stdout: string;
+  try {
+    ({ stdout } = await execFileP(
+      "curl",
+      [
+        "-sS", // -s 静默进度但 -S 保留错误：否则失败时只剩 "Command failed" 无从排查
+        "-L",
+        "-m", String(Math.ceil(timeoutMs / 1000)),
+        "-x", proxy,
+        "-A", UA,
+        "-H", "Accept: text/html,application/xhtml+xml,application/xml,*/*",
+        "-w", "\n__HTTP_STATUS__%{http_code}",
+        url,
+      ],
+      { maxBuffer: 20 * 1024 * 1024, windowsHide: true }
+    ));
+  } catch (e) {
+    // execFile 的原始 message 是整条命令行（含完整 URL），塞进简报没法读；
+    // 换成 curl 自己的错误行（如 "curl: (28) Operation timed out"）
+    const err = e as Error & { code?: number | string; stderr?: string };
+    const line = (err.stderr ?? "").trim().split("\n").filter(Boolean).pop();
+    throw new Error(`代理抓取失败：${line || `curl 退出码 ${err.code ?? "未知"}`}`);
+  }
   const marker = stdout.lastIndexOf("\n__HTTP_STATUS__");
   const status = marker >= 0 ? parseInt(stdout.slice(marker + 16).trim(), 10) : 0;
   const body = marker >= 0 ? stdout.slice(0, marker) : stdout;
