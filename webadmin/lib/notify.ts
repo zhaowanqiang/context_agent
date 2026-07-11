@@ -1,5 +1,39 @@
 import "server-only";
 import { spawn } from "node:child_process";
+import { smartFetch } from "./proxyFetch";
+
+/**
+ * 双通道告警：本机 toast（人在电脑前）+ Telegram（人在外面）。
+ * 定时产线的完成/失败都该走这个，单通道都可能看不见。
+ */
+export function notifyAll(title: string, body: string): void {
+  notifyWindows(title, body);
+  void notifyTelegram(title, body);
+}
+
+/**
+ * Telegram Bot 推送：TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID 配了才发（否则空操作）。
+ * sendMessage 用 GET 带参即可，直接复用 smartFetch——直连失败自动经
+ * AGENT_FETCH_PROXY 走 curl，国内到 api.telegram.org 必须这条路。
+ * 失败只记日志：告警是锦上添花，不能反过来弄挂产线。
+ */
+export async function notifyTelegram(title: string, body: string): Promise<void> {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+  if (!token || !chatId) return;
+  const text = `${title}\n${body}`.slice(0, 3500); // Telegram 上限 4096，留余量
+  const url =
+    `https://api.telegram.org/bot${token}/sendMessage` +
+    `?chat_id=${encodeURIComponent(chatId)}&text=${encodeURIComponent(text)}`;
+  try {
+    const res = await smartFetch(url, 10_000);
+    if (!res.ok) {
+      console.error("[notify] Telegram 推送失败：HTTP", res.status, (await res.text()).slice(0, 200));
+    }
+  } catch (e) {
+    console.error("[notify] Telegram 推送失败：", (e as Error).message);
+  }
+}
 
 /**
  * Windows 桌面通知（toast）：定时产线跑完后提醒，不用主动开页面。
