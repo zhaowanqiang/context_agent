@@ -6,8 +6,12 @@ webadmin/.env.local
 __pycache__/
 *.pyc
 
-# 运行记录（含素材原文，不入库）
-runs/
+# 运行记录（含素材原文，不入库）——必须锚定根目录：
+# 无锚定的 runs/ 曾把 webadmin/app/agent/[track]/runs/ 页面目录也吞了
+/runs/
+
+# 服务日志（start.ps1 落盘，30 天自动清理）
+logs/
 
 # 内容资产：原始素材、few-shot 范例、风格指纹是个人内容资产，公开仓库不收录
 # （仓库提供 tracks/*/style.md.example 脱敏模板，克隆后复制为 style.md 自行改写）
@@ -17,3 +21,7 @@ tracks/*/style.md
 
 # 本地工具配置
 .claude/
+
+# 独立子项目：出海开户决策工具（自己的 git 仓库 + 真实密钥 + 商业逻辑，不进公开仓）
+# 同样锚定根目录，别吞 webadmin/app/decider/ 门户跳转路由
+/decider/
