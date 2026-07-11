@@ -2,6 +2,17 @@
 
 双轨内容生产系统：把实测原始笔记生成为可发布的内容，两跳生成 + 事实闸门，human-in-the-loop。
 
+## 个人网站公开层
+
+webadmin 同时是对外的个人网站：首页名片、`/posts` 文章存档、`/about` 关于页、
+`/rss.xml` `/sitemap.xml` `/robots.txt` 对访客开放（无需登录）；
+`/agent` `/monitor` 等工作台路由照旧访问码上锁（`webadmin/proxy.ts` 白名单分层）。
+
+- **内容回流**：run 标记发布后，详情页点「回流到个人站」→ 终稿上架 `/posts/<slug>`（可下架）
+- **建表**：已建库的在 Supabase SQL Editor 执行 `webadmin/supabase/schema.sql` 末尾
+  「个人网站公开层」增量段（`posts` 表）
+- **部署公网后**：`.env.local` 设 `SITE_URL=https://你的域名`（canonical/OG/RSS/sitemap 引用它）
+
 - **X 轨道**：跨境金融 / 加密支付卡实测 → @zynqorw 风格干货帖
 - **公众号轨道**：AI 工具与效率实测 → 1500–3000 字长文（大陆合规红线，独立于 X 轨道）
 
@@ -23,10 +34,26 @@ Gate   红线检查 + 待核实清单（小模型，默认 deepseek-v4-flash）
 
 首次使用：
 1. 到 https://supabase.com 免费建项目，SQL Editor 里执行 `webadmin/supabase/schema.sql`
-2. 复制 `webadmin/.env.local.example` 为 `webadmin/.env.local`，填入项目 URL 和 service_role key
+2. 复制 `webadmin/.env.local.example` 为 `webadmin/.env.local`，填入项目 URL 和 service_role key，
+   并给 `ADMIN_ACCESS_CODE` 填一段随机字符串（后台登录用的访问码）
 3. `pip install -r requirements.txt`；`cd webadmin && npm install`
 4. 复制 `tracks/x/style.md.example` 和 `tracks/wechat/style.md.example` 为同目录 `style.md`，
    按自己的账号定位改写（风格指纹与 few-shot 范例属个人内容资产，不随仓库分发）
+
+## 无人值守运维
+
+```powershell
+.\setup-autostart.ps1   # 注册任务计划：登录自启 / 每天 07:50 唤醒 PC / 每天 21:30 备份（-Remove 卸载）
+.\backup.ps1            # 手动备份：tracks + X_post + runs + Supabase 全表 → D:\context_agent_backup
+```
+
+- **鉴权**：全站访问码登录（`webadmin/proxy.ts`），码在 `.env.local` 的 `ADMIN_ACCESS_CODE`
+- **错过补跑**：关机/睡眠错过当天定时产线时，服务启动 2 分钟后自动补一次（`runs/cron-stamps/` 运行戳）
+- **告警**：本机 toast + Telegram 推送（`TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID`，走 `AGENT_FETCH_PROXY` 代理）
+- **日志**：三个进程输出落 `logs/<进程>-<日期>.log`，保留 30 天
+- **备份远端**：GitHub 建私有仓库后
+  `git -C D:\context_agent_backup remote add origin git@github.com:<你>/context-agent-backup.git`，
+  之后每天 21:30 自动 push
 
 **② CLI（单篇快跑）**：
 
@@ -92,4 +119,3 @@ DEEPSEEK_API_KEY=sk-...
 - Supabase 免费层 7 天无活动会暂停项目，每周至少用一次
 - 生成中别关页面；卡死超 10 分钟工作台会出现「重置重试」
 - 新加 RSS 源先确认是 UTF-8 输出
-- `content_agent_v1.py` 是第一版单文件脚本，保留作历史参照

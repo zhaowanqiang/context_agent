@@ -3,6 +3,7 @@
 import { readFileSync } from "node:fs";
 import puppeteer from "puppeteer-core";
 import { createClient } from "@supabase/supabase-js";
+import { setAuthCookie } from "./authCookie.mjs";
 
 const BASE = "http://localhost:3000";
 const WITH_LLM = process.argv.includes("--llm");
@@ -47,6 +48,7 @@ const browser = await puppeteer.launch({
   executablePath: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
   headless: "new",
 });
+await setAuthCookie(browser);
 const page = await browser.newPage();
 await page.setViewport({ width: 1280, height: 900 });
 
@@ -89,13 +91,17 @@ const waitText = (text, timeout = 15000) =>
   page.waitForFunction((t) => document.body.innerText.includes(t), { timeout }, text);
 
 try {
-  // 1. 首页 → 进入公众号轨
+  // 1. 门户首页 → 模块卡上的轨道入口直达公众号仪表盘（平台选择页已废弃）
   await page.goto(BASE, { waitUntil: "networkidle2", timeout: 30000 });
-  await waitText("选择平台");
-  ok("首页渲染");
-  await clickByText("公众号", "a h2");
+  await waitText("工作台"); // 登录态首页：公开层（名片/文章/作品）+ 私有工作台区块
+  ok("门户首页渲染（zynqorw + 工作台模块卡）");
+  await clickByText("公众号长文", "a");
   await waitText("仪表盘");
-  ok("首页 → 公众号仪表盘");
+  ok("门户轨道入口 → 公众号仪表盘");
+  // /agent 旧入口应重定向进默认轨道
+  await page.goto(`${BASE}/agent`, { waitUntil: "networkidle2" });
+  const agentLanding = await page.evaluate(() => location.pathname);
+  if (agentLanding === "/agent/wechat") ok("/agent 重定向到默认轨道"); else bad("/agent 重定向", `落在 ${agentLanding}`);
 
   // 2. 轨道内导航计时（首访 vs 30s 内重访，验证客户端缓存）
   const navTo = async (label, expect) => {
@@ -114,7 +120,7 @@ try {
   else ok("客户端缓存生效（30s 内重访显著变快）");
 
   // 3. 选题操作：入候选（乐观更新）→ 持久化 → 丢弃
-  await page.goto(`${BASE}/wechat/topics`, { waitUntil: "networkidle2" });
+  await page.goto(`${BASE}/agent/wechat/topics`, { waitUntil: "networkidle2" });
   await waitText(MARK);
   const tOpt = Date.now();
   await clickRowButton(MARK, "入候选");
@@ -125,7 +131,7 @@ try {
   const { data: after } = await db.from("feed_items").select("status").eq("id", item.id).single();
   if (after?.status === "shortlisted") ok("入候选已持久化"); else bad("入候选持久化", `status=${after?.status}`);
   // 候选 tab 里能看到
-  await page.goto(`${BASE}/wechat/topics?status=shortlisted`, { waitUntil: "networkidle2" });
+  await page.goto(`${BASE}/agent/wechat/topics?status=shortlisted`, { waitUntil: "networkidle2" });
   await waitText(MARK);
   ok("候选 tab 显示新候选");
   // 丢弃
@@ -136,7 +142,7 @@ try {
 
   // 4. 开始创作按钮 → 新建 Run 页（带 feed_item 种子）
   await db.from("feed_items").update({ status: "shortlisted" }).eq("id", item.id);
-  await page.goto(`${BASE}/wechat/topics?status=shortlisted`, { waitUntil: "networkidle2" });
+  await page.goto(`${BASE}/agent/wechat/topics?status=shortlisted`, { waitUntil: "networkidle2" });
   await waitText(MARK);
   await clickRowButton(MARK, "开始创作");
   // 注意：每页导航栏都有「+ 新建 Run」按钮，不能用文字等页面，直接等表单出现
@@ -145,7 +151,7 @@ try {
   if (seedVal.includes(MARK)) ok("开始创作 → 新建页种子素材注入"); else bad("新建页种子素材", "textarea 里没有选题标题");
 
   // 5. Run 工作台：素材展示 + 放弃
-  await page.goto(`${BASE}/x/runs/${runAbort.id}`, { waitUntil: "networkidle2" });
+  await page.goto(`${BASE}/agent/x/runs/${runAbort.id}`, { waitUntil: "networkidle2" });
   await waitText(MARK);
   ok("Run 详情页渲染（素材可见）");
   await clickByText("放弃");
@@ -153,11 +159,11 @@ try {
   ok("放弃 run → 状态流转 aborted");
 
   // 5b. 新建 Run 表单提交 → 服务端 redirect 到 run 详情页
-  await page.goto(`${BASE}/x/runs/new`, { waitUntil: "networkidle2" });
+  await page.goto(`${BASE}/agent/x/runs/new`, { waitUntil: "networkidle2" });
   await page.waitForSelector("textarea[name=material]");
   await page.type("textarea[name=material]", `${MARK} 表单提交测试素材：实测某工具跑通，步骤三条，结论一行。`);
   await page.click("button[type=submit]");
-  await page.waitForFunction(() => /\/x\/runs\/[0-9a-f-]{36}$/.test(location.pathname), { timeout: 20000 });
+  await page.waitForFunction(() => /\/agent\/x\/runs\/[0-9a-f-]{36}$/.test(location.pathname), { timeout: 20000 });
   createdRunIds.push(await page.evaluate(() => location.pathname.split("/").pop()));
   ok("新建 Run 表单 → redirect 到 run 页");
 
@@ -169,34 +175,36 @@ try {
     checklist: "【质量自检】9.0/10\n- 无明显问题\n\n---\n\n红线检查：通过",
   }).select("id").single();
   runPubId = runPub.id;
-  await page.goto(`${BASE}/x/runs/${runPub.id}`, { waitUntil: "networkidle2" });
+  await page.goto(`${BASE}/agent/x/runs/${runPub.id}`, { waitUntil: "networkidle2" });
   await clickByText("标记已发布");
   await waitText("已在范例库", 20000);
   ok("标记发布 → 自动喂回范例库（按钮变 ✓ 状态）");
-  await page.goto(`${BASE}/x/fewshot`, { waitUntil: "networkidle2" });
+  await page.goto(`${BASE}/agent/x/fewshot`, { waitUntil: "networkidle2" });
   await waitText("few-shot 范例库");
   await waitText("成稿质检分走势");
   ok("范例库页渲染（走势图 + 条目列表）");
   await waitText(MARK); // 刚喂回的条目在列表里
   ok("新喂回的范例出现在库列表");
-  await clickRowButton(MARK, "删除");
+  // 只认范例条目正文特有的文字——run 标题（含 MARK）会合法地出现在右侧栏「最近发布」里
+  const ENTRY_TEXT = "喂库测试终稿";
+  await clickRowButton(ENTRY_TEXT, "删除");
   try {
-    await page.waitForFunction((t) => !document.body.innerText.includes(t), { timeout: 10000 }, MARK);
+    await page.waitForFunction((t) => !document.body.innerText.includes(t), { timeout: 10000 }, ENTRY_TEXT);
     ok("删除范例 → 列表即时移除");
-  } catch (e) {
+  } catch {
     const dump = await page.evaluate((t) =>
       [...document.querySelectorAll("li,span,p")]
         .filter((el) => el.children.length === 0 && el.innerText?.includes(t))
         .map((el) => `${el.tagName}: ${el.innerText.slice(0, 120)}`)
         .slice(0, 5),
-      MARK
+      ENTRY_TEXT
     );
-    bad("删除范例 → 列表即时移除", `超时。MARK 残留在：${JSON.stringify(dump)}`);
+    bad("删除范例 → 列表即时移除", `超时。残留在：${JSON.stringify(dump)}`);
   }
 
   // 7.（可选）真 LLM：分步出大纲，验证 Next→FastAPI→DeepSeek 全链路
   if (WITH_LLM && runLlm) {
-    await page.goto(`${BASE}/x/runs/${runLlm.id}`, { waitUntil: "networkidle2" });
+    await page.goto(`${BASE}/agent/x/runs/${runLlm.id}`, { waitUntil: "networkidle2" });
     await clickByText("分步走：先出大纲让我改");
     console.log("… LLM 出大纲中（最长等 4 分钟）");
     await waitText("大纲 · 人工闸口", 240000);
@@ -205,8 +213,20 @@ try {
     await waitText("本次运行已放弃", 15000);
   }
 
+  // 7b. 卡死 run 自愈：种一个 40 分钟前卡在 outlining 的 run，访问仪表盘应被清成 failed
+  const { data: runStuck } = await db.from("runs").insert({
+    track: "x", status: "outlining", material,
+    title: `${MARK}stuck`, updated_at: new Date(Date.now() - 40 * 60_000).toISOString(),
+  }).select("id").single();
+  createdRunIds.push(runStuck.id);
+  await page.goto(`${BASE}/agent/x`, { waitUntil: "networkidle2" });
+  await new Promise((r) => setTimeout(r, 1500)); // 清尸 UPDATE 与页面查询并行
+  const { data: afterHeal } = await db.from("runs").select("status,error").eq("id", runStuck.id).single();
+  if (afterHeal?.status === "failed") ok("卡死 run 自愈（仪表盘加载 → 标 failed 可重试）");
+  else bad("卡死 run 自愈", `status=${afterHeal?.status}`);
+
   // 8. 无效轨道 404 页
-  await page.goto(`${BASE}/bogus`, { waitUntil: "networkidle2" });
+  await page.goto(`${BASE}/agent/bogus`, { waitUntil: "networkidle2" });
   const notFound = await page.evaluate(() => document.body.innerText.includes("404") || document.body.innerText.includes("not be found"));
   if (notFound) ok("无效轨道渲染 404 页"); else bad("无效轨道", "没有渲染 404 内容");
 } catch (e) {

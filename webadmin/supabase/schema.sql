@@ -147,3 +147,25 @@ insert into monitor_topics (name, keywords, note, position) values
   ('跨境多币种账户', 'cross-border multi-currency account / 跨境多币种账户', null, 4),
   ('加密支付卡返现与费率变动', 'crypto debit card cashback fee changes / 加密支付卡 返现 费率', null, 5),
   ('海外银行开户政策', 'overseas bank account opening policy changes / 海外银行开户政策', null, 6);
+
+-- ============================================================
+-- 增量（2026-07-11）：个人网站公开层。已建库的只需在 SQL Editor 执行本段。
+-- 产线成稿"回流"到自己域名：run 发布后一键生成 post，
+-- /posts、rss.xml、sitemap.xml 对公网访客开放（无需登录）。
+-- ============================================================
+
+create table posts (
+  id uuid primary key default gen_random_uuid(),
+  run_id uuid references runs(id) on delete set null,  -- 手写文章可为 null
+  track track_id,                    -- 来源轨道（展示徽标用，手写文章可为 null）
+  slug text not null unique,         -- URL 段（中文标题不转写，用短 ID）
+  title text not null,
+  summary text,                      -- 列表页/RSS/OG description 摘要
+  content_md text not null,          -- 正文 markdown（回流时取 draft_final）
+  published_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index on posts (published_at desc);
+create unique index on posts (run_id) where run_id is not null;  -- 一个 run 只回流一次
+
+alter table posts enable row level security;

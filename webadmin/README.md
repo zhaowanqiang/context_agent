@@ -1,36 +1,37 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# webadmin
 
-## Getting Started
+contentagent 的 Next.js 后台（项目总览见[根目录 README](../README.md)）。
+Supabase 存数据，Python 服务（127.0.0.1:8600）跑 LLM 步骤，本应用负责全部交互与定时调度。
 
-First, run the development server:
+## 模块
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+| 路径 | 内容 |
+|---|---|
+| `/agent/wechat`、`/agent/x` | 双轨内容产线：选题池 → 生成 → 审稿 → 发布，范例库管理 |
+| `/monitor` | 监控简报：每天检索监控话题出一期；`/api/monitor/*` 供外部（Cowork）推送，`x-monitor-token` 鉴权 |
+| `/decider` | 跳转独立应用（3100） |
+
+## 鉴权
+
+全站访问码登录（`proxy.ts`，Next 16 的 middleware 后继者）：
+`.env.local` 配 `ADMIN_ACCESS_CODE`，首次访问输码，cookie 半年有效。
+改码 = 所有设备下线。不配则不验证（仅纯本机使用时可接受）。
+
+## 定时任务（instrumentation.ts）
+
+- 产线 `AUTOPILOT_CRON`（默认 08:00）、简报 `BRIEFING_CRON`（默认 09:00），设 `off` 关闭
+- 错过补跑：服务启动 2 分钟后检查 `runs/cron-stamps/` 运行戳，当天该跑没跑的自动补（仅生产模式）
+- 告警双通道：本机 toast + Telegram（`TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID`，见 `.env.local.example`）
+
+## 开发
+
+```powershell
+npm run dev     # 热更新（生产日常用根目录 start.ps1）
+npm run build && npm run start
+node scripts/e2e-smoke.mjs          # 真浏览器全流程冒烟（--llm 会花约 ¥0.03）
+node scripts/shot.mjs [url] [out]   # 截图（自动带登录 cookie）
+node scripts/dump-supabase.mjs out/ # 全表导出（备份用，backup.ps1 会调）
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+注意：next 版本锁死在精确 canary（升级需实测，canary 间随时 breaking）；
+写代码前先看 `node_modules/next/dist/docs/`（见 AGENTS.md）。
