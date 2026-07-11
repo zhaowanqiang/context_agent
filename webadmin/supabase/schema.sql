@@ -110,3 +110,40 @@ insert into sources (track, name, feed_url) values
 insert into sources (track, name, feed_url) values
   ('wechat', 'GitHub 热门库（公众号）', 'https://github.com/trending?since=daily'),
   ('x', 'GitHub 热门库（X）', 'https://github.com/trending?since=daily#x');
+
+-- ============================================================
+-- 增量（2026-07-08）：监控简报模块。已建库的只需在 SQL Editor 执行本段。
+-- Cowork 定时任务 GET /api/monitor/topics 取话题 → WebSearch →
+-- POST /api/monitor/briefings 回传简报，/monitor 页面查看与管理。
+-- ============================================================
+
+create table monitor_topics (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,                -- 话题名（简报分组标题）
+  keywords text,                     -- 搜索关键词提示（中英文，Cowork 检索时参考）
+  note text,                         -- 筛选备注（该话题额外关注什么）
+  enabled boolean not null default true,
+  position int not null default 0,   -- 简报内排序
+  created_at timestamptz not null default now()
+);
+
+create table briefings (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,               -- 如「每日简报 - 2026-07-08」
+  body_md text not null,             -- 简报正文 markdown
+  item_count int,                    -- 本期条目数（0 = 无新动态）
+  created_at timestamptz not null default now()
+);
+create index on briefings (created_at desc);
+
+alter table monitor_topics enable row level security;
+alter table briefings enable row level security;
+
+-- 预置监控话题
+insert into monitor_topics (name, keywords, note, position) values
+  ('Starryblu', 'Starryblu', null, 1),
+  ('Bybit Card', 'Bybit Card / Bybit 卡', null, 2),
+  ('KAST', 'KAST crypto card / KAST 加密支付卡', '加密支付卡/账户产品', 3),
+  ('跨境多币种账户', 'cross-border multi-currency account / 跨境多币种账户', null, 4),
+  ('加密支付卡返现与费率变动', 'crypto debit card cashback fee changes / 加密支付卡 返现 费率', null, 5),
+  ('海外银行开户政策', 'overseas bank account opening policy changes / 海外银行开户政策', null, 6);
