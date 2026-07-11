@@ -23,8 +23,8 @@ async function guard(fn: () => Promise<string>): Promise<TopicActionResult> {
 export async function fetchTopics(track: TrackId): Promise<TopicActionResult> {
   return guard(async () => {
     const results = await fetchAllSources(track);
-    revalidatePath(`/${track}/topics`);
-    revalidatePath(`/${track}/sources`);
+    revalidatePath(`/agent/${track}/topics`);
+    revalidatePath(`/agent/${track}/sources`);
     const ok = results.filter((r) => !r.error);
     const failed = results.filter((r) => r.error);
     let msg = `抓取完成：新增 ${ok.reduce((s, r) => s + r.added, 0)} 条（${ok.map((r) => `${r.source} +${r.added}`).join("，")}）`;
@@ -36,6 +36,16 @@ export async function fetchTopics(track: TrackId): Promise<TopicActionResult> {
 /** [AI 打分] 按钮：该轨道 status=new 的条目 20 条一批送对应定位的打分 */
 export async function scoreNewTopics(track: TrackId): Promise<TopicActionResult> {
   return guard(async () => {
+    // 池卫生：超 7 天仍没轮上打分的条目直接过期——时效题材过了窗口就没有解读价值，
+    // 留着只会挤占每次 60 条的打分额度（新条目按 fetched_at 倒序，旧的永远排不上）
+    const expireBefore = new Date(Date.now() - 7 * 86400_000).toISOString();
+    await db()
+      .from("feed_items")
+      .update({ status: "discarded", score_reason: "超 7 天未打分，自动过期" })
+      .eq("track", track)
+      .eq("status", "new")
+      .lt("fetched_at", expireBefore);
+
     const { data, error } = await db()
       .from("feed_items")
       .select("id,title,summary")
@@ -58,40 +68,46 @@ export async function scoreNewTopics(track: TrackId): Promise<TopicActionResult>
       .limit(30);
     const recentTitles = (recentRows ?? []).map((r) => r.title as string);
 
-    let scored = 0;
-    for (let i = 0; i < items.length; i += 20) {
-      const batch = items.slice(i, i + 20).map((it) => ({
-        id: it.id,
-        title: it.title,
-        summary: it.summary ?? "",
-      }));
-      const { scores, call } = await agent.scoreTopics(track, batch, recentTitles);
-      await db().from("llm_calls").insert({
-        run_id: null,
-        step: call.step,
-        model: call.model,
-        prompt: call.prompt,
-        response: call.response,
-        input_tokens: call.input_tokens,
-        output_tokens: call.output_tokens,
-      });
-      // 一批 20 条并行落库：串行等云端往返一条条写，60 条要白等十几秒
-      const results = await Promise.all(
-        scores.map((s) =>
-          db()
-            .from("feed_items")
-            .update({
-              status: "scored",
-              score: s.score,
-              suggested_angle: s.angle || null,
-              score_reason: s.reason || null,
-            })
-            .eq("id", s.id)
-        )
-      );
-      scored += results.filter((r) => !r.error).length;
-    }
-    revalidatePath(`/${track}/topics`);
+    // 各批之间无依赖（同批查重在批内做，跨批查重靠【最近已用选题】），
+    // 3 批并行跑：串行一批 ~40s，并行总时长 ≈ 最慢一批
+    const batches: (typeof items)[] = [];
+    for (let i = 0; i < items.length; i += 20) batches.push(items.slice(i, i + 20));
+    const batchResults = await Promise.all(
+      batches.map(async (batchItems) => {
+        const batch = batchItems.map((it) => ({
+          id: it.id,
+          title: it.title,
+          summary: it.summary ?? "",
+        }));
+        const { scores, call } = await agent.scoreTopics(track, batch, recentTitles);
+        await db().from("llm_calls").insert({
+          run_id: null,
+          step: call.step,
+          model: call.model,
+          prompt: call.prompt,
+          response: call.response,
+          input_tokens: call.input_tokens,
+          output_tokens: call.output_tokens,
+        });
+        // 一批 20 条并行落库：串行等云端往返一条条写，60 条要白等十几秒
+        const results = await Promise.all(
+          scores.map((s) =>
+            db()
+              .from("feed_items")
+              .update({
+                status: "scored",
+                score: s.score,
+                suggested_angle: s.angle || null,
+                score_reason: s.reason || null,
+              })
+              .eq("id", s.id)
+          )
+        );
+        return results.filter((r) => !r.error).length;
+      })
+    );
+    const scored = batchResults.reduce((s, n) => s + n, 0);
+    revalidatePath(`/agent/${track}/topics`);
     return `已打分 ${scored} 条`;
   });
 }
@@ -100,7 +116,7 @@ export async function shortlistTopic(id: string, track: TrackId): Promise<TopicA
   return guard(async () => {
     const { error } = await db().from("feed_items").update({ status: "shortlisted" }).eq("id", id);
     if (error) throw new Error(error.message);
-    revalidatePath(`/${track}/topics`);
+    revalidatePath(`/agent/${track}/topics`);
     return "已加入候选";
   });
 }
@@ -109,7 +125,7 @@ export async function discardTopic(id: string, track: TrackId): Promise<TopicAct
   return guard(async () => {
     const { error } = await db().from("feed_items").update({ status: "discarded" }).eq("id", id);
     if (error) throw new Error(error.message);
-    revalidatePath(`/${track}/topics`);
+    revalidatePath(`/agent/${track}/topics`);
     return "已丢弃";
   });
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { agent } from "@/lib/agent";
+import { failStuckRuns } from "@/lib/autopilot";
 import { latestReport } from "@/lib/pipelineLog";
 import { db } from "@/lib/supabase";
 import type { FeedItem, Run, TrackId } from "@/lib/types";
@@ -34,7 +35,7 @@ function StatCard({ label, value, sub, href }: { label: string; value: string | 
 function RunRow({ r }: { r: Run }) {
   return (
     <li>
-      <Link href={`/${r.track}/runs/${r.id}`} className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-50">
+      <Link href={`/agent/${r.track}/runs/${r.id}`} className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-50">
         <span className="min-w-0 flex-1 truncate text-sm">{r.title ?? r.material.slice(0, 40)}</span>
         <RunStatusBadge status={r.status} />
       </Link>
@@ -50,6 +51,8 @@ export default async function TrackDashboard({ params }: { params: Promise<{ tra
   // 与下方 Supabase 查询并行，别让 Python 健康检查串行阻塞首页
   const healthPromise = healthLight();
   const reportPromise = latestReport(track);
+  // 顺手清尸：卡死超 30 分钟的生成态 run 标 failed（异步跑，本次渲染不等它，下次可见）
+  const healPromise = failStuckRuns(track).catch(() => 0);
 
   // 数据获取放 try 里，JSX 放外面 —— React 渲染是惰性的，try/catch 包 JSX 兜不住渲染错误
   let dbError: string | null = null;
@@ -111,6 +114,7 @@ export default async function TrackDashboard({ params }: { params: Promise<{ tra
 
   const health = await healthPromise;
   const report = await reportPromise;
+  await healPromise; // 单条 UPDATE，与上面查询并行早就跑完了；await 防止响应结束后被丢弃
 
   const view = dbError ? (
     <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
@@ -124,14 +128,14 @@ export default async function TrackDashboard({ params }: { params: Promise<{ tra
           label="等你处理"
           value={pending.length}
           sub="改大纲 / 核清单 / 失败重试"
-          href={`/${track}/runs`}
+          href={`/agent/${track}/runs`}
         />
-        <StatCard label="已发布" value={publishedCount} sub="本轨道累计" href={`/${track}/runs?status=published`} />
+        <StatCard label="已发布" value={publishedCount} sub="本轨道累计" href={`/agent/${track}/runs?status=published`} />
         <StatCard
           label="选题池"
           value={scoredCount}
           sub={`已打分待筛${shortlistedCount ? ` · 候选 ${shortlistedCount}` : ""}`}
-          href={`/${track}/topics`}
+          href={`/agent/${track}/topics`}
         />
         <StatCard
           label="Token 累计"
@@ -162,13 +166,13 @@ export default async function TrackDashboard({ params }: { params: Promise<{ tra
           <section>
             <div className="mb-2 flex items-baseline justify-between">
               <h2 className="text-[15px] font-semibold text-neutral-800">最近的 Runs</h2>
-              <Link href={`/${track}/runs`} className="text-xs text-blue-600 hover:underline">
+              <Link href={`/agent/${track}/runs`} className="text-xs text-amber-700 hover:underline">
                 全部 →
               </Link>
             </div>
             {recent.length === 0 ? (
               <p className="rounded-lg border border-dashed border-neutral-200 bg-white px-4 py-6 text-center text-sm text-neutral-400">
-                还没有记录，<Link href={`/${track}/runs/new`} className="text-blue-600 hover:underline">新建第一条 →</Link>
+                还没有记录，<Link href={`/agent/${track}/runs/new`} className="text-amber-700 hover:underline">新建第一条 →</Link>
               </p>
             ) : (
               <ul className="divide-y divide-neutral-100 rounded-lg border border-neutral-200 bg-white shadow-sm">
@@ -184,7 +188,7 @@ export default async function TrackDashboard({ params }: { params: Promise<{ tra
         <section className="min-w-0">
           <div className="mb-2 flex items-baseline justify-between">
             <h2 className="text-[15px] font-semibold text-neutral-800">高分选题（≥7 分）</h2>
-            <Link href={`/${track}/topics`} className="text-xs text-blue-600 hover:underline">
+            <Link href={`/agent/${track}/topics`} className="text-xs text-amber-700 hover:underline">
               选题池 →
             </Link>
           </div>
@@ -209,7 +213,7 @@ export default async function TrackDashboard({ params }: { params: Promise<{ tra
                       {it.title}
                     </a>
                     {it.suggested_angle && (
-                      <span className="mt-0.5 block truncate text-xs text-blue-700">角度：{it.suggested_angle}</span>
+                      <span className="mt-0.5 block truncate text-xs text-amber-700">角度：{it.suggested_angle}</span>
                     )}
                   </span>
                   <TopicRowActions id={it.id} status={it.status} track={track} />
@@ -242,11 +246,12 @@ export default async function TrackDashboard({ params }: { params: Promise<{ tra
         <p className="rounded-md border border-neutral-200 bg-white px-4 py-2 text-xs text-neutral-500">
           上次产线：{new Date(report.ranAt).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}
           {" · "}产出 {report.created.filter((c) => c.ok).length} 篇待审
+          {(report.healed ?? 0) > 0 && ` · 复活卡死 ${report.healed}`}
           {report.retried.length > 0 && ` · 重试失败稿 ${report.retried.filter((r) => r.ok).length}/${report.retried.length} 成功`}
           {report.created.some((c) => !c.ok) && ` · ${report.created.filter((c) => !c.ok).length} 篇失败`}
           {report.skipped.length > 0 && ` · 跳过 ${report.skipped.length}`}
           {" —— "}
-          <Link href={`/${track}/runs?status=draft_review`} className="text-blue-600 hover:underline">
+          <Link href={`/agent/${track}/runs?status=draft_review`} className="text-amber-700 hover:underline">
             去核对 →
           </Link>
         </p>

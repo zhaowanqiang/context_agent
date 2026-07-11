@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -15,7 +15,7 @@ import {
   type ActionResult,
 } from "@/app/actions/runs";
 import { saveToFewshot } from "@/app/actions/fewshot";
-import { renderWechatHtml } from "@/lib/wechat/render";
+import { WECHAT_THEMES, renderWechatHtmlThemed } from "@/lib/wechat/wenyan";
 import CopyRichTextButton from "./CopyRichTextButton";
 import Markdown from "./Markdown";
 import WeChatPreview from "./WeChatPreview";
@@ -140,11 +140,31 @@ export default function RunWorkbench({ run, fewshotFile = null }: { run: Run; fe
   const busy = isPending || ["outlining", "drafting", "gating"].includes(run.status);
   const materialOpen = ["created", "failed"].includes(run.status);
 
-  // 公众号轨道：排版 HTML 跟随润色稿实时渲染
-  const wechatHtml = useMemo(
-    () => (run.track === "wechat" && draftFinal ? renderWechatHtml(draftFinal) : null),
-    [run.track, draftFinal]
-  );
+  // 公众号轨道：排版 HTML 跟随润色稿实时渲染（wenyan 多主题，异步 + 300ms 防抖）。
+  // 主题偏好记在 localStorage，选一次全站生效；预览 select 只在客户端异步出 HTML 后
+  // 才渲染，所以惰性初始化读 localStorage 不会产生 hydration 不一致。
+  const [wechatTheme, setWechatTheme] = useState(() => {
+    if (typeof window === "undefined") return "default";
+    const saved = localStorage.getItem("wechat-theme");
+    return saved && WECHAT_THEMES.some((t) => t.id === saved) ? saved : "default";
+  });
+  const [wechatHtml, setWechatHtml] = useState<string | null>(null);
+  useEffect(() => {
+    let stale = false;
+    const t = setTimeout(async () => {
+      const html =
+        run.track === "wechat" && draftFinal ? await renderWechatHtmlThemed(draftFinal, wechatTheme) : null;
+      if (!stale) setWechatHtml(html);
+    }, 300);
+    return () => {
+      stale = true;
+      clearTimeout(t);
+    };
+  }, [run.track, draftFinal, wechatTheme]);
+  const pickTheme = (id: string) => {
+    setWechatTheme(id);
+    localStorage.setItem("wechat-theme", id);
+  };
 
   return (
     <div className="space-y-5">
@@ -160,8 +180,8 @@ export default function RunWorkbench({ run, fewshotFile = null }: { run: Run; fe
         <div className="rounded-md border border-green-200 bg-green-50 px-4 py-2.5 text-sm text-green-800">{savedTip}</div>
       )}
       {busy && (
-        <div className="flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm text-blue-800">
-          <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+        <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
+          <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-amber-600 border-t-transparent" />
           生成进行中（强模型 + 思考，可能 1–3 分钟）……别关页面，也别重复点按钮。
         </div>
       )}
@@ -258,19 +278,43 @@ export default function RunWorkbench({ run, fewshotFile = null }: { run: Run; fe
               <>
                 {/* 手机：编辑区在上、公众号预览在下；lg 起左右并排 */}
                 <div className="flex flex-col gap-5 lg:flex-row">
-                  {showDraftPreview ? (
-                    <div className="min-w-0 flex-1 rounded-md border border-neutral-100 bg-neutral-50/50 px-5 py-4">
-                      <Markdown text={draftFinal} />
+                  <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                    <div className="text-xs text-neutral-400">
+                      {showDraftPreview ? "校对稿（纯文字，不代表公众号排版）" : "编辑稿（markdown）"}
                     </div>
-                  ) : (
-                    <textarea
-                      value={draftFinal}
-                      onChange={(e) => setDraftFinal(e.target.value)}
-                      rows={26}
-                      className="md-editor min-w-0 flex-1 rounded-md border border-neutral-300 p-4 focus:border-neutral-500 focus:outline-none"
-                    />
+                    {showDraftPreview ? (
+                      <div className="rounded-md border border-neutral-100 bg-neutral-50/50 px-5 py-4">
+                        <Markdown text={draftFinal} />
+                      </div>
+                    ) : (
+                      <textarea
+                        value={draftFinal}
+                        onChange={(e) => setDraftFinal(e.target.value)}
+                        rows={26}
+                        className="md-editor rounded-md border border-neutral-300 p-4 focus:border-neutral-500 focus:outline-none"
+                      />
+                    )}
+                  </div>
+                  {wechatHtml && (
+                    <div className="flex w-full max-w-[375px] shrink-0 flex-col gap-2 self-center lg:self-auto">
+                      <select
+                        value={wechatTheme}
+                        onChange={(e) => pickTheme(e.target.value)}
+                        className="w-full rounded-md border border-neutral-300 bg-white px-2.5 py-1.5 text-xs text-neutral-700 focus:border-neutral-500 focus:outline-none"
+                        title="公众号排版主题"
+                      >
+                        {WECHAT_THEMES.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            排版主题：{t.name}
+                          </option>
+                        ))}
+                      </select>
+                      <WeChatPreview html={wechatHtml} />
+                      <div className="text-center text-xs text-neutral-400">
+                        公众号实际排版 —— 「复制富文本」就是这个样式
+                      </div>
+                    </div>
                   )}
-                  {wechatHtml && <WeChatPreview html={wechatHtml} />}
                 </div>
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                   <Btn
@@ -329,7 +373,7 @@ export default function RunWorkbench({ run, fewshotFile = null }: { run: Run; fe
                       <span className="rounded-md border border-green-200 bg-green-50 px-3 py-1.5 text-sm font-medium text-green-800">
                         ✓ 已在范例库：{fewshotFile}
                       </span>
-                      <Link href={`/${run.track}/fewshot`} className="text-xs text-blue-600 hover:underline">
+                      <Link href={`/agent/${run.track}/fewshot`} className="text-xs text-amber-700 hover:underline">
                         查看范例库与质量走势 →
                       </Link>
                     </>
@@ -351,7 +395,7 @@ export default function RunWorkbench({ run, fewshotFile = null }: { run: Run; fe
                       </Btn>
                       <span className="text-xs text-neutral-400">
                         发布时质检达标会自动入库；这篇还不在库里——效果好可手动存入。
-                        <Link href={`/${run.track}/fewshot`} className="ml-1 text-blue-600 hover:underline">
+                        <Link href={`/agent/${run.track}/fewshot`} className="ml-1 text-amber-700 hover:underline">
                           查看范例库 →
                         </Link>
                       </span>

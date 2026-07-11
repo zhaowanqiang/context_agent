@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { qualityOf } from "@/lib/checklist";
 import { FEWSHOT_MAX, listFewshot } from "@/lib/fewshotStore";
 import { db } from "@/lib/supabase";
 import type { TrackId } from "@/lib/types";
@@ -7,12 +8,6 @@ import { isTrackId, TRACK_LABEL } from "@/lib/types";
 import FewshotRowActions from "@/components/FewshotRowActions";
 
 export const dynamic = "force-dynamic";
-
-/** checklist 头部的质检分（confirmOutline 拼入，无独立表列） */
-function qualityOf(checklist: string | null): number | null {
-  const m = checklist?.match(/【质量自检】([\d.]+)\/10/);
-  return m ? Number(m[1]) : null;
-}
 
 interface TrendPoint {
   runId: string;
@@ -89,7 +84,7 @@ export default async function FewshotPage({ params }: { params: Promise<{ track:
               {trend.map((p) => (
                 <Link
                   key={p.runId}
-                  href={`/${track}/runs/${p.runId}`}
+                  href={`/agent/${track}/runs/${p.runId}`}
                   title={`${p.score.toFixed(1)} 分 · ${p.title} · ${new Date(p.createdAt).toLocaleDateString("zh-CN")}${p.published ? "（已发布）" : ""}`}
                   className={`flex-1 rounded-t transition hover:opacity-70 ${
                     p.score >= 8 ? "bg-green-500" : p.score >= 7 ? "bg-neutral-400" : "bg-amber-400"
@@ -130,7 +125,7 @@ export default async function FewshotPage({ params }: { params: Promise<{ track:
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-2">
                         <span className="truncate text-sm font-medium">{e.title}</span>
-                        <span className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] ${e.auto ? "bg-blue-50 text-blue-700" : "bg-neutral-100 text-neutral-500"}`}>
+                        <span className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] ${e.auto ? "bg-amber-50 text-amber-700" : "bg-neutral-100 text-neutral-500"}`}>
                           {e.auto ? "从 run 入库" : "手工范例"}
                         </span>
                       </span>
@@ -139,7 +134,7 @@ export default async function FewshotPage({ params }: { params: Promise<{ track:
                         {fullRunId && (
                           <>
                             {" · "}
-                            <Link href={`/${track}/runs/${fullRunId}`} className="text-blue-600 hover:underline">来源 run →</Link>
+                            <Link href={`/agent/${track}/runs/${fullRunId}`} className="text-amber-700 hover:underline">来源 run →</Link>
                           </>
                         )}
                       </span>

@@ -1,5 +1,7 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { LeftRail, RailSkeleton, RightRail } from "@/components/TrackRails";
 import { isTrackId, TRACK_LABEL, TRACKS } from "@/lib/types";
 
 /** 轨道壳：/wechat/** 与 /x/** 各自一套完全独立的导航与页面 */
@@ -14,11 +16,11 @@ export default async function TrackLayout({
   if (!isTrackId(track)) notFound();
 
   const NAV = [
-    { href: `/${track}`, label: "仪表盘" },
-    { href: `/${track}/topics`, label: "选题池" },
-    { href: `/${track}/runs`, label: "Runs" },
-    { href: `/${track}/sources`, label: "内容源" },
-    { href: `/${track}/fewshot`, label: "范例库" },
+    { href: `/agent/${track}`, label: "仪表盘" },
+    { href: `/agent/${track}/topics`, label: "选题池" },
+    { href: `/agent/${track}/runs`, label: "Runs" },
+    { href: `/agent/${track}/sources`, label: "内容源" },
+    { href: `/agent/${track}/fewshot`, label: "范例库" },
   ];
 
   return (
@@ -30,7 +32,7 @@ export default async function TrackLayout({
           {TRACKS.map((t) => (
             <Link
               key={t}
-              href={`/${t}`}
+              href={`/agent/${t}`}
               className={`whitespace-nowrap px-3 py-1 first:rounded-l-md last:rounded-r-md ${
                 t === track
                   ? t === "wechat"
@@ -55,13 +57,28 @@ export default async function TrackLayout({
           ))}
         </nav>
         <Link
-          href={`/${track}/runs/new`}
+          href={`/agent/${track}/runs/new`}
           className="ml-auto shrink-0 whitespace-nowrap rounded bg-neutral-900 px-3 py-1.5 text-sm text-white hover:bg-neutral-700"
         >
           + 新建 Run
         </Link>
       </div>
-      {children}
+
+      {/* xl 起三栏：左=行动（快捷操作/节奏/用量），中=页面，右=情报（警报/范例库/发布/产线）。
+          侧栏经 Suspense 流式注入不阻塞主内容；窄屏自动隐藏，主内容独占 */}
+      <div className="xl:grid xl:grid-cols-[230px_minmax(0,1fr)_270px] xl:items-start xl:gap-6">
+        <aside className="hidden xl:sticky xl:top-6 xl:block">
+          <Suspense fallback={<RailSkeleton />}>
+            <LeftRail track={track} />
+          </Suspense>
+        </aside>
+        <div className="min-w-0">{children}</div>
+        <aside className="hidden xl:sticky xl:top-6 xl:block">
+          <Suspense fallback={<RailSkeleton />}>
+            <RightRail track={track} />
+          </Suspense>
+        </aside>
+      </div>
     </div>
   );
 }

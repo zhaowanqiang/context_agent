@@ -51,7 +51,7 @@ export default async function TopicsPage({
         {STATUS_TAB.map((t) => (
           <Link
             key={t.key}
-            href={`/${track}/topics?status=${t.key}`}
+            href={`/agent/${track}/topics?status=${t.key}`}
             className={`rounded px-2 py-1 text-xs ${
               status === t.key
                 ? "bg-neutral-900 text-white"
@@ -83,7 +83,7 @@ export default async function TopicsPage({
                   {it.title}
                 </a>
                 {it.suggested_angle && (
-                  <span className="block truncate text-xs text-blue-700">角度：{it.suggested_angle}</span>
+                  <span className="block truncate text-xs text-amber-700">角度：{it.suggested_angle}</span>
                 )}
                 {it.score_reason && (
                   <span className="block truncate text-xs text-neutral-400">{it.score_reason}</span>

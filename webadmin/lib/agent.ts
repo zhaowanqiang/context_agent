@@ -85,4 +85,10 @@ export const agent = {
     post<{ review: DraftReview; call: LLMCallPayload }>("/steps/review", { track, draft }),
   scoreTopics: (track: TrackId, items: { id: string; title: string; summary: string }[], recentTitles: string[] = []) =>
     post<{ scores: TopicScore[]; call: LLMCallPayload }>("/topics/score", { track, items, recent_titles: recentTitles }),
+  briefing: (
+    date: string,
+    topics: { name: string; keywords: string; note: string }[],
+    candidates: { topic: string; title: string; link: string; source: string; published: string; summary: string }[]
+  ) => post<StepResult>("/steps/briefing", { date, topics, candidates }),
+  xpost: (item: string) => post<StepResult>("/steps/xpost", { item }),
 };

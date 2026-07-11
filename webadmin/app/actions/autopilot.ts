@@ -12,9 +12,9 @@ export interface AutopilotActionResult {
 export async function triggerAutopilot(track: TrackId): Promise<AutopilotActionResult> {
   try {
     const report = await runAutopilot(track);
-    revalidatePath(`/${track}`);
-    revalidatePath(`/${track}/runs`);
-    revalidatePath(`/${track}/topics`);
+    revalidatePath(`/agent/${track}`);
+    revalidatePath(`/agent/${track}/runs`);
+    revalidatePath(`/agent/${track}/topics`);
     return { report };
   } catch (e) {
     return { error: (e as Error).message };

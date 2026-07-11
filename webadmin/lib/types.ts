@@ -66,6 +66,24 @@ export interface FeedItem {
   score_reason: string | null;
 }
 
+export interface MonitorTopic {
+  id: string;
+  name: string;
+  keywords: string | null;
+  note: string | null;
+  enabled: boolean;
+  position: number;
+  created_at: string;
+}
+
+export interface Briefing {
+  id: string;
+  title: string;
+  body_md: string;
+  item_count: number | null;
+  created_at: string;
+}
+
 export const TRACK_LABEL: Record<TrackId, string> = {
   x: "X 干货帖",
   wechat: "公众号长文",

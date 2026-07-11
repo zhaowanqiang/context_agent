@@ -11,9 +11,33 @@ export interface AutopilotReport {
   ranAt: string;
   fetched: string;
   scored: string;
+  /** 本次清掉的卡死 run 数（旧记录无此字段） */
+  healed?: number;
   retried: { run_id: string; title: string; ok: boolean }[];
   created: { run_id: string; title: string; ok: boolean; error?: string }[];
   skipped: string[];
+}
+
+/**
+ * 清尸：把卡在生成态超过 olderThanMinutes 的 run 标记为 failed。
+ * 卡死 = 进程中断（关机/休眠/服务重启）留下的尸体——正常单步 LLM 调用 ≤ 320s，
+ * 每步完成都会刷新 updated_at，30 分钟没动静必然不是还在跑。
+ * 标成 failed 后：run 页出现重试按钮、右侧栏警报可见、产线失败重试会自动补活。
+ */
+export async function failStuckRuns(track: TrackId, olderThanMinutes = 30): Promise<number> {
+  const cutoff = new Date(Date.now() - olderThanMinutes * 60_000).toISOString();
+  const { data } = await db()
+    .from("runs")
+    .update({
+      status: "failed",
+      error: "生成中断（进程重启/关机），已自动标记失败——产线会自动重试，也可手动重跑",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("track", track)
+    .in("status", ["outlining", "drafting", "gating"])
+    .lt("updated_at", cutoff)
+    .select("id");
+  return data?.length ?? 0;
 }
 
 const SCORE_MIN = Number(process.env.AUTOPILOT_SCORE_MIN ?? 8);
@@ -38,7 +62,10 @@ export async function runAutopilot(track: TrackId, maxRuns: number = MAX_RUNS): 
     skipped: [],
   };
 
-  // 0. 先重试近 3 天失败的 run（LLM 超时/瞬时故障的兜底；每次产线最多补 2 个）
+  // 0a. 清尸：卡死的 *ing run 标 failed，下面的失败重试立刻就能捞起来
+  report.healed = await failStuckRuns(track);
+
+  // 0b. 重试近 3 天失败的 run（LLM 超时/瞬时故障/刚清掉的尸体；每次产线最多补 2 个）
   const { data: failedRuns } = await db()
     .from("runs")
     .select("*")

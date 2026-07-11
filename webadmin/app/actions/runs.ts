@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { agent, AgentError, LLMCallPayload } from "@/lib/agent";
+import { lintDraft } from "@/lib/draftLint";
 import { db } from "@/lib/supabase";
 import type { Run, RunStatus, TrackId } from "@/lib/types";
 
@@ -73,20 +74,24 @@ async function addTokenUsage(runId: string, ...calls: LLMCallPayload[]) {
 
 /** run 详情/列表页都在轨道前缀下 */
 function runPath(track: TrackId, runId?: string): string {
-  return runId ? `/${track}/runs/${runId}` : `/${track}/runs`;
+  return runId ? `/agent/${track}/runs/${runId}` : `/agent/${track}/runs`;
 }
 
-/** 统一收口：异常 → { error }，LLM 失败时把 run 置 failed */
+/** 统一收口：异常 → { error }，生成中途失败把 run 置 failed。
+ *  不只 AgentError：Supabase 写失败等任何异常发生在 *ing 状态下都不能把 run 漏在生成态
+ *  （否则永远卡「大纲生成中」）；校验类错误发生在稳定状态，不会误伤。 */
 async function guard(runId: string | null, fn: () => Promise<ActionResult | void>): Promise<ActionResult> {
   try {
     return (await fn()) ?? {};
   } catch (e) {
     const message = e instanceof AgentError || e instanceof Error ? e.message : `${e}`;
-    if (runId && e instanceof AgentError) {
+    if (runId) {
       try {
         const run = await getRun(runId);
-        await updateRun(runId, { status: "failed" satisfies RunStatus, error: message });
-        revalidatePath(runPath(run.track, runId));
+        if (["outlining", "drafting", "gating"].includes(run.status)) {
+          await updateRun(runId, { status: "failed" satisfies RunStatus, error: message });
+          revalidatePath(runPath(run.track, runId));
+        }
       } catch { /* 置 failed 本身失败时，保留原始错误 */ }
     }
     return { error: message };
@@ -189,16 +194,20 @@ export async function confirmOutline(
     await updateRun(runId, { status: "gating", draft: draftRes.text, draft_final: draftRes.text });
     revalidatePath(runPath(run.track, runId));
 
-    const gateRes = await agent.gate(run.track, draftRes.text, run.material);
+    // Gate 与质检互不依赖（都只读成稿），并行跑：flash 单调用几十秒，串行白等一倍时长。
+    // 质检失败不阻塞——Gate 是硬闸，质检只是增强
+    const [gateRes, reviewOut] = await Promise.all([
+      agent.gate(run.track, draftRes.text, run.material),
+      agent.review(run.track, draftRes.text).catch(() => null),
+    ]);
     await saveCall(runId, gateRes.call);
 
-    // 成稿质检：对照风格指纹打分（flash，便宜）。失败不阻塞——Gate 已过，质检只是增强
     let quality: number | undefined;
     let qualityProblems: string[] = [];
     let checklist = gateRes.text;
     const usageCalls = [draftRes.call, gateRes.call];
-    try {
-      const { review, call } = await agent.review(run.track, draftRes.text);
+    if (reviewOut) {
+      const { review, call } = reviewOut;
       await saveCall(runId, call);
       usageCalls.push(call);
       quality = review.score;
@@ -209,7 +218,17 @@ export async function confirmOutline(
         ...(review.better_title ? [`建议标题：${review.better_title}`] : []),
       ].join("\n");
       checklist = `${block}\n\n---\n\n${gateRes.text}`;
-    } catch { /* 质检挂了不影响主流程 */ }
+    }
+
+    // 机器校验（正则，零成本）置顶：残留标记/编造图链/字数超纲/绝对化用语，全过则不加块
+    const lintIssues = lintDraft(run.track, draftRes.text, run.material, outlineFinal);
+    if (lintIssues.length > 0) {
+      const lintBlock = [
+        `【机器校验】${lintIssues.length} 处需人工处理`,
+        ...lintIssues.map((i) => `- ${i}`),
+      ].join("\n");
+      checklist = `${lintBlock}\n\n---\n\n${checklist}`;
+    }
 
     await updateRun(runId, { status: "draft_review", checklist });
     await addTokenUsage(runId, ...usageCalls);
@@ -299,7 +318,7 @@ export async function markPublished(
 
     revalidatePath(runPath(run.track, runId));
     revalidatePath(runPath(run.track));
-    revalidatePath(`/${run.track}/fewshot`);
+    revalidatePath(`/agent/${run.track}/fewshot`);
     return { message: `已标记发布${feedNote ? ` —— ${feedNote}` : ""}` };
   });
 }

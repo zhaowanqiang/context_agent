@@ -34,7 +34,7 @@ export default function TopicRowActions({
     <span className="flex shrink-0 gap-1.5">
       {shown === "shortlisted" ? (
         <button
-          onClick={() => router.push(`/${track}/runs/new?feed_item=${id}`)}
+          onClick={() => router.push(`/agent/${track}/runs/new?feed_item=${id}`)}
           className={`${cls} bg-neutral-900 text-white hover:bg-neutral-700`}
         >
           开始创作

@@ -7,6 +7,10 @@ import type { Source } from "./types";
 
 const parser = new Parser();
 
+// 新鲜度窗口：超过 N 天的条目不进池（旧存量白白消耗打分 token，时效题材也早过了）。
+// 无 published_at 的条目放行——宁可多打一条分也不漏新内容。
+const MAX_AGE_DAYS = Number(process.env.FEED_MAX_AGE_DAYS ?? 3);
+
 export interface FetchResult {
   source: string;
   added: number;
@@ -18,8 +22,10 @@ async function fetchRssRows(source: Source) {
   const res = await smartFetch(source.feed_url, 20_000);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const feed = await parser.parseString(await res.text());
+  const freshAfter = Date.now() - MAX_AGE_DAYS * 86400_000;
   return (feed.items ?? [])
     .filter((it) => it.title && it.link)
+    .filter((it) => !it.isoDate || new Date(it.isoDate).getTime() >= freshAfter)
     .slice(0, 50)
     .map((it) => ({
       source_id: source.id,

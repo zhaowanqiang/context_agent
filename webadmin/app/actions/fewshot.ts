@@ -67,8 +67,8 @@ export async function saveToFewshot(runId: string): Promise<FewshotResult> {
       message += ` —— 已超过 ${FEWSHOT_MAX} 条，建议删掉表现最弱的一篇（范例太多会稀释风格、增加成本）`;
     }
     // 刷新成稿页按钮状态（→ ✓ 已在范例库）和范例库页
-    revalidatePath(`/${run.track}/runs/${runId}`);
-    revalidatePath(`/${run.track}/fewshot`);
+    revalidatePath(`/agent/${run.track}/runs/${runId}`);
+    revalidatePath(`/agent/${run.track}/fewshot`);
     return { message };
   } catch (e) {
     return { error: `入库失败：${(e as Error).message}` };
@@ -117,7 +117,7 @@ export async function deleteFewshotFile(track: TrackId, filename: string): Promi
   try {
     if (!/^[^\\/]+\.md$/.test(filename)) return { error: "文件名不合法" };
     await unlink(path.join(fewshotDir(track), filename));
-    revalidatePath(`/${track}/fewshot`);
+    revalidatePath(`/agent/${track}/fewshot`);
     return { message: `已删除 ${filename}，下次生成即生效` };
   } catch (e) {
     return { error: `删除失败：${(e as Error).message}` };
