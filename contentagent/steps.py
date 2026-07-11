@@ -45,10 +45,9 @@ def generate_draft(track_id: str, outline: str) -> llm.LLMCall:
 
 
 def run_gate(track_id: str, draft: str, material: str = "") -> llm.LLMCall:
-    """Gate：成稿 → 红线检查 +（公众号轨道）实测声明核查 + 待核实清单（小模型省钱）。
+    """Gate：成稿 → 红线检查 + 实测声明核查 + 待核实清单（小模型省钱）。
 
-    material 用于核查成稿里的第一人称实测声明是否有素材依据；
-    X 轨道模板暂无 {material} 槽位，多余参数会被 format 忽略。
+    material 用于核查成稿里的第一人称实测声明是否有素材依据（两轨模板都有 {material} 槽位）。
     """
     t = tracks.get_track(track_id)
     prompt = t["prompts"]["gate"].format(redline=t["redline"], draft=draft, material=material)
@@ -110,3 +109,53 @@ def score_topics(track_id: str, items: list[dict],
     # 英文候选（Reddit/HN）标题摘要长、angle/reason 要中文，输出预算给足
     c = llm.call("score_topics", prompt, config.GATE_MODEL, 5000)
     return _parse_json(("score_topics"), c.response), c
+
+
+def generate_briefing(date: str, topics: list[dict], candidates: list[dict]) -> llm.LLMCall:
+    """每日监控简报：检索到的候选新闻 → 筛选 + 中文简报 markdown（强模型 + thinking）。
+
+    topics: [{name, keywords, note}]；candidates: [{topic, title, link, source, published, summary}]。
+    格式化在这里做，server 只传结构化数据（与 score_topics 同款分工）。
+    """
+    from .prompts import BRIEFING_PROMPT
+
+    topics_block = "\n".join(
+        f"- {t['name']}"
+        + (f"（检索关键词：{t['keywords']}）" if t.get("keywords") else "")
+        + (f"（关注点：{t['note']}）" if t.get("note") else "")
+        for t in topics
+    )
+    groups: dict[str, list[dict]] = {}
+    for c in candidates:
+        groups.setdefault(c["topic"], []).append(c)
+    lines: list[str] = []
+    for topic, items in groups.items():
+        lines.append(f"### {topic}")
+        for it in items:
+            lines.append(
+                f"- 标题：{it['title']}\n  来源：{it.get('source') or '未知'}"
+                f"　发布时间：{it.get('published') or '未知'}\n  链接：{it['link']}"
+                + (f"\n  摘要：{it['summary']}" if it.get("summary") else "")
+            )
+        lines.append("")
+    prompt = BRIEFING_PROMPT.format(
+        date=date, topics=topics_block, candidates="\n".join(lines).strip()
+    )
+    # 输出是全文简报，候选多时较长；thinking 链也计入预算，给足
+    # 首期实测 output 5292/6000 太贴上限（thinking 链计入预算），提到 8000
+    return llm.call("briefing", prompt, config.STRONG_MODEL, 8000, thinking=True)
+
+
+def generate_xpost(item: str) -> llm.LLMCall:
+    """简报选题 → 单条 X 帖子（强模型 + thinking，注入 X 轨 style/fewshot/红线）。"""
+    from .prompts import XPOST_PROMPT
+
+    t = tracks.get_track("x")
+    prompt = XPOST_PROMPT.format(
+        redline=t["redline"],
+        style=loader.load_style(t),
+        fewshot=loader.load_fewshot(t),
+        item=item,
+    )
+    # 输出只有一条短帖，但 thinking 链计入预算
+    return llm.call("xpost_from_briefing", prompt, config.STRONG_MODEL, 3000, thinking=True)

@@ -86,6 +86,31 @@ class ScoreReq(BaseModel):
     recent_titles: list[str] = []  # 查重：最近已用/候选的选题标题
 
 
+class BriefingTopic(BaseModel):
+    name: str
+    keywords: str = ""
+    note: str = ""
+
+
+class BriefingCandidate(BaseModel):
+    topic: str
+    title: str
+    link: str
+    source: str = ""
+    published: str = ""
+    summary: str = ""
+
+
+class BriefingReq(BaseModel):
+    date: str = Field(min_length=1)  # YYYY-MM-DD，简报「今天」
+    topics: list[BriefingTopic] = Field(min_length=1)
+    candidates: list[BriefingCandidate] = Field(min_length=1, max_length=120)
+
+
+class XPostReq(BaseModel):
+    item: str = Field(min_length=1)  # 简报选题文本（摘要/链接/理由）
+
+
 def _call_payload(c: llm.LLMCall) -> dict:
     return {
         "step": c.step,
@@ -138,3 +163,19 @@ def step_review(req: ReviewReq):
 def topics_score(req: ScoreReq):
     scores, c = steps.score_topics(req.track, [i.model_dump() for i in req.items], req.recent_titles)
     return {"scores": scores, "call": _call_payload(c)}
+
+
+@app.post("/steps/xpost")
+def step_xpost(req: XPostReq):
+    c = steps.generate_xpost(req.item)
+    return {"text": c.response, "call": _call_payload(c)}
+
+
+@app.post("/steps/briefing")
+def step_briefing(req: BriefingReq):
+    c = steps.generate_briefing(
+        req.date,
+        [t.model_dump() for t in req.topics],
+        [i.model_dump() for i in req.candidates],
+    )
+    return {"text": c.response, "call": _call_payload(c)}
