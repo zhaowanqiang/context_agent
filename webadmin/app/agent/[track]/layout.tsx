@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import NavLinks from "@/components/NavLinks";
 import { LeftRail, RailSkeleton, RightRail } from "@/components/TrackRails";
 import { isTrackId, TRACK_LABEL, TRACKS } from "@/lib/types";
 
@@ -45,20 +46,13 @@ export default async function TrackLayout({
             </Link>
           ))}
         </div>
-        <nav className="order-3 flex w-full items-center gap-4 sm:order-none sm:w-auto">
-          {NAV.map((n) => (
-            <Link
-              key={n.href}
-              href={n.href}
-              className="whitespace-nowrap text-sm text-neutral-600 hover:text-neutral-900"
-            >
-              {n.label}
-            </Link>
-          ))}
+        {/* 二级导航复用 NavLinks：当前页琥珀下划线，与顶栏同一套活跃态语言 */}
+        <nav className="order-3 flex w-full items-center gap-4 text-sm sm:order-none sm:w-auto">
+          <NavLinks items={NAV.map((n, i) => ({ ...n, exact: i === 0 }))} />
         </nav>
         <Link
           href={`/agent/${track}/runs/new`}
-          className="ml-auto shrink-0 whitespace-nowrap rounded bg-neutral-900 px-3 py-1.5 text-sm text-white hover:bg-neutral-700"
+          className="ml-auto shrink-0 whitespace-nowrap rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-neutral-700"
         >
           + 新建 Run
         </Link>

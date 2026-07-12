@@ -9,6 +9,8 @@ export interface NavItem {
   external?: boolean;
   /** 活跃态匹配前缀（默认用 href）：如「内容 Agent」href=/agent/wechat 但两轨都该高亮，match=/agent */
   match?: string;
+  /** 只在路径完全相等时高亮：如轨道「仪表盘」href=/agent/wechat 不该在子页也亮 */
+  exact?: boolean;
 }
 
 /** 顶部导航链接：当前区域高亮（服务端 layout 拿不到路由，活跃态在客户端算） */
@@ -25,7 +27,9 @@ export default function NavLinks({ items }: { items: NavItem[] }) {
           );
         }
         const base = l.match ?? l.href;
-        const active = pathname === base || pathname === l.href || pathname.startsWith(`${base}/`);
+        const active = l.exact
+          ? pathname === l.href
+          : pathname === base || pathname === l.href || pathname.startsWith(`${base}/`);
         return (
           <Link
             key={l.href}

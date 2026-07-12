@@ -39,7 +39,7 @@ export default async function RunsPage({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
-        <h1 className="mr-4 font-semibold">Runs · {TRACK_LABEL[track]}</h1>
+        <h1 className="mr-4 text-xl font-bold text-neutral-900">Runs · {TRACK_LABEL[track]}</h1>
         {filter("全部", `/agent/${track}/runs`, !status)}
         {filter("待处理", `/agent/${track}/runs?status=draft_review`, status === "draft_review")}
         {filter("已发布", `/agent/${track}/runs?status=published`, status === "published")}

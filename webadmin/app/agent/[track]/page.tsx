@@ -23,9 +23,9 @@ async function healthLight() {
 
 function StatCard({ label, value, sub, href }: { label: string; value: string | number; sub?: string; href?: string }) {
   const inner = (
-    <div className="rounded-lg border border-neutral-200 bg-white px-5 py-4 shadow-sm transition hover:border-neutral-300">
-      <p className="text-xs text-neutral-500">{label}</p>
-      <p className="mt-1 text-2xl font-bold text-neutral-900">{value}</p>
+    <div className="rounded-xl border border-neutral-200 bg-white px-5 py-4 shadow-sm transition hover:border-neutral-300">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{label}</p>
+      <p className="mt-1.5 text-2xl font-bold tabular-nums text-neutral-900">{value}</p>
       {sub && <p className="mt-0.5 text-xs text-neutral-400">{sub}</p>}
     </div>
   );
@@ -149,7 +149,7 @@ export default async function TrackDashboard({ params }: { params: Promise<{ tra
         {/* 左：等你动手的 + 最近 */}
         <div className="min-w-0 space-y-6">
           <section>
-            <h2 className="mb-2 text-[15px] font-semibold text-neutral-800">等你动手</h2>
+            <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">等你动手</h2>
             {pending.length === 0 ? (
               <p className="rounded-lg border border-dashed border-neutral-200 bg-white px-4 py-6 text-center text-sm text-neutral-400">
                 没有待处理的 run，去选题池挑一个开写？
@@ -165,7 +165,7 @@ export default async function TrackDashboard({ params }: { params: Promise<{ tra
 
           <section>
             <div className="mb-2 flex items-baseline justify-between">
-              <h2 className="text-[15px] font-semibold text-neutral-800">最近的 Runs</h2>
+              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">最近的 Runs</h2>
               <Link href={`/agent/${track}/runs`} className="text-xs text-amber-700 hover:underline">
                 全部 →
               </Link>
@@ -187,7 +187,7 @@ export default async function TrackDashboard({ params }: { params: Promise<{ tra
         {/* 右：高分选题 */}
         <section className="min-w-0">
           <div className="mb-2 flex items-baseline justify-between">
-            <h2 className="text-[15px] font-semibold text-neutral-800">高分选题（≥7 分）</h2>
+            <h2 className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">高分选题（≥7 分）</h2>
             <Link href={`/agent/${track}/topics`} className="text-xs text-amber-700 hover:underline">
               选题池 →
             </Link>
@@ -231,7 +231,7 @@ export default async function TrackDashboard({ params }: { params: Promise<{ tra
       {/* 服务状态：常态时收成一行小字，出问题才显眼；手机上标题和产线按钮上下堆叠 */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="sm:pt-2">
-          <h1 className="text-lg font-bold">{TRACK_LABEL[track]} · 仪表盘</h1>
+          <h1 className="text-xl font-bold text-neutral-900">{TRACK_LABEL[track]} · 仪表盘</h1>
           {health.ok ? (
             <p className="mt-1 text-xs text-neutral-400">
               <span className="text-green-500">●</span> Python 服务正常 · {health.text}

@@ -4,7 +4,7 @@ import { addMonitorTopic } from "@/app/actions/monitor";
 import { db } from "@/lib/supabase";
 import type { Briefing, MonitorTopic } from "@/lib/types";
 import { parseBriefingItems } from "@/lib/briefingItems";
-import Markdown from "@/components/Markdown";
+import BriefingBody from "@/components/BriefingBody";
 import MonitorTopicRowActions from "@/components/MonitorTopicRowActions";
 import BriefingDeleteButton from "@/components/BriefingDeleteButton";
 import BriefingRunButton from "@/components/BriefingRunButton";
@@ -39,9 +39,9 @@ export default async function MonitorPage() {
       <div className="mx-auto w-full max-w-3xl space-y-8">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="font-semibold">📡 监控简报</h1>
-            <p className="mt-1 text-xs text-neutral-400">
-              每天定时检索下方话题的 48 小时新动态（Google News / Bing / Reddit / HN 四源 → 规则闸 → DeepSeek 按 X 选题价值打分），也可手动跑一期。
+            <h1 className="text-xl font-bold text-neutral-900">监控简报</h1>
+            <p className="mt-1 text-[12.5px] text-neutral-400">
+              每天定时检索话题的 48 小时新动态：Google News / Bing / Reddit / HN 四源 → 规则闸 → DeepSeek 按 X 选题价值打分。
             </p>
           </div>
           <BriefingRunButton />
@@ -63,7 +63,7 @@ export default async function MonitorPage() {
               {new Date(latest.created_at).toLocaleString("zh-CN")}
             </p>
             <div className="mt-4 border-t border-neutral-100 pt-4">
-              <Markdown text={latest.body_md} />
+              <BriefingBody bodyMd={latest.body_md} />
             </div>
           </section>
         ) : (

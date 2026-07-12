@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/supabase";
 import type { Briefing } from "@/lib/types";
 import { parseBriefingItems } from "@/lib/briefingItems";
-import Markdown from "@/components/Markdown";
+import BriefingBody from "@/components/BriefingBody";
 import BriefingDeleteButton from "@/components/BriefingDeleteButton";
 import BriefingXPostPanel from "@/components/BriefingXPostPanel";
 import { MonitorLeftRail, XPostDraftsRail } from "@/components/MonitorRails";
@@ -47,7 +47,7 @@ export default async function BriefingPage({ params }: { params: Promise<{ id: s
             {new Date(briefing.created_at).toLocaleString("zh-CN")}
           </p>
           <div className="mt-4 border-t border-neutral-100 pt-4">
-            <Markdown text={briefing.body_md} />
+            <BriefingBody bodyMd={briefing.body_md} />
           </div>
         </div>
       </div>

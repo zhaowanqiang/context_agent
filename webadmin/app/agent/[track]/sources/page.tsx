@@ -19,7 +19,7 @@ export default async function SourcesPage({ params }: { params: Promise<{ track:
 
   return (
     <div className="max-w-3xl space-y-6">
-      <h1 className="font-semibold">内容源 · {TRACK_LABEL[track]}</h1>
+      <h1 className="text-xl font-bold text-neutral-900">内容源 · {TRACK_LABEL[track]}</h1>
 
       <ul className="divide-y divide-neutral-200 rounded border border-neutral-200 bg-white">
         {sources.map((s) => (

@@ -43,7 +43,7 @@ export default async function TopicsPage({
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <h1 className="font-semibold">选题池 · {TRACK_LABEL[track]}</h1>
+        <h1 className="text-xl font-bold text-neutral-900">选题池 · {TRACK_LABEL[track]}</h1>
         <TopicToolbar track={track} />
       </div>
 

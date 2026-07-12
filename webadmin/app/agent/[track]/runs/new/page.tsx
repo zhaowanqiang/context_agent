@@ -39,7 +39,7 @@ export default async function NewRunPage({
 
   return (
     <div className="max-w-3xl space-y-4">
-      <h1 className="text-lg font-bold">新建 Run · {TRACK_LABEL[track]}</h1>
+      <h1 className="text-xl font-bold text-neutral-900">新建 Run · {TRACK_LABEL[track]}</h1>
       {seed && (
         <p className={`text-xs ${content ? "text-green-600" : "text-orange-600"}`}>
           {content

@@ -7,6 +7,8 @@ export interface BriefingItem {
   summary: string;
   link: string;
   mark: "可做选题" | "仅参考" | "";
+  /** X 选题分（0-10；老简报没有该字段时为 null） */
+  score: number | null;
   reason: string;
 }
 
@@ -21,6 +23,7 @@ export function parseBriefingItems(bodyMd: string): BriefingItem[] {
         summary: cur.summary,
         link: cur.link,
         mark: cur.mark ?? "",
+        score: cur.score ?? null,
         reason: cur.reason ?? "",
       });
     }
@@ -51,6 +54,8 @@ export function parseBriefingItems(bodyMd: string): BriefingItem[] {
     if (mk) {
       const rest = mk[1].replace(/\*\*/g, "").trim();
       cur.mark = rest.includes("可做选题") ? "可做选题" : rest.includes("仅参考") ? "仅参考" : "";
+      const scoreM = rest.match(/X\s*选题分\s*(\d+(?:\.\d+)?)/);
+      cur.score = scoreM ? Number(scoreM[1]) : null;
       cur.reason = (rest.split(/——|—-|--/)[1] ?? "").trim();
     }
   }

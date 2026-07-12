@@ -58,7 +58,7 @@ export default async function FewshotPage({ params }: { params: Promise<{ track:
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-semibold">few-shot 范例库 · {TRACK_LABEL[track]}</h1>
+        <h1 className="text-xl font-bold text-neutral-900">few-shot 范例库 · {TRACK_LABEL[track]}</h1>
         <p className="mt-2 max-w-3xl rounded-md border border-neutral-200 bg-white px-4 py-3 text-xs leading-relaxed text-neutral-500">
           这里不是模型训练——库里的每篇范文会在<b className="text-neutral-700">每次生成成稿时整体注入 prompt</b>，
           存入/删除立即生效。成稿的语气和味道直接由这几篇决定：只留发布后效果好的，发现哪篇带坏风格就删掉。
