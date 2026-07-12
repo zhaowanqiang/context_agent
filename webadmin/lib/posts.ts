@@ -22,12 +22,20 @@ export function newSlug(): string {
   return randomBytes(4).toString("hex");
 }
 
-/** 正文首个非标题段落 → 摘要（列表页/RSS/OG description） */
-export function extractSummary(md: string, limit = 120): string {
+/** 正文首个非标题段落 → 摘要（列表页/RSS/OG description）。
+ *  部分成稿第一行是纯文本标题（没带 # 记号），传 title 跳过它——摘要重复标题很难看 */
+export function extractSummary(md: string, title?: string | null, limit = 120): string {
+  // 归一化含空白：成稿首行常是「标题加了空格排版」的变体（阿里内部禁用Claude vs 阿里内部禁用 Claude）
+  const clean = (s: string) => s.replace(/\*\*|`|[「」“”\s]|\[([^\]]*)\]\([^)]*\)/g, "$1").trim();
+  const titleKey = title ? clean(title).slice(0, 30) : null;
   const para = md
     .split("\n")
     .map((l) => l.trim())
-    .find((l) => l.length > 0 && !/^[#>\-*|!\[]/.test(l));
+    .find((l) => {
+      if (l.length === 0 || /^[#>\-*|!\[]/.test(l)) return false;
+      if (titleKey && clean(l).startsWith(titleKey)) return false; // 首行=标题的裸文本，跳过
+      return true;
+    });
   const plain = (para ?? "").replace(/\*\*|`|\[([^\]]*)\]\([^)]*\)/g, "$1");
   return plain.slice(0, limit);
 }

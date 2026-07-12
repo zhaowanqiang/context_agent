@@ -23,7 +23,7 @@ export async function publishRunToSite(runId: string): Promise<ActionResult> {
       track: run.track,
       slug,
       title: run.title ?? "（无标题）",
-      summary: extractSummary(content),
+      summary: extractSummary(content, run.title),
       content_md: content,
     });
     if (insErr) throw new Error(`回流失败：${insErr.message}`);
