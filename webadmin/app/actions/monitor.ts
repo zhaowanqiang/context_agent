@@ -22,6 +22,18 @@ export async function triggerBriefing(): Promise<BriefingActionResult> {
   }
 }
 
+/** 手动生成一期周报（cron 周日 20:00 之外的即时触发；纯统计零 LLM 成本） */
+export async function triggerWeeklyReview(): Promise<{ error?: string; title?: string }> {
+  try {
+    const { runWeeklyReview } = await import("@/lib/weeklyReview");
+    const r = await runWeeklyReview();
+    revalidatePath("/monitor");
+    return { title: r.title };
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+}
+
 export async function addMonitorTopic(formData: FormData) {
   const name = (formData.get("name") as string)?.trim();
   const keywords = (formData.get("keywords") as string)?.trim() || null;

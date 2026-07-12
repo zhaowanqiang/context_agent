@@ -141,6 +141,11 @@ export async function createRun(
   if (feedItemId) {
     await db().from("feed_items").update({ status: "used" }).eq("id", feedItemId);
   }
+  // 剪藏种子：标记已用并回链 run（失败不挡创建——clips 表可能还没建）
+  const clipId = (formData.get("clip_id") as string) || null;
+  if (clipId) {
+    await db().from("clips").update({ status: "used", used_run_id: data.id }).eq("id", clipId);
+  }
   redirect(runPath(track, data.id));
 }
 

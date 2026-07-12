@@ -170,3 +170,32 @@ create index on posts (published_at desc);
 create unique index on posts (run_id) where run_id is not null;  -- 一个 run 只回流一次
 
 alter table posts enable row level security;
+
+-- ============================================================
+-- 增量（2026-07-12）：发布中心 + 剪藏收件箱 + 每周复盘。
+-- 已建库的只需在 SQL Editor 执行本段。
+-- ============================================================
+
+-- 发布中心①：待发稿的计划发布日期（发布队列按它排序）
+alter table runs add column planned_publish_on date;
+
+-- 发布中心②：发布效果回填（发布 48h 后手动填，反哺选题判断）
+-- stats 按渠道自由 kv：X={"impressions":n,"engagements":n}，公众号={"reads":n,"likes":n}
+alter table publications add column stats jsonb;
+alter table publications add column stats_updated_at timestamptz;
+
+-- 剪藏收件箱：平时刷到的素材随手存，第三条选题来源（RSS 抓取、监控简报之外）
+create table clips (
+  id uuid primary key default gen_random_uuid(),
+  url text,                          -- 链接剪藏（与 note 至少一个非空）
+  note text,                         -- 文字剪藏 / 备注
+  track track_id,                    -- 预判轨道（可空，转素材时再定）
+  status text not null default 'new',  -- new / used / discarded
+  used_run_id uuid references runs(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+create index on clips (status, created_at desc);
+alter table clips enable row level security;
+
+-- 每周复盘：复用 briefings 表，kind 区分（日报=daily 周报=weekly）
+alter table briefings add column kind text not null default 'daily';

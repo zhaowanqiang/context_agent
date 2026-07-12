@@ -29,6 +29,22 @@ export const MODULES: SiteModule[] = [
     status: "active",
   },
   {
+    id: "publish",
+    name: "发布中心",
+    tagline: "发布队列排期 → 效果回填 → 选题命中率——价值环的反馈段",
+    href: "/publish",
+    emoji: "📤",
+    status: "active",
+  },
+  {
+    id: "clips",
+    name: "剪藏",
+    tagline: "刷到的好素材随手存，一键转素材开 Run——第三条选题来源",
+    href: "/clips",
+    emoji: "🔖",
+    status: "active",
+  },
+  {
     id: "decider",
     name: "出海开户决策",
     tagline: "答几个问题 → 当场给出你能开哪些账户/卡、推荐顺序与坑点，付费解锁保姆级实操教程",
@@ -37,6 +53,4 @@ export const MODULES: SiteModule[] = [
     status: "active",
     external: true,
   },
-  // 未来模块示例：
-  // { id: "bookmarks", name: "稍后读", tagline: "…", href: "/bookmarks", emoji: "🔖", status: "planned" },
 ];

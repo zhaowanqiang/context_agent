@@ -74,6 +74,25 @@ export async function register() {
     console.log(`[briefing] 定时简报已注册（cron: ${briefingExpr}）`);
   }
 
+  // 每周复盘：周日 20:00（纯统计零 LLM 成本；周粒度任务不进补跑——错过等下周）
+  const weeklyExpr = process.env.WEEKLY_REVIEW_CRON ?? "0 20 * * 0";
+  const gw = g as typeof g & { __weeklyCron?: boolean };
+  if (weeklyExpr !== "off" && !gw.__weeklyCron) {
+    gw.__weeklyCron = true;
+    cron.schedule(weeklyExpr, async () => {
+      try {
+        const { runWeeklyReview } = await import("./lib/weeklyReview");
+        const r = await runWeeklyReview();
+        console.log(`[weekly] 周报已生成：${r.title}`);
+        const { notifyAll } = await import("./lib/notify");
+        notifyAll("每周复盘已生成", `${r.title} —— 打开 /monitor 查看`);
+      } catch (e) {
+        console.error("[weekly] 周报生成失败：", e);
+      }
+    });
+    console.log(`[weekly] 每周复盘已注册（cron: ${weeklyExpr}）`);
+  }
+
   // ── 启动补跑（仅生产模式；两任务串行，产线在前和 cron 顺序一致）──────
   if (process.env.NODE_ENV === "production" && !g.__catchUp) {
     g.__catchUp = true;

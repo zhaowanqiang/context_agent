@@ -8,6 +8,7 @@ import BriefingBody from "@/components/BriefingBody";
 import MonitorTopicRowActions from "@/components/MonitorTopicRowActions";
 import BriefingDeleteButton from "@/components/BriefingDeleteButton";
 import BriefingRunButton from "@/components/BriefingRunButton";
+import WeeklyReviewButton from "@/components/WeeklyReviewButton";
 import BriefingXPostPanel from "@/components/BriefingXPostPanel";
 import { MonitorLeftRail, XPostDraftsRail } from "@/components/MonitorRails";
 
@@ -24,7 +25,10 @@ export default async function MonitorPage() {
   }
   const briefings = (briefingsRes.data ?? []) as Briefing[];
   const topics = (topicsRes.data ?? []) as MonitorTopic[];
-  const [latest, ...history] = briefings;
+  // 「最新一期展开读」只取日报；周报（kind=weekly）进历史列表带标记
+  // （kind 列未建时值为 undefined，视为日报——增量 SQL 前行为不变）
+  const latest = briefings.find((b) => b.kind !== "weekly");
+  const history = briefings.filter((b) => b !== latest);
   const latestItems = latest ? parseBriefingItems(latest.body_md) : [];
 
   return (
@@ -44,7 +48,10 @@ export default async function MonitorPage() {
               每天定时检索话题的 48 小时新动态：Google News / Bing / Reddit / HN 四源 → 规则闸 → DeepSeek 按 X 选题价值打分。
             </p>
           </div>
-          <BriefingRunButton />
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <BriefingRunButton />
+            <WeeklyReviewButton />
+          </div>
         </div>
 
         {/* 最新一期直接展开读 */}
@@ -80,7 +87,14 @@ export default async function MonitorPage() {
               {history.map((b) => (
                 <li key={b.id} className="flex items-center gap-3 px-4 py-2.5">
                   <Link href={`/monitor/${b.id}`} className="min-w-0 flex-1 transition-colors hover:text-amber-700">
-                    <span className="block truncate text-sm font-medium">{b.title}</span>
+                    <span className="flex items-center gap-2">
+                      <span className="truncate text-sm font-medium">{b.title}</span>
+                      {b.kind === "weekly" && (
+                        <span className="shrink-0 rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-medium text-neutral-500">
+                          周报
+                        </span>
+                      )}
+                    </span>
                     <span className="block text-xs text-neutral-400">
                       {new Date(b.created_at).toLocaleString("zh-CN")}
                       {b.item_count != null && ` · ${b.item_count} 条`}

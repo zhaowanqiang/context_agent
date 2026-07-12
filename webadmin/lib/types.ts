@@ -35,6 +35,8 @@ export interface Run {
   models: { strong: string; gate: string } | null;
   token_usage: { input_tokens: number; output_tokens: number } | null;
   error: string | null;
+  /** 计划发布日期（发布队列排序用；schema 增量 2026-07-12） */
+  planned_publish_on: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -81,6 +83,46 @@ export interface Briefing {
   title: string;
   body_md: string;
   item_count: number | null;
+  /** daily=每日简报 weekly=每周复盘（schema 增量 2026-07-12） */
+  kind: "daily" | "weekly";
+  created_at: string;
+}
+
+/** 发布效果（publications.stats jsonb）：渠道各记各的，键名见 STATS_FIELDS */
+export type PublicationStats = Record<string, number>;
+
+export interface Publication {
+  id: string;
+  run_id: string;
+  channel: string;
+  title: string | null;
+  published_at: string;
+  stats: PublicationStats | null;
+  stats_updated_at: string | null;
+  notes: string | null;
+}
+
+/** 各渠道的回填指标（发布中心表单按这个渲染；channel 值与 RunWorkbench markPublished 对应） */
+export const STATS_FIELDS: Record<string, { key: string; label: string }[]> = {
+  wechat_clipboard: [
+    { key: "reads", label: "阅读" },
+    { key: "likes", label: "在看/赞" },
+  ],
+  x_manual: [
+    { key: "impressions", label: "曝光" },
+    { key: "engagements", label: "互动" },
+  ],
+};
+
+export type ClipStatus = "new" | "used" | "discarded";
+
+export interface Clip {
+  id: string;
+  url: string | null;
+  note: string | null;
+  track: TrackId | null;
+  status: ClipStatus;
+  used_run_id: string | null;
   created_at: string;
 }
 

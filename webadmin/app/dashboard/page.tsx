@@ -97,6 +97,8 @@ function Card({ title, action, children }: { title: string; action?: React.React
 const QUICK_ACTIONS = [
   { href: "/agent/wechat/runs/new", label: "＋ 新建公众号 Run", desc: "粘素材直接开写" },
   { href: "/agent/x/runs/new", label: "＋ 新建 X Run", desc: "实测笔记转干货帖" },
+  { href: "/publish", label: "发布中心", desc: "排期 · 效果回填" },
+  { href: "/clips", label: "剪藏收件箱", desc: "随手存素材" },
   { href: "/agent/wechat/topics", label: "选题池 · 公众号", desc: "抓取 & 打分补货" },
   { href: "/agent/x/topics", label: "选题池 · X", desc: "GitHub 热门库等" },
   { href: "/monitor", label: "监控简报", desc: "手动跑一期 / 转帖" },

@@ -9,10 +9,13 @@ export default function NewRunForm({
   track,
   seedMaterial,
   feedItemId,
+  clipId = null,
 }: {
   track: TrackId;
   seedMaterial: string;
   feedItemId: string | null;
+  /** 从剪藏收件箱进来的种子：创建成功后剪藏标记 used */
+  clipId?: string | null;
 }) {
   // 不用 useActionState（内部走 transition）：Next 16 的 React transition 竞态 bug（#88767）
   const [state, setState] = useState<ActionResult | undefined>(undefined);
@@ -43,6 +46,7 @@ export default function NewRunForm({
         </div>
       )}
       {feedItemId && <input type="hidden" name="feed_item_id" value={feedItemId} />}
+      {clipId && <input type="hidden" name="clip_id" value={clipId} />}
       <input type="hidden" name="track" value={track} />
       <textarea
         name="material"
