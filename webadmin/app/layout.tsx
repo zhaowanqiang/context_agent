@@ -66,7 +66,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   ]}
                 />
               </div>
-            ) : (
+            ) : process.env.PUBLIC_FACADE === "1" ? null : (
               <Link
                 href="/login"
                 className="text-[12px] text-neutral-400 transition-colors hover:text-neutral-700"

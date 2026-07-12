@@ -7,6 +7,10 @@ import { NextResponse, type NextRequest } from "next/server";
  * - 私有层（工作台）：/agent、/monitor 及其余一切照旧拦截
  * - /api/monitor/* 走自己的 x-monitor-token（外部推送无 cookie），不在这里管
  * - 未配置 ADMIN_ACCESS_CODE 时放行（保持旧行为），启动后警告一次
+ *
+ * PUBLIC_FACADE=1（公网部署实例用，如 Vercel）：纯门面模式——
+ * 工作台路由和登录页一律 404，公网上不暴露"这里有后台"这个事实本身；
+ * 工作台只活在本机实例。配套：instrumentation.ts 在该模式下跳过全部 cron。
  */
 
 const COOKIE_NAME = "admin_auth";
@@ -29,6 +33,17 @@ async function expectedHash(code: string): Promise<string> {
 let warnedNoCode = false;
 
 export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const facade = process.env.PUBLIC_FACADE === "1";
+
+  // 登录页现在也流经 proxy（matcher 不再排除）：门面模式 404，否则放行
+  if (pathname === "/login" || pathname.startsWith("/login/")) {
+    if (facade) return new NextResponse(null, { status: 404 });
+    return NextResponse.next();
+  }
+  // 门面模式：走到这里的都是私有路由，直接 404（真状态码，非 soft-404）
+  if (facade) return new NextResponse(null, { status: 404 });
+
   const code = process.env.ADMIN_ACCESS_CODE;
   if (!code) {
     if (!warnedNoCode) {
@@ -44,15 +59,16 @@ export async function proxy(request: NextRequest) {
   if (got && got === (await expectedHash(code))) return NextResponse.next();
 
   const login = new URL("/login", request.url);
-  const { pathname, search } = request.nextUrl;
+  const { search } = request.nextUrl;
   if (pathname !== "/") login.searchParams.set("next", pathname + search);
   return NextResponse.redirect(login);
 }
 
 export const config = {
   // 排除：公开层路由（含根路径，用 $ 精确匹配避免误放行 /agent 等）、
-  // 登录页本身、监控推送 API（token 鉴权）、Next 静态资源、favicon
+  // 监控推送 API（token 鉴权）、Next 静态资源、favicon。
+  // /login 不排除——由 proxy 代码处理（门面模式要能把它 404 掉）
   matcher: [
-    "/((?!$|posts|about|decider|rss\\.xml|sitemap\\.xml|robots\\.txt|login|api/monitor|_next/static|_next/image|favicon\\.ico).*)",
+    "/((?!$|posts|about|decider|rss\\.xml|sitemap\\.xml|robots\\.txt|api/monitor|_next/static|_next/image|favicon\\.ico).*)",
   ],
 };

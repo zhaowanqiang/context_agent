@@ -8,6 +8,11 @@
  */
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
+  // 公网纯门面实例（Vercel 等）：不跑任何定时任务——产线/简报/周报只活在本机
+  if (process.env.PUBLIC_FACADE === "1") {
+    console.log("[facade] PUBLIC_FACADE=1：定时任务全部跳过");
+    return;
+  }
 
   // dev 热重载会重复执行 register，用全局标记防重复注册
   const g = globalThis as { __autopilotCron?: boolean; __briefingCron?: boolean; __catchUp?: boolean };

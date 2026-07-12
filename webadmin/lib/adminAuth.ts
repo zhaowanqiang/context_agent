@@ -9,6 +9,9 @@ import { cookies } from "next/headers";
  * 未配置 ADMIN_ACCESS_CODE 时视为已登录（与 proxy 的放行行为保持一致）。
  */
 export async function isAdminAuthed(): Promise<boolean> {
+  // 公网纯门面实例永远视为未登录：否则「未配置访问码=放行」的本机约定
+  // 会让不配 ADMIN_ACCESS_CODE 的公网实例对所有人渲染工作台导航
+  if (process.env.PUBLIC_FACADE === "1") return false;
   const code = process.env.ADMIN_ACCESS_CODE;
   if (!code) return true;
   const got = (await cookies()).get("admin_auth")?.value;

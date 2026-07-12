@@ -3,7 +3,7 @@
 export const SITE = {
   name: "zynqorw",
   author: "zynqorw",
-  description: "全栈开发者 zynqorw：跨境金融与加密支付卡实测、AI 工具与效率实测，附个人工作台。",
+  description: "全栈开发者 zynqorw：跨境金融与加密支付卡实测、AI 工具与效率实测——AI 起草，事实闸门把关，人工核对后发布。",
   links: [
     { label: "GitHub", href: "https://github.com/zhaowanqiang" },
     { label: "X @zynqorw", href: "https://x.com/zynqorw" },
