@@ -111,10 +111,13 @@ def score_topics(track_id: str, items: list[dict],
     return _parse_json(("score_topics"), c.response), c
 
 
-def generate_briefing(date: str, topics: list[dict], candidates: list[dict]) -> llm.LLMCall:
-    """每日监控简报：检索到的候选新闻 → 筛选 + 中文简报 markdown（强模型 + thinking）。
+def generate_briefing(
+    date: str, topics: list[dict], candidates: list[dict], recent: list[str] | None = None
+) -> llm.LLMCall:
+    """每日监控简报：多源候选（新闻/Reddit/HN）→ 按 X 选题价值筛选打分 → 中文简报 markdown。
 
-    topics: [{name, keywords, note}]；candidates: [{topic, title, link, source, published, summary}]。
+    topics: [{name, keywords, note}]；candidates 含 via（检索渠道）；
+    recent 是近三期已报摘要（LLM 层跨期去重）。
     格式化在这里做，server 只传结构化数据（与 score_topics 同款分工）。
     """
     from .prompts import BRIEFING_PROMPT
@@ -133,13 +136,15 @@ def generate_briefing(date: str, topics: list[dict], candidates: list[dict]) -> 
         lines.append(f"### {topic}")
         for it in items:
             lines.append(
-                f"- 标题：{it['title']}\n  来源：{it.get('source') or '未知'}"
+                f"- 标题：{it['title']}\n  渠道：{it.get('via') or '未知'}"
+                f"　来源：{it.get('source') or '未知'}"
                 f"　发布时间：{it.get('published') or '未知'}\n  链接：{it['link']}"
                 + (f"\n  摘要：{it['summary']}" if it.get("summary") else "")
             )
         lines.append("")
+    recent_block = "\n".join(f"- {s}" for s in (recent or [])) or "（无）"
     prompt = BRIEFING_PROMPT.format(
-        date=date, topics=topics_block, candidates="\n".join(lines).strip()
+        date=date, topics=topics_block, candidates="\n".join(lines).strip(), recent=recent_block
     )
     # 输出是全文简报，候选多时较长；thinking 链也计入预算，给足
     # 首期实测 output 5292/6000 太贴上限（thinking 链计入预算），提到 8000

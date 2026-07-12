@@ -24,7 +24,9 @@ export default function BriefingRunButton() {
       }
       setIsError(false);
       const rep = r.report!;
-      let m = `检索 ${rep.queries} 次 → 候选 ${rep.candidates} 条 → 简报 ${rep.itemCount} 条`;
+      const src = Object.entries(rep.bySource ?? {}).map(([k, v]) => `${k} ${v}`).join(" / ");
+      let m = `检索 ${rep.queries} 组 → 候选 ${rep.candidates} 条${src ? `（${src}）` : ""}` +
+        `，规则闸拦截 ${rep.dropped} 条 → 简报 ${rep.itemCount} 条`;
       if (rep.searchErrors.length > 0) m += `；${rep.searchErrors.length} 次检索失败`;
       setMsg(m);
     } finally {

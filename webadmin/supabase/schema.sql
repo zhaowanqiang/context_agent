@@ -139,14 +139,15 @@ create index on briefings (created_at desc);
 alter table monitor_topics enable row level security;
 alter table briefings enable row level security;
 
--- 预置监控话题
+-- 预置监控话题。keywords 用短词组（/ 分隔多变体）——长 AND 词组在
+-- Google/Reddit 上常年零命中（如 "crypto debit card cashback fee changes"），等于自废检索
 insert into monitor_topics (name, keywords, note, position) values
   ('Starryblu', 'Starryblu', null, 1),
   ('Bybit Card', 'Bybit Card / Bybit 卡', null, 2),
-  ('KAST', 'KAST crypto card / KAST 加密支付卡', '加密支付卡/账户产品', 3),
-  ('跨境多币种账户', 'cross-border multi-currency account / 跨境多币种账户', null, 4),
-  ('加密支付卡返现与费率变动', 'crypto debit card cashback fee changes / 加密支付卡 返现 费率', null, 5),
-  ('海外银行开户政策', 'overseas bank account opening policy changes / 海外银行开户政策', null, 6);
+  ('KAST', 'KAST card / KAST stablecoin / KAST 卡', '加密支付卡/账户产品', 3),
+  ('跨境多币种账户', 'multi-currency account / 多币种账户', null, 4),
+  ('加密支付卡返现与费率变动', 'crypto card cashback / crypto card fees / U卡 返现', null, 5),
+  ('海外银行开户政策', 'offshore bank account / overseas account opening / 海外银行开户', null, 6);
 
 -- ============================================================
 -- 增量（2026-07-11）：个人网站公开层。已建库的只需在 SQL Editor 执行本段。

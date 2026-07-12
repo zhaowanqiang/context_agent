@@ -41,7 +41,7 @@ export default async function MonitorPage() {
           <div>
             <h1 className="font-semibold">📡 监控简报</h1>
             <p className="mt-1 text-xs text-neutral-400">
-              每天定时检索下方话题的 24 小时新动态（Google News + DeepSeek 筛选整理），也可手动跑一期。
+              每天定时检索下方话题的 48 小时新动态（Google News / Bing / Reddit / HN 四源 → 规则闸 → DeepSeek 按 X 选题价值打分），也可手动跑一期。
             </p>
           </div>
           <BriefingRunButton />

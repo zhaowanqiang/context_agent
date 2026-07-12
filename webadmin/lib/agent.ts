@@ -88,7 +88,8 @@ export const agent = {
   briefing: (
     date: string,
     topics: { name: string; keywords: string; note: string }[],
-    candidates: { topic: string; title: string; link: string; source: string; published: string; summary: string }[]
-  ) => post<StepResult>("/steps/briefing", { date, topics, candidates }),
+    candidates: { topic: string; title: string; link: string; source: string; published: string; summary: string; via: string }[],
+    recent: string[] = []
+  ) => post<StepResult>("/steps/briefing", { date, topics, candidates, recent }),
   xpost: (item: string) => post<StepResult>("/steps/xpost", { item }),
 };

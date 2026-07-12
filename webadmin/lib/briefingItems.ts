@@ -46,7 +46,8 @@ export function parseBriefingItems(bodyMd: string): BriefingItem[] {
       cur.link = lk[1];
       continue;
     }
-    const mk = line.match(/^-\s*选题标注\s*[:：]\s*(.+)/);
+    // 「选题标注：」前缀模型偶尔会丢（直接输出「- **可做选题**（X 选题分 7/10）——」），两种都认
+    const mk = line.match(/^-\s*(?:选题标注\s*[:：]\s*)?(\*?\*?(?:可做选题|仅参考).*)/);
     if (mk) {
       const rest = mk[1].replace(/\*\*/g, "").trim();
       cur.mark = rest.includes("可做选题") ? "可做选题" : rest.includes("仅参考") ? "仅参考" : "";

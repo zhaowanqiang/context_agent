@@ -99,12 +99,14 @@ class BriefingCandidate(BaseModel):
     source: str = ""
     published: str = ""
     summary: str = ""
+    via: str = ""  # 检索渠道：GoogleNews / BingNews / Reddit / HackerNews
 
 
 class BriefingReq(BaseModel):
     date: str = Field(min_length=1)  # YYYY-MM-DD，简报「今天」
     topics: list[BriefingTopic] = Field(min_length=1)
     candidates: list[BriefingCandidate] = Field(min_length=1, max_length=120)
+    recent: list[str] = []  # 近三期已报摘要（跨期去重，LLM 层）
 
 
 class XPostReq(BaseModel):
@@ -177,5 +179,6 @@ def step_briefing(req: BriefingReq):
         req.date,
         [t.model_dump() for t in req.topics],
         [i.model_dump() for i in req.candidates],
+        req.recent,
     )
     return {"text": c.response, "call": _call_payload(c)}

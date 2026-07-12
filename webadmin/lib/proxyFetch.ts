@@ -33,6 +33,22 @@ export async function smartFetch(url: string, timeoutMs = 15_000): Promise<Respo
   }
 }
 
+/**
+ * 强制走代理 curl（跳过直连）：给「直连能通但返回错误内容」的站点用——
+ * 例如 bing.com 国内直连 200 但被重定向到 cn.bing 首页，smartFetch 的
+ * 「失败才回落」逻辑对这种软失败无感。
+ */
+export async function proxyFetch(url: string, timeoutMs = 15_000): Promise<Response> {
+  const proxy = process.env.AGENT_FETCH_PROXY;
+  if (!proxy) throw new Error(`未配置 AGENT_FETCH_PROXY，无法代理抓取：${url}`);
+  try {
+    return await curlFetch(url, proxy, timeoutMs + 15_000);
+  } catch {
+    await new Promise((r) => setTimeout(r, 1_500));
+    return curlFetch(url, proxy, timeoutMs + 15_000);
+  }
+}
+
 async function curlFetch(url: string, proxy: string, timeoutMs: number): Promise<Response> {
   let stdout: string;
   try {
