@@ -4,83 +4,58 @@ import { MODULES } from "@/lib/modules";
 import { listPosts, type Post } from "@/lib/posts";
 import { SITE } from "@/lib/site";
 import { db } from "@/lib/supabase";
-import { TRACK_LABEL, TRACKS, type TrackId } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-interface TrackStat {
-  pending: number;
-  published: number;
-}
+/* 首页 = 纯公开个人名片（所见即访客所见）。
+   工作台总览在 /dashboard，登录后这里只多一条细栏直达——
+   对外门面和对内工具在页面级分离，互不挡路。 */
 
-/** 内容 Agent 模块卡上的活性指标：按轨道分列（查不到时静默降级为纯入口） */
-async function agentStats(): Promise<Record<TrackId, TrackStat> | null> {
+/** 登录后细栏上的待办合计（查不到时静默降级为纯入口） */
+async function pendingTotal(): Promise<number | null> {
   try {
-    const counts = await Promise.all(
-      TRACKS.flatMap((t) => [
-        db().from("runs").select("*", { count: "exact", head: true })
-          .eq("track", t).in("status", ["outline_review", "draft_review", "failed"]),
-        db().from("runs").select("*", { count: "exact", head: true })
-          .eq("track", t).eq("status", "published"),
-      ])
-    );
-    const out = {} as Record<TrackId, TrackStat>;
-    TRACKS.forEach((t, i) => {
-      out[t] = { pending: counts[i * 2].count ?? 0, published: counts[i * 2 + 1].count ?? 0 };
-    });
-    return out;
+    const { count } = await db()
+      .from("runs")
+      .select("*", { count: "exact", head: true })
+      .in("status", ["outline_review", "draft_review", "failed"]);
+    return count ?? 0;
   } catch {
     return null;
   }
 }
-
-interface MonitorStat {
-  latestTitle: string | null;
-  latestAt: string | null;
-  topicCount: number;
-}
-
-/** 监控简报模块卡上的活性指标（表还没建时静默降级为纯入口） */
-async function monitorStats(): Promise<MonitorStat | null> {
-  try {
-    const [latest, topics] = await Promise.all([
-      db().from("briefings").select("title, created_at")
-        .order("created_at", { ascending: false }).limit(1).maybeSingle(),
-      db().from("monitor_topics").select("*", { count: "exact", head: true }).eq("enabled", true),
-    ]);
-    if (latest.error || topics.error) return null;
-    return {
-      latestTitle: latest.data?.title ?? null,
-      latestAt: latest.data?.created_at ?? null,
-      topicCount: topics.count ?? 0,
-    };
-  } catch {
-    return null;
-  }
-}
-
-const TRACK_ACCENT: Record<TrackId, string> = {
-  wechat: "border-green-200 hover:border-green-400 hover:bg-green-50/50",
-  x: "border-neutral-200 hover:border-neutral-400 hover:bg-neutral-50",
-};
 
 export default async function Home() {
-  // 公开层数据 + 登录态；工作台指标只在登录后才查
-  const [authed, latestPosts] = await Promise.all([
-    isAdminAuthed(),
+  const authed = await isAdminAuthed();
+  const [latestPosts, pending] = await Promise.all([
     listPosts(3).catch(() => [] as Post[]),
+    authed ? pendingTotal() : Promise.resolve(null),
   ]);
-  const [stats, monitor] = authed
-    ? await Promise.all([agentStats(), monitorStats()])
-    : [null, null];
-  const agent = MODULES.find((m) => m.id === "contentagent")!;
-  const monitorModule = MODULES.find((m) => m.id === "monitor")!;
   const decider = MODULES.find((m) => m.id === "decider")!;
 
   return (
     <div className="mx-auto max-w-2xl">
+      {/* 工作台细栏（仅登录后）：不打断名片版式，一行直达 */}
+      {authed && (
+        <Link
+          href="/dashboard"
+          className="group mt-4 flex items-center justify-between rounded-lg border border-amber-200/70 bg-amber-50/60 px-4 py-2.5 text-[13px] transition hover:border-amber-300 hover:bg-amber-50"
+        >
+          <span className="text-neutral-600">
+            ⚡ 工作台
+            {pending !== null && pending > 0 && (
+              <>
+                {" · "}
+                <b className="text-amber-700">{pending} 项等你处理</b>
+              </>
+            )}
+            {pending === 0 && " · 全部处理完毕"}
+          </span>
+          <span className="font-medium text-amber-700">进入 →</span>
+        </Link>
+      )}
+
       {/* Hero：个人名片（公开）——名字用衬线展示体做记忆点 */}
-      <section className="pb-12 pt-10 sm:pt-16">
+      <section className="pb-12 pt-10 sm:pt-14">
         <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-amber-700">
           Full-stack Developer
         </p>
@@ -168,90 +143,6 @@ export default async function Home() {
           </span>
         </a>
       </section>
-
-      {/* 工作台（私有）：登录后才渲染，访客不知道它存在 */}
-      {authed && (
-        <section className="mt-10 border-t border-neutral-200 pt-8">
-          <h2 className="mb-4 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">工作台</h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {/* 内容 Agent：双轨各自直达（轨道页内可随时互切） */}
-            <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
-              <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-neutral-100 text-xl">
-                  {agent.emoji}
-                </span>
-                <div>
-                  <h3 className="font-bold text-neutral-900">{agent.name}</h3>
-                  <span className="text-[11px] text-green-600">● 运行中</span>
-                </div>
-              </div>
-              <p className="mt-3 text-[13px] leading-relaxed text-neutral-500">{agent.tagline}</p>
-              <div className="mt-4 grid grid-cols-2 gap-3 border-t border-neutral-100 pt-4">
-                {TRACKS.map((t) => (
-                  <Link
-                    key={t}
-                    href={`/agent/${t}`}
-                    className={`group rounded-lg border bg-white px-3.5 py-3 transition ${TRACK_ACCENT[t]}`}
-                  >
-                    <span className="flex items-baseline justify-between">
-                      <span className="text-sm font-bold text-neutral-900">{TRACK_LABEL[t]}</span>
-                      <span className="text-xs font-medium text-amber-600 opacity-0 transition group-hover:opacity-100">→</span>
-                    </span>
-                    {stats && (
-                      <span className="mt-1.5 block text-[11px] text-neutral-400">
-                        待处理{" "}
-                        <b className={stats[t].pending > 0 ? "text-amber-600" : "text-neutral-600"}>
-                          {stats[t].pending}
-                        </b>
-                        {" · "}已发布 <b className="text-neutral-600">{stats[t].published}</b>
-                      </span>
-                    )}
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            {/* 监控简报：Cowork 每日回传 */}
-            <Link
-              href={monitorModule.href}
-              className="group rounded-xl border border-neutral-200 bg-white p-5 shadow-sm transition hover:border-neutral-400"
-            >
-              <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-neutral-100 text-xl">
-                  {monitorModule.emoji}
-                </span>
-                <div>
-                  <h3 className="font-bold text-neutral-900">{monitorModule.name}</h3>
-                  <span className="text-[11px] text-green-600">● 运行中</span>
-                </div>
-              </div>
-              <p className="mt-3 text-[13px] leading-relaxed text-neutral-500">{monitorModule.tagline}</p>
-              {monitor && (
-                <p className="mt-4 border-t border-neutral-100 pt-4 text-[11px] text-neutral-400">
-                  监控话题 <b className="text-neutral-600">{monitor.topicCount}</b>
-                  {monitor.latestAt ? (
-                    <>
-                      {" · "}最新一期{" "}
-                      <b className="text-neutral-600">
-                        {new Date(monitor.latestAt).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                      </b>
-                    </>
-                  ) : (
-                    <>{" · "}等待第一期简报</>
-                  )}
-                </p>
-              )}
-            </Link>
-
-            {/* 扩展占位：下一个模块 */}
-            <div className="flex min-h-40 flex-col items-center justify-center rounded-xl border-2 border-dashed border-neutral-200 p-5 text-center">
-              <span className="text-xl text-neutral-300">＋</span>
-              <p className="mt-2 text-[13px] text-neutral-400">下一个模块</p>
-              <p className="mt-1 text-[11px] text-neutral-300">在 lib/modules.ts 注册即可上首页</p>
-            </div>
-          </div>
-        </section>
-      )}
     </div>
   );
 }

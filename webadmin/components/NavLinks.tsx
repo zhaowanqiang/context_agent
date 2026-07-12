@@ -7,6 +7,8 @@ export interface NavItem {
   label: string;
   href: string;
   external?: boolean;
+  /** 活跃态匹配前缀（默认用 href）：如「内容 Agent」href=/agent/wechat 但两轨都该高亮，match=/agent */
+  match?: string;
 }
 
 /** 顶部导航链接：当前区域高亮（服务端 layout 拿不到路由，活跃态在客户端算） */
@@ -22,7 +24,8 @@ export default function NavLinks({ items }: { items: NavItem[] }) {
             </a>
           );
         }
-        const active = pathname === l.href || pathname.startsWith(`${l.href}/`);
+        const base = l.match ?? l.href;
+        const active = pathname === base || pathname === l.href || pathname.startsWith(`${base}/`);
         return (
           <Link
             key={l.href}

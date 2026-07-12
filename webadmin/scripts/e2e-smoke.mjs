@@ -91,13 +91,16 @@ const waitText = (text, timeout = 15000) =>
   page.waitForFunction((t) => document.body.innerText.includes(t), { timeout }, text);
 
 try {
-  // 1. 门户首页 → 模块卡上的轨道入口直达公众号仪表盘（平台选择页已废弃）
+  // 1. 首页（纯公开名片 + 登录后细栏）→ /dashboard 工作台总览 → 轨道入口
   await page.goto(BASE, { waitUntil: "networkidle2", timeout: 30000 });
-  await waitText("工作台"); // 登录态首页：公开层（名片/文章/作品）+ 私有工作台区块
-  ok("门户首页渲染（zynqorw + 工作台模块卡）");
+  await waitText("工作台"); // 登录态首页：名片 + 工作台细栏
+  ok("首页渲染（名片 + 登录态工作台细栏）");
+  await page.goto(`${BASE}/dashboard`, { waitUntil: "networkidle2", timeout: 30000 });
+  await waitText("待你处理");
+  ok("工作台总览渲染（待你处理/简报/产线状态）");
   await clickByText("公众号长文", "a");
   await waitText("仪表盘");
-  ok("门户轨道入口 → 公众号仪表盘");
+  ok("工作台轨道入口 → 公众号仪表盘");
   // /agent 旧入口应重定向进默认轨道
   await page.goto(`${BASE}/agent`, { waitUntil: "networkidle2" });
   const agentLanding = await page.evaluate(() => location.pathname);

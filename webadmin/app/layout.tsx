@@ -48,19 +48,25 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               {SITE.name}
               <span className="text-amber-500" aria-hidden>.</span>
             </Link>
+            {/* 左组=公开导航；右组=工作台导航（登录后），语义分区不混排 */}
             <div className="flex flex-1 items-center gap-6 text-sm">
               <NavLinks items={PUBLIC_NAV} />
-              {authed && (
-                <NavLinks
-                  items={MODULES.filter((m) => m.status === "active").map((m) => ({
-                    label: m.name,
-                    href: m.href,
-                    external: m.external,
-                  }))}
-                />
-              )}
             </div>
-            {!authed && (
+            {authed ? (
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
+                <NavLinks
+                  items={[
+                    { label: "工作台", href: "/dashboard" },
+                    ...MODULES.filter((m) => m.status === "active").map((m) => ({
+                      label: m.name,
+                      href: m.href,
+                      external: m.external,
+                      match: m.id === "contentagent" ? "/agent" : undefined,
+                    })),
+                  ]}
+                />
+              </div>
+            ) : (
               <Link
                 href="/login"
                 className="text-[12px] text-neutral-400 transition-colors hover:text-neutral-700"
