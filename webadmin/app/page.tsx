@@ -122,7 +122,9 @@ export default async function Home() {
         )}
       </section>
 
-      {/* 作品（公开）：对外的付费产品 */}
+      {/* 作品（公开）：对外的付费产品。
+          公网门面实例在 decider 上线（配 DECIDER_URL）前先不展示——别给访客断链 */}
+      {(process.env.PUBLIC_FACADE !== "1" || process.env.DECIDER_URL) && (
       <section className="mt-12 border-t border-neutral-200 pt-8">
         <h2 className="mb-2 text-[12px] font-semibold uppercase tracking-[0.15em] text-neutral-400">作品</h2>
         <a
@@ -143,6 +145,7 @@ export default async function Home() {
           </span>
         </a>
       </section>
+      )}
     </div>
   );
 }
