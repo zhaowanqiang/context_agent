@@ -57,6 +57,22 @@ export const getPostBySlug = cache(async (slug: string): Promise<Post | null> =>
   return (data as Post) ?? null;
 });
 
+/** 上一篇/下一篇（按 published_at 排序；文末导航把访客留在站内） */
+export async function adjacentPosts(
+  publishedAt: string
+): Promise<{ prev: Pick<Post, "slug" | "title"> | null; next: Pick<Post, "slug" | "title"> | null }> {
+  const [prevRes, nextRes] = await Promise.all([
+    db().from("posts").select("slug, title").lt("published_at", publishedAt)
+      .order("published_at", { ascending: false }).limit(1).maybeSingle(),
+    db().from("posts").select("slug, title").gt("published_at", publishedAt)
+      .order("published_at", { ascending: true }).limit(1).maybeSingle(),
+  ]);
+  return {
+    prev: (prevRes.data as Pick<Post, "slug" | "title">) ?? null,
+    next: (nextRes.data as Pick<Post, "slug" | "title">) ?? null,
+  };
+}
+
 /** run 是否已回流为文章（run 详情页按钮据此显示状态） */
 export async function postOfRun(runId: string): Promise<Post | null> {
   const { data, error } = await db().from("posts").select("*").eq("run_id", runId).maybeSingle();

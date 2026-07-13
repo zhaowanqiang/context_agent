@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { renderMarkdown } from "@/lib/markdown";
-import { getPostBySlug } from "@/lib/posts";
+import { adjacentPosts, getPostBySlug } from "@/lib/posts";
 import { SITE, siteUrl } from "@/lib/site";
 import { TRACK_LABEL } from "@/lib/types";
 
-export const dynamic = "force-dynamic";
+// ISR：公网门面实例 60s 再验证（访客秒开、Supabase 波动不伤站点）；
+// 本机实例 layout 读 cookie 自动退回逐请求渲染，行为不变
+export const revalidate = 60;
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -41,6 +43,7 @@ export default async function PostPage({ params }: Props) {
   const { slug } = await params;
   const post = await getPostBySlug(slug).catch(() => null);
   if (!post) notFound();
+  const { prev, next } = await adjacentPosts(post.published_at).catch(() => ({ prev: null, next: null }));
 
   return (
     <article className="mx-auto max-w-2xl py-10">
@@ -67,7 +70,62 @@ export default async function PostPage({ params }: Props) {
         className="md-body md-article mt-9 border-t border-neutral-200 pt-9"
         dangerouslySetInnerHTML={{ __html: renderMarkdown(post.content_md) }}
       />
-      <footer className="mt-14 rounded-xl bg-neutral-100/80 px-5 py-4 text-[13px] leading-relaxed text-neutral-500">
+      {/* 文末转化区：流量的终点是转化的起点——按轨道切换推广位 */}
+      {post.track === "x" ? (
+        <a
+          href="https://decider.zynqorw.com"
+          className="group mt-10 block rounded-xl border border-amber-200/80 bg-amber-50/60 px-5 py-4 transition hover:border-amber-300 hover:bg-amber-50"
+        >
+          <p className="text-[14.5px] font-bold text-neutral-900">
+            🧭 想开海外账户 / U 卡？我把实测教程都整理好了
+          </p>
+          <p className="mt-1 text-[13px] leading-relaxed text-neutral-500">
+            Wise / KAST / Bybit Card 等 5 篇保姆级实操，2 篇全文免费——答 4 个问题还能拿个性化开户推荐。
+            <span className="ml-1 font-medium text-amber-700 opacity-0 transition group-hover:opacity-100">去看看 →</span>
+          </p>
+        </a>
+      ) : (
+        <div className="mt-10 rounded-xl border border-amber-200/80 bg-amber-50/60 px-5 py-4">
+          <p className="text-[14.5px] font-bold text-neutral-900">觉得有用？我每周都在写</p>
+          <p className="mt-1 text-[13px] leading-relaxed text-neutral-500">
+            AI 工具与效率实测、跨境金融干货——关注{" "}
+            <a href="https://x.com/zynqorw" target="_blank" rel="noreferrer" className="font-medium text-amber-700 underline decoration-amber-300 underline-offset-4">
+              X @zynqorw
+            </a>
+            {" "}或订阅{" "}
+            <a href="/rss.xml" className="font-medium text-amber-700 underline decoration-amber-300 underline-offset-4">
+              RSS
+            </a>
+            ，不错过下一篇。
+          </p>
+        </div>
+      )}
+
+      {/* 上一篇 / 下一篇：把访客留在站内 */}
+      {(prev || next) && (
+        <nav className="mt-6 grid gap-3 sm:grid-cols-2">
+          {prev ? (
+            <Link href={`/posts/${prev.slug}`} className="group rounded-xl border border-neutral-200 bg-white px-4 py-3 transition hover:border-amber-300">
+              <span className="text-[11px] text-neutral-400">← 上一篇</span>
+              <span className="mt-0.5 block truncate text-[13.5px] font-medium text-neutral-700 group-hover:text-amber-700">
+                {prev.title}
+              </span>
+            </Link>
+          ) : (
+            <span />
+          )}
+          {next && (
+            <Link href={`/posts/${next.slug}`} className="group rounded-xl border border-neutral-200 bg-white px-4 py-3 text-right transition hover:border-amber-300">
+              <span className="text-[11px] text-neutral-400">下一篇 →</span>
+              <span className="mt-0.5 block truncate text-[13.5px] font-medium text-neutral-700 group-hover:text-amber-700">
+                {next.title}
+              </span>
+            </Link>
+          )}
+        </nav>
+      )}
+
+      <footer className="mt-8 rounded-xl bg-neutral-100/80 px-5 py-4 text-[13px] leading-relaxed text-neutral-500">
         本文出自我的 AI 产线，经人工核对后发布；同步发布于{" "}
         {SITE.links.map((l, i) => (
           <span key={l.href}>

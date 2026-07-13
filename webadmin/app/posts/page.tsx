@@ -3,7 +3,8 @@ import Link from "next/link";
 import { listPosts, type Post } from "@/lib/posts";
 import { TRACK_LABEL } from "@/lib/types";
 
-export const dynamic = "force-dynamic";
+// ISR：公网实例 60s 再验证；本机因 layout 读 cookie 自动退回逐请求渲染
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "文章",

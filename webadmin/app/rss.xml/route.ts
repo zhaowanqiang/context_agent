@@ -1,7 +1,7 @@
 import { listPosts } from "@/lib/posts";
 import { SITE, siteUrl } from "@/lib/site";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300; // RSS 5 分钟再验证够用（阅读器本来就按小时拉）
 
 function esc(s: string): string {
   return s

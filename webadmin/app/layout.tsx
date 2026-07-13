@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Analytics } from "@vercel/analytics/next";
 import { isAdminAuthed } from "@/lib/adminAuth";
 import { MODULES } from "@/lib/modules";
 import { SITE, siteUrl } from "@/lib/site";
@@ -21,12 +22,13 @@ export const metadata: Metadata = {
     description: SITE.description,
     locale: "zh_CN",
   },
-  twitter: { card: "summary", creator: "@zynqorw" },
+  twitter: { card: "summary_large_image", creator: "@zynqorw" },
 };
 
 /** 公开访客永远可见的导航 */
 const PUBLIC_NAV = [
   { label: "文章", href: "/posts" },
+  { label: "此刻", href: "/now" },
   { label: "关于", href: "/about" },
 ];
 
@@ -101,6 +103,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </div>
           </div>
         </footer>
+        {/* Vercel Web Analytics：只在 Vercel 部署实例生效，本机是空操作 */}
+        <Analytics />
       </body>
     </html>
   );

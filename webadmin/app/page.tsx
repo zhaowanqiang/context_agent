@@ -5,7 +5,9 @@ import { listPosts, type Post } from "@/lib/posts";
 import { SITE } from "@/lib/site";
 import { db } from "@/lib/supabase";
 
-export const dynamic = "force-dynamic";
+// ISR：公网门面实例 60s 再验证（isAdminAuthed 在门面模式下不碰 cookie，可静态化）；
+// 本机实例照旧逐请求渲染（cookie 判定登录态）
+export const revalidate = 60;
 
 /* 首页 = 纯公开个人名片（所见即访客所见）。
    工作台总览在 /dashboard，登录后这里只多一条细栏直达——
@@ -122,30 +124,53 @@ export default async function Home() {
         )}
       </section>
 
-      {/* 作品（公开）：对外的付费产品。
-          公网门面实例在 decider 上线（配 DECIDER_URL）前先不展示——别给访客断链 */}
-      {(process.env.PUBLIC_FACADE !== "1" || process.env.DECIDER_URL) && (
+      {/* 作品（公开）：付费产品 + 开源产线。
+          公网门面实例在 decider 上线（配 DECIDER_URL）前不展示 decider 卡——别给访客断链 */}
       <section className="mt-12 border-t border-neutral-200 pt-8">
         <h2 className="mb-2 text-[12px] font-semibold uppercase tracking-[0.15em] text-neutral-400">作品</h2>
-        <a
-          href={decider.href}
-          className="group -mx-3 flex items-start gap-4 rounded-xl px-3 py-5 transition hover:bg-amber-50/60"
-        >
-          <span className="mt-0.5 text-[26px] leading-none" aria-hidden>
-            {decider.emoji}
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="flex items-baseline gap-2">
-              <h3 className="text-[16.5px] font-semibold text-neutral-900 transition group-hover:text-amber-800">
-                {decider.name}
-              </h3>
-              <span className="text-[12px] text-neutral-400 opacity-0 transition group-hover:opacity-100">试一试 ↗</span>
+        <div className="divide-y divide-neutral-200/70">
+          {(process.env.PUBLIC_FACADE !== "1" || process.env.DECIDER_URL) && (
+            <a
+              href={decider.href}
+              className="group -mx-3 flex items-start gap-4 rounded-xl px-3 py-5 transition hover:bg-amber-50/60"
+            >
+              <span className="mt-0.5 text-[26px] leading-none" aria-hidden>
+                {decider.emoji}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex items-baseline gap-2">
+                  <h3 className="text-[16.5px] font-semibold text-neutral-900 transition group-hover:text-amber-800">
+                    {decider.name}
+                  </h3>
+                  <span className="text-[12px] text-neutral-400 opacity-0 transition group-hover:opacity-100">试一试 ↗</span>
+                </span>
+                <p className="mt-1.5 text-[13.5px] leading-relaxed text-neutral-500">{decider.tagline}</p>
+              </span>
+            </a>
+          )}
+          <a
+            href="https://github.com/zhaowanqiang/context_agent"
+            target="_blank"
+            rel="noreferrer"
+            className="group -mx-3 flex items-start gap-4 rounded-xl px-3 py-5 transition hover:bg-amber-50/60"
+          >
+            <span className="mt-0.5 text-[26px] leading-none" aria-hidden>
+              ⚙️
             </span>
-            <p className="mt-1.5 text-[13.5px] leading-relaxed text-neutral-500">{decider.tagline}</p>
-          </span>
-        </a>
+            <span className="min-w-0 flex-1">
+              <span className="flex items-baseline gap-2">
+                <h3 className="text-[16.5px] font-semibold text-neutral-900 transition group-hover:text-amber-800">
+                  contentagent · AI 内容产线（开源）
+                </h3>
+                <span className="text-[12px] text-neutral-400 opacity-0 transition group-hover:opacity-100">GitHub ↗</span>
+              </span>
+              <p className="mt-1.5 text-[13.5px] leading-relaxed text-neutral-500">
+                驱动这个网站的系统：RSS 选题 + 情报监控 → AI 两跳成稿 → 事实闸门 → 人工把关发布，双平台产线 + 工作台
+              </p>
+            </span>
+          </a>
+        </div>
       </section>
-      )}
     </div>
   );
 }

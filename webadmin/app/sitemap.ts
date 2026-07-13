@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { listPosts } from "@/lib/posts";
 import { siteUrl } from "@/lib/site";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 /** 公开层 sitemap：固定页 + 全部文章（posts 表未建时只出固定页） */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
