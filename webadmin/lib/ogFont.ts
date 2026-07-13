@@ -47,7 +47,9 @@ export async function loadCjkFont(text: string, weight = 700): Promise<ArrayBuff
         signal: AbortSignal.timeout(8000),
       })
     ).text();
-    const m = css.match(/src:\s*url\((.+?)\)\s*format\(['"]?(?:opentype|truetype)['"]?\)/);
+    // css2 对老 Firefox UA 实际返回 format('woff')（不是 truetype！实测踩过），
+    // Satori 支持 ttf/otf/woff，三种都收；只有 woff2 不行
+    const m = css.match(/src:\s*url\((.+?)\)\s*format\(['"]?(?:opentype|truetype|woff)['"]?\)/);
     if (!m) return null;
     const res = await fetch(m[1], { signal: AbortSignal.timeout(8000) });
     if (!res.ok) return null;
