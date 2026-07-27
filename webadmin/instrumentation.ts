@@ -24,11 +24,14 @@ export async function register() {
     await writeStamp("autopilot");
     console.log(`[autopilot] ${new Date().toLocaleString("zh-CN")} ${label}产线启动`);
     const { runAutopilot } = await import("./lib/autopilot");
+    const { runAsSystem } = await import("./lib/systemContext");
     const { TRACKS, TRACK_LABEL } = await import("./lib/types");
     const { notifyAll } = await import("./lib/notify");
     for (const track of TRACKS) {
       try {
-        const report = await runAutopilot(track);
+        // 包进 system 上下文：产线内部会直接调 actions/*，那些 action 自带的
+        // requireAdmin() 闸门在这条无请求上下文的路径上要放行
+        const report = await runAsSystem(() => runAutopilot(track));
         console.log(`[autopilot:${track}] 完成：`, JSON.stringify(report, null, 1));
         const ok = report.created.filter((c) => c.ok).length;
         const retriedOk = report.retried.filter((r) => r.ok).length;

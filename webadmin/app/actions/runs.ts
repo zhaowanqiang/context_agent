@@ -6,6 +6,7 @@ import { agent, AgentError, LLMCallPayload } from "@/lib/agent";
 import { lintDraft } from "@/lib/draftLint";
 import { db } from "@/lib/supabase";
 import type { Run, RunStatus, TrackId } from "@/lib/types";
+import { requireAdmin } from "@/lib/adminAuth";
 
 export interface ActionResult {
   error?: string;
@@ -107,6 +108,7 @@ export async function createRun(
   _prev: ActionResult | undefined,
   formData: FormData
 ): Promise<ActionResult> {
+  await requireAdmin();
   const track = formData.get("track") as TrackId;
   const material = (formData.get("material") as string)?.trim();
   const feedItemId = (formData.get("feed_item_id") as string) || null;
@@ -152,6 +154,7 @@ export async function createRun(
 // ── Hop 1：生成大纲 ──────────────────────────────────────────────────
 
 export async function generateOutline(runId: string): Promise<ActionResult> {
+  await requireAdmin();
   return guard(runId, async () => {
     const run = await getRun(runId);
     if (!["created", "failed"].includes(run.status)) {
@@ -180,6 +183,7 @@ export async function confirmOutline(
   outlineFinal: string,
   markEdited = true // 自动重写传 false：机器追加反馈不算人工改稿信号
 ): Promise<ActionResult> {
+  await requireAdmin();
   return guard(runId, async () => {
     const run = await getRun(runId);
     if (run.status !== "outline_review") throw new Error(`当前状态 ${run.status} 不能确认大纲`);
@@ -246,6 +250,7 @@ export async function confirmOutline(
 // ── 一键直通：大纲不经人工确认，直接跑到成稿（全自动模式）───────────
 
 export async function autoRunToDraft(runId: string): Promise<ActionResult> {
+  await requireAdmin();
   const r1 = await generateOutline(runId);
   if (r1.error) return r1;
   const run = await getRun(runId);
@@ -271,6 +276,7 @@ export async function autoRunToDraft(runId: string): Promise<ActionResult> {
 // ── 重跑成稿（draft_review 下不满意时，从当前 outline_final 重来）────
 
 export async function regenerateDraft(runId: string): Promise<ActionResult> {
+  await requireAdmin();
   return guard(runId, async () => {
     const run = await getRun(runId);
     if (run.status !== "draft_review") throw new Error(`当前状态 ${run.status} 不能重跑成稿`);
@@ -283,6 +289,7 @@ export async function regenerateDraft(runId: string): Promise<ActionResult> {
 // ── 润色保存 / 放弃 / 发布 / 卡死重置 ────────────────────────────────
 
 export async function saveDraftFinal(runId: string, draftFinal: string): Promise<ActionResult> {
+  await requireAdmin();
   return guard(null, async () => {
     const run = await getRun(runId);
     if (run.status !== "draft_review") throw new Error(`当前状态 ${run.status} 不能保存润色稿`);
@@ -292,6 +299,7 @@ export async function saveDraftFinal(runId: string, draftFinal: string): Promise
 }
 
 export async function abortRun(runId: string): Promise<ActionResult> {
+  await requireAdmin();
   return guard(null, async () => {
     const run = await getRun(runId);
     await updateRun(runId, { status: "aborted" });
@@ -305,6 +313,7 @@ export async function markPublished(
   channel: string,
   html: string | null
 ): Promise<ActionResult> {
+  await requireAdmin();
   return guard(null, async () => {
     const run = await getRun(runId);
     if (run.status !== "draft_review") throw new Error(`当前状态 ${run.status} 不能标记发布`);
@@ -321,15 +330,22 @@ export async function markPublished(
     const { autoFeedFewshot } = await import("./fewshot");
     const feedNote = await autoFeedFewshot({ ...run, status: "published" });
 
+    // 发布 = 内容上站 → 公众号长文自动回流个人站 /posts（避免死站；X 短帖走详情页手动按钮）
+    const { autoPublishToSite } = await import("./posts");
+    const siteNote = await autoPublishToSite({ ...run, status: "published" });
+
     revalidatePath(runPath(run.track, runId));
     revalidatePath(runPath(run.track));
     revalidatePath(`/agent/${run.track}/fewshot`);
-    return { message: `已标记发布${feedNote ? ` —— ${feedNote}` : ""}` };
+    revalidatePath("/posts");
+    const notes = [feedNote, siteNote].filter(Boolean).join(" · ");
+    return { message: `已标记发布${notes ? ` —— ${notes}` : ""}` };
   });
 }
 
 /** 状态卡在 *ing 超过 10 分钟视为中途崩溃，退回上一个可编辑状态 */
 export async function resetStuckRun(runId: string): Promise<ActionResult> {
+  await requireAdmin();
   return guard(null, async () => {
     const run = await getRun(runId);
     const stuckFor = Date.now() - new Date(run.updated_at).getTime();

@@ -4,9 +4,11 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/supabase";
 import { isTrackId } from "@/lib/types";
 import type { ActionResult } from "./runs";
+import { requireAdmin } from "@/lib/adminAuth";
 
 /** 剪藏入库（原生 form action，返回 void）：URL 或一段文字至少一个非空；无效输入静默忽略 */
 export async function addClip(formData: FormData): Promise<void> {
+  await requireAdmin();
   const rawUrl = String(formData.get("url") ?? "").trim();
   const note = String(formData.get("note") ?? "").trim();
   const trackRaw = String(formData.get("track") ?? "");
@@ -29,6 +31,7 @@ export async function addClip(formData: FormData): Promise<void> {
 }
 
 export async function discardClip(id: string): Promise<ActionResult> {
+  await requireAdmin();
   try {
     const { error } = await db().from("clips").update({ status: "discarded" }).eq("id", id);
     if (error) throw new Error(error.message);
@@ -40,6 +43,7 @@ export async function discardClip(id: string): Promise<ActionResult> {
 }
 
 export async function deleteClip(id: string): Promise<ActionResult> {
+  await requireAdmin();
   try {
     const { error } = await db().from("clips").delete().eq("id", id);
     if (error) throw new Error(error.message);

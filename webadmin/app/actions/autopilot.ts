@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { runAutopilot, type AutopilotReport } from "@/lib/autopilot";
 import type { TrackId } from "@/lib/types";
+import { requireAdmin } from "@/lib/adminAuth";
 
 export interface AutopilotActionResult {
   error?: string;
@@ -10,6 +11,7 @@ export interface AutopilotActionResult {
 }
 
 export async function triggerAutopilot(track: TrackId): Promise<AutopilotActionResult> {
+  await requireAdmin();
   try {
     const report = await runAutopilot(track);
     revalidatePath(`/agent/${track}`);

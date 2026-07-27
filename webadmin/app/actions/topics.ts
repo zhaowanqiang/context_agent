@@ -5,6 +5,7 @@ import { agent, AgentError } from "@/lib/agent";
 import { fetchAllSources } from "@/lib/rss";
 import { db } from "@/lib/supabase";
 import type { FeedItem, TrackId } from "@/lib/types";
+import { requireAdmin } from "@/lib/adminAuth";
 
 export interface TopicActionResult {
   error?: string;
@@ -21,6 +22,7 @@ async function guard(fn: () => Promise<string>): Promise<TopicActionResult> {
 
 /** [抓取全部] 按钮（轨道内） */
 export async function fetchTopics(track: TrackId): Promise<TopicActionResult> {
+  await requireAdmin();
   return guard(async () => {
     const results = await fetchAllSources(track);
     revalidatePath(`/agent/${track}/topics`);
@@ -35,6 +37,7 @@ export async function fetchTopics(track: TrackId): Promise<TopicActionResult> {
 
 /** [AI 打分] 按钮：该轨道 status=new 的条目 20 条一批送对应定位的打分 */
 export async function scoreNewTopics(track: TrackId): Promise<TopicActionResult> {
+  await requireAdmin();
   return guard(async () => {
     // 池卫生：超 7 天仍没轮上打分的条目直接过期——时效题材过了窗口就没有解读价值，
     // 留着只会挤占每次 60 条的打分额度（新条目按 fetched_at 倒序，旧的永远排不上）
@@ -113,6 +116,7 @@ export async function scoreNewTopics(track: TrackId): Promise<TopicActionResult>
 }
 
 export async function shortlistTopic(id: string, track: TrackId): Promise<TopicActionResult> {
+  await requireAdmin();
   return guard(async () => {
     const { error } = await db().from("feed_items").update({ status: "shortlisted" }).eq("id", id);
     if (error) throw new Error(error.message);
@@ -122,6 +126,7 @@ export async function shortlistTopic(id: string, track: TrackId): Promise<TopicA
 }
 
 export async function discardTopic(id: string, track: TrackId): Promise<TopicActionResult> {
+  await requireAdmin();
   return guard(async () => {
     const { error } = await db().from("feed_items").update({ status: "discarded" }).eq("id", id);
     if (error) throw new Error(error.message);

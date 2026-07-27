@@ -5,6 +5,7 @@ import { agent } from "@/lib/agent";
 import { runBriefing, type BriefingReport } from "@/lib/briefing";
 import { itemToMaterial, parseBriefingItems } from "@/lib/briefingItems";
 import { db } from "@/lib/supabase";
+import { requireAdmin } from "@/lib/adminAuth";
 
 export interface BriefingActionResult {
   error?: string;
@@ -12,6 +13,7 @@ export interface BriefingActionResult {
 }
 
 export async function triggerBriefing(): Promise<BriefingActionResult> {
+  await requireAdmin();
   try {
     const report = await runBriefing();
     revalidatePath("/monitor");
@@ -24,6 +26,7 @@ export async function triggerBriefing(): Promise<BriefingActionResult> {
 
 /** 手动生成一期周报（cron 周日 20:00 之外的即时触发；纯统计零 LLM 成本） */
 export async function triggerWeeklyReview(): Promise<{ error?: string; title?: string }> {
+  await requireAdmin();
   try {
     const { runWeeklyReview } = await import("@/lib/weeklyReview");
     const r = await runWeeklyReview();
@@ -35,6 +38,7 @@ export async function triggerWeeklyReview(): Promise<{ error?: string; title?: s
 }
 
 export async function addMonitorTopic(formData: FormData) {
+  await requireAdmin();
   const name = (formData.get("name") as string)?.trim();
   const keywords = (formData.get("keywords") as string)?.trim() || null;
   const note = (formData.get("note") as string)?.trim() || null;
@@ -53,18 +57,21 @@ export async function addMonitorTopic(formData: FormData) {
 }
 
 export async function toggleMonitorTopic(id: string, enabled: boolean) {
+  await requireAdmin();
   const { error } = await db().from("monitor_topics").update({ enabled }).eq("id", id);
   if (error) throw new Error(`更新失败：${error.message}`);
   revalidatePath("/monitor");
 }
 
 export async function deleteMonitorTopic(id: string) {
+  await requireAdmin();
   const { error } = await db().from("monitor_topics").delete().eq("id", id);
   if (error) throw new Error(`删除失败：${error.message}`);
   revalidatePath("/monitor");
 }
 
 export async function deleteBriefing(id: string) {
+  await requireAdmin();
   const { error } = await db().from("briefings").delete().eq("id", id);
   if (error) throw new Error(`删除失败：${error.message}`);
   revalidatePath("/monitor");
@@ -88,6 +95,7 @@ function xpostTitle(draft: string): string {
 }
 
 export async function createXPostFromItem(briefingId: string, itemIndex: number): Promise<XPostActionResult> {
+  await requireAdmin();
   // 条目在服务端重新解析（不信任客户端传内容），index 对不上说明简报被改过
   const { data: briefing, error } = await db()
     .from("briefings").select("title, body_md").eq("id", briefingId).single();

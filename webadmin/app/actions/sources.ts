@@ -4,8 +4,10 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/supabase";
 import { isTrackId } from "@/lib/types";
 import type { TrackId } from "@/lib/types";
+import { requireAdmin } from "@/lib/adminAuth";
 
 export async function addSource(formData: FormData) {
+  await requireAdmin();
   const name = (formData.get("name") as string)?.trim();
   const feedUrl = (formData.get("feed_url") as string)?.trim();
   const track = formData.get("track") as string;
@@ -17,12 +19,14 @@ export async function addSource(formData: FormData) {
 }
 
 export async function toggleSource(id: string, enabled: boolean, track: TrackId) {
+  await requireAdmin();
   const { error } = await db().from("sources").update({ enabled }).eq("id", id);
   if (error) throw new Error(`更新失败：${error.message}`);
   revalidatePath(`/agent/${track}/sources`);
 }
 
 export async function deleteSource(id: string, track: TrackId) {
+  await requireAdmin();
   const { error } = await db().from("sources").delete().eq("id", id);
   if (error) throw new Error(`删除失败：${error.message}`);
   revalidatePath(`/agent/${track}/sources`);

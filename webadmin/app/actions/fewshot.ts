@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { AUTO_FILE, FEWSHOT_MAX, fewshotDir } from "@/lib/fewshotStore";
 import { db } from "@/lib/supabase";
 import type { Run, TrackId } from "@/lib/types";
+import { requireAdmin } from "@/lib/adminAuth";
 
 export interface FewshotResult {
   error?: string;
@@ -55,6 +56,7 @@ async function writeRunToFewshot(run: Run): Promise<WriteResult> {
 
 /** 手动按钮：把 run 的人工终稿存进该轨道的 few-shot 范例库（不做质检门槛，你点了就是要存） */
 export async function saveToFewshot(runId: string): Promise<FewshotResult> {
+  await requireAdmin();
   try {
     const { data, error } = await db().from("runs").select("*").eq("id", runId).single();
     if (error) throw new Error(error.message);
@@ -80,6 +82,7 @@ export async function saveToFewshot(runId: string): Promise<FewshotResult> {
  * 永不抛错（喂库失败不能挡发布），返回给用户看的一句话（null = 无需提示）。
  */
 export async function autoFeedFewshot(run: Run): Promise<string | null> {
+  await requireAdmin();
   try {
     // 质检门槛：Gate 后质检分写在 checklist 头部；没有分数的（早期 run）放行
     const quality = run.checklist?.match(/【质量自检】([\d.]+)\/10/)?.[1];
@@ -114,6 +117,7 @@ export async function autoFeedFewshot(run: Run): Promise<string | null> {
 
 /** 范例库页面的删除按钮：淘汰表现弱的范例（文件名来自 listFewshot，不接受路径分隔符） */
 export async function deleteFewshotFile(track: TrackId, filename: string): Promise<FewshotResult> {
+  await requireAdmin();
   try {
     if (!/^[^\\/]+\.md$/.test(filename)) return { error: "文件名不合法" };
     await unlink(path.join(fewshotDir(track), filename));

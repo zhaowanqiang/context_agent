@@ -4,9 +4,11 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/supabase";
 import type { PublicationStats } from "@/lib/types";
 import type { ActionResult } from "./runs";
+import { requireAdmin } from "@/lib/adminAuth";
 
 /** 发布队列：设置/清除计划发布日期（null = 移出排期） */
 export async function setPlannedDate(runId: string, date: string | null): Promise<ActionResult> {
+  await requireAdmin();
   try {
     if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("日期格式应为 YYYY-MM-DD");
     const { error } = await db()
@@ -26,6 +28,7 @@ export async function savePublicationStats(
   publicationId: string,
   stats: PublicationStats
 ): Promise<ActionResult> {
+  await requireAdmin();
   try {
     const cleaned: PublicationStats = {};
     for (const [k, v] of Object.entries(stats)) {
