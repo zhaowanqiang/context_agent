@@ -144,13 +144,18 @@ export default async function Home() {
   const services = SERVICES.filter((s) => !s.needsDecider || showDecider);
   const products = PRODUCTS.filter((p) => !p.needsDecider || showDecider);
 
+  const lastShip = latestPosts[0];
+
   return (
+    /* 首页不自设宽度，撑满 layout 给的容器（访客 1024 / 登录 1480），
+       右边缘始终与导航齐平。每个区块都按容器宽度自适应填充，
+       所以两种宽度下都是满的——「所见即访客所见」靠版式一致保证，不靠锁死像素 */
     <div>
       {/* 工作台细栏（仅登录后）：不打断名片版式，一行直达 */}
       {authed && (
         <Link
           href="/dashboard"
-          className="group mt-4 flex max-w-2xl items-center justify-between rounded-lg border border-amber-200/70 bg-amber-50/60 px-4 py-2.5 text-[13px] transition hover:border-amber-300 hover:bg-amber-50"
+          className="group mt-4 flex items-center justify-between rounded-lg border border-amber-200/70 bg-amber-50/60 px-4 py-2.5 text-[13px] transition hover:border-amber-300 hover:bg-amber-50"
         >
           <span className="text-neutral-600">
             ⚡ 工作台
@@ -166,39 +171,92 @@ export default async function Home() {
         </Link>
       )}
 
-      {/* Hero：个人名片（公开）——名字用衬线展示体做记忆点 */}
-      <section className="max-w-2xl pb-14 pt-10 sm:pt-16">
-        <p className="font-mono text-[11.5px] font-semibold uppercase tracking-[0.18em] text-amber-700">
-          Full-stack Developer
-        </p>
-        <h1 className="font-display mt-2 text-5xl font-bold tracking-tight text-neutral-900 sm:text-6xl">
-          {SITE.name}
-          <span className="text-amber-500">.</span>
-        </h1>
-        <p className="mt-5 text-[16px] leading-[1.9] text-neutral-600">
-          写跨境金融与加密支付卡实测、AI 工具与效率实测。
-          所有内容出自我自己搭的 AI 产线——机器起草，事实闸门把关，
-          每一篇都经人工核对后发布。
-        </p>
-        <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-[13.5px]">
-          {SITE.links.map((l) => (
+      {/* Hero：个人名片（公开）——左侧名字用衬线展示体做记忆点，
+          右侧终端名片把「我是干什么的」压成一屏可扫的事实表，顺带填掉右上角留白 */}
+      <section className="grid gap-10 pb-14 pt-10 sm:pt-16 lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:items-center lg:gap-14">
+        <div>
+          <p className="font-mono text-[11.5px] font-semibold uppercase tracking-[0.18em] text-amber-700">
+            Full-stack Developer
+          </p>
+          <h1 className="font-display mt-2 text-5xl font-bold tracking-tight text-neutral-900 sm:text-6xl">
+            {SITE.name}
+            <span className="text-amber-500">.</span>
+          </h1>
+          <p className="mt-5 text-[16px] leading-[1.9] text-neutral-600">
+            写跨境金融与加密支付卡实测、AI 工具与效率实测。
+            所有内容出自我自己搭的 AI 产线——机器起草，事实闸门把关，
+            每一篇都经人工核对后发布。
+          </p>
+          <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-[13.5px]">
+            {SITE.links.map((l) => (
+              <a
+                key={l.href}
+                href={l.href}
+                target="_blank"
+                rel="noreferrer"
+                className="text-neutral-500 underline decoration-neutral-300 underline-offset-4 transition hover:text-amber-700 hover:decoration-amber-400"
+              >
+                {l.label} ↗
+              </a>
+            ))}
             <a
-              key={l.href}
-              href={l.href}
-              target="_blank"
-              rel="noreferrer"
+              href="/rss.xml"
               className="text-neutral-500 underline decoration-neutral-300 underline-offset-4 transition hover:text-amber-700 hover:decoration-amber-400"
             >
-              {l.label} ↗
+              RSS
             </a>
-          ))}
-          <a
-            href="/rss.xml"
-            className="text-neutral-500 underline decoration-neutral-300 underline-offset-4 transition hover:text-amber-700 hover:decoration-amber-400"
-          >
-            RSS
-          </a>
+          </div>
         </div>
+
+        {/* 终端名片：等宽排版的事实表，内容全部可在站内验证，不写自我评价 */}
+        <aside className="@container overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-[0_1px_16px_rgba(28,25,23,0.04)]">
+          <div className="flex items-center gap-2 border-b border-neutral-200 bg-neutral-100/70 px-4 py-2.5">
+            <span className="flex gap-1.5" aria-hidden>
+              <span className="size-2 rounded-full bg-neutral-300" />
+              <span className="size-2 rounded-full bg-neutral-300" />
+              <span className="size-2 rounded-full bg-neutral-300" />
+            </span>
+            <span className="font-mono text-[11.5px] text-neutral-400">~/{SITE.name}</span>
+            <span className="ml-auto flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-wider text-neutral-400">
+              <span className="size-1.5 animate-pulse rounded-full bg-amber-500" aria-hidden />
+              live
+            </span>
+          </div>
+
+          {/* 卡片自身宽度决定排布（容器查询，不看视口）：窄容器 4 行，
+              宽容器 2×2——同一张卡在 1024 和 1480 两种版心里都不留空 */}
+          <dl className="grid gap-px bg-neutral-200/70 text-[12.5px] leading-relaxed @md:grid-cols-2">
+            {[
+              ["product", "出海开户决策 · contentagent"],
+              ["writing", "跨境金融实测 · AI 工具实测"],
+              ["stack", "Next.js · Supabase · DeepSeek"],
+              ["channel", "公众号 + X 双轨"],
+            ].map(([k, v]) => (
+              <div key={k} className="flex gap-3 bg-white px-4 py-2.5">
+                <dt className="w-[54px] shrink-0 font-mono text-[11px] text-neutral-400">{k}</dt>
+                <dd className="min-w-0 text-neutral-700">{v}</dd>
+              </div>
+            ))}
+          </dl>
+
+          {/* 最近一次发布：真实数据，产线还在跑的活证据 */}
+          {lastShip && (
+            <Link
+              href={`/posts/${lastShip.slug}`}
+              className="group block border-t border-neutral-200 bg-amber-50/40 px-4 py-3 transition hover:bg-amber-50"
+            >
+              <p className="font-mono text-[10.5px] uppercase tracking-wider text-neutral-400">
+                last ship ·{" "}
+                <time className="tabular-nums">
+                  {new Date(lastShip.published_at).toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" })}
+                </time>
+              </p>
+              <p className="mt-1 line-clamp-2 text-[12.5px] leading-snug text-neutral-700 transition group-hover:text-amber-800">
+                {lastShip.title}
+              </p>
+            </Link>
+          )}
+        </aside>
       </section>
 
       {/* P0-1 我能帮你什么：访客动线的第一个转化环节。
@@ -306,8 +364,8 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* 最新文章（公开）：编辑部式扁平列表——日期左栏 + 标题 + 摘要。
-          正文列限宽 42rem，行长不随容器变宽而失控 */}
+      {/* 最新文章（公开）：三栏卡片网格。原先是日期左栏的扁平列表，
+          正文限宽 42rem，容器一宽右半边就空——改成网格后跟上面两个区块同宽同节奏 */}
       <section className="mt-16 border-t border-neutral-200 pt-10">
         <div className="flex items-baseline justify-between">
           <SectionLabel>Public notes</SectionLabel>
@@ -322,24 +380,30 @@ export default async function Home() {
         {latestPosts.length === 0 ? (
           <p className="py-8 text-[13px] text-neutral-400">第一篇文章正在产线上。</p>
         ) : (
-          <ul className="mt-6 divide-y divide-neutral-200/70 border-t border-neutral-200/70">
-            {latestPosts.map((p) => (
-              <li key={p.id}>
+          <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {latestPosts.map((p, i) => (
+              <li key={p.id} className="flex">
                 <Link
                   href={`/posts/${p.slug}`}
-                  className="group grid gap-x-5 py-5 sm:grid-cols-[92px_minmax(0,42rem)]"
+                  className="group flex flex-1 flex-col rounded-xl border border-neutral-200 bg-white p-5 transition hover:border-amber-300 hover:shadow-[0_1px_16px_rgba(180,83,9,0.07)]"
                 >
-                  <time className="pt-0.5 text-[12.5px] tabular-nums text-neutral-400">
-                    {new Date(p.published_at).toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" })}
-                  </time>
-                  <div className="min-w-0">
-                    <h3 className="text-[16.5px] font-semibold leading-snug text-neutral-900 transition group-hover:text-amber-700">
-                      {p.title}
-                    </h3>
-                    {p.summary && (
-                      <p className="mt-1.5 line-clamp-2 text-[13.5px] leading-relaxed text-neutral-500">{p.summary}</p>
-                    )}
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="font-mono text-[11px] font-semibold text-neutral-300">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <time className="text-[12px] tabular-nums text-neutral-400">
+                      {new Date(p.published_at).toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" })}
+                    </time>
                   </div>
+                  <h3 className="mt-3 text-[16px] font-semibold leading-snug text-neutral-900 transition group-hover:text-amber-700">
+                    {p.title}
+                  </h3>
+                  {p.summary && (
+                    <p className="mt-2 line-clamp-3 flex-1 text-[13px] leading-relaxed text-neutral-500">{p.summary}</p>
+                  )}
+                  <p className="mt-4 text-[13px] font-medium text-amber-700">
+                    读全文 <span className="inline-block transition group-hover:translate-x-0.5">→</span>
+                  </p>
                 </Link>
               </li>
             ))}
@@ -349,36 +413,40 @@ export default async function Home() {
 
       {/* P0-3 合作区：动线终点。邮箱从 /about 末行提到首页，给一个明确的下一步 */}
       <section className="mt-16">
-        <div className="rounded-2xl border border-amber-200/70 bg-amber-50/50 px-6 py-10 sm:px-10 sm:py-12">
-          <SectionLabel>Work with me</SectionLabel>
-          <h2 className="font-display mt-2 max-w-xl text-[26px] font-bold leading-snug tracking-tight text-neutral-900 sm:text-3xl">
-            有具体问题、目标和预算，我们可以聊聊。
-          </h2>
-          <p className="mt-4 max-w-xl text-[14.5px] leading-relaxed text-neutral-600">
-            目前开放全栈产品开发、AI 内容工作流搭建，以及跨境支付与开户方向的实测咨询；
-            也接受相关工具与产品的实测合作。
-          </p>
+        {/* 左文右动作两栏：容器变宽时右栏承接留白，不让 CTA 吊在左下角 */}
+        <div className="grid gap-8 rounded-2xl border border-amber-200/70 bg-amber-50/50 px-6 py-10 sm:px-10 sm:py-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,340px)] lg:items-center lg:gap-14">
+          <div>
+            <SectionLabel>Work with me</SectionLabel>
+            <h2 className="font-display mt-2 text-[26px] font-bold leading-snug tracking-tight text-neutral-900 sm:text-3xl">
+              有具体问题、目标和预算，我们可以聊聊。
+            </h2>
+            <p className="mt-4 max-w-xl text-[14.5px] leading-relaxed text-neutral-600">
+              目前开放全栈产品开发、AI 内容工作流搭建，以及跨境支付与开户方向的实测咨询；
+              也接受相关工具与产品的实测合作。
+            </p>
+          </div>
 
-          <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3">
+          <div className="lg:justify-self-end lg:text-right">
             <a
               href={`mailto:${CONTACT_EMAIL}`}
-              className="rounded-lg bg-amber-700 px-5 py-2.5 text-[14px] font-medium text-white transition hover:bg-amber-800"
+              className="inline-block rounded-lg bg-amber-700 px-5 py-2.5 text-[14px] font-medium text-white transition hover:bg-amber-800"
             >
               {CONTACT_EMAIL}
             </a>
-            <a
-              href="https://x.com/zynqorw"
-              target="_blank"
-              rel="noreferrer"
-              className="text-[13.5px] text-neutral-500 underline decoration-neutral-300 underline-offset-4 transition hover:text-amber-700 hover:decoration-amber-400"
-            >
-              或在 X 上找我 ↗
-            </a>
+            <p className="mt-3">
+              <a
+                href="https://x.com/zynqorw"
+                target="_blank"
+                rel="noreferrer"
+                className="text-[13.5px] text-neutral-500 underline decoration-neutral-300 underline-offset-4 transition hover:text-amber-700 hover:decoration-amber-400"
+              >
+                或在 X 上找我 ↗
+              </a>
+            </p>
+            <p className="mt-4 text-[12.5px] leading-relaxed text-neutral-500">
+              来信请写清楚：你在做什么、卡在哪里、希望得到什么结果。
+            </p>
           </div>
-
-          <p className="mt-5 text-[12.5px] leading-relaxed text-neutral-500">
-            来信请写清楚：你在做什么、卡在哪里、希望得到什么结果。
-          </p>
         </div>
       </section>
     </div>
