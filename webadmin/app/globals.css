@@ -43,13 +43,16 @@
   --color-slate-950: #0c0a09;
 }
 
-/* decider 子树的字体作用域：它用 IBM Plex（next/font 注入 --font-plex-*），
- * 主站用 Georgia。@theme 是全局的，所以不能在那里覆盖 --font-display，
- * 改用普通选择器重定义自定义属性——CSS 变量会向下继承，只影响 decider 页面。 */
+/* decider 子树的字体作用域。
+ * decider 的版式是无衬线的，而主站 --font-display 是 Georgia 衬线，直接继承会走样；
+ * @theme 是全局的，不能在那里覆盖，故用普通选择器重定义——CSS 变量向下继承，
+ * 只影响 decider 页面。
+ * 原先这里指向 next/font 注入的 IBM Plex，现改为纯系统字体栈：
+ * 与主站「不引外部 webfont（本地优先 + 大陆网络）」一致，构建期也不再依赖外网。 */
 .decider-scope {
-  --font-display: var(--font-plex-sans), "PingFang SC", "Hiragino Sans GB",
-    "Microsoft YaHei", system-ui, sans-serif;
-  --font-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, monospace;
+  --font-display: system-ui, -apple-system, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Consolas, "Courier New", monospace;
 }
 
 :root {

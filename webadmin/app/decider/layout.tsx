@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import { AuthProvider } from "@/components/decider/AuthProvider";
 
 /**
@@ -7,25 +6,13 @@ import { AuthProvider } from "@/components/decider/AuthProvider";
  *
  * 它原本是独立应用的 root layout，并入主站后：
  * - 去掉 <html>/<body>（嵌套 layout 不能有），页面外壳改用主站 header/footer
- * - 字体挂在包裹 div 上，配合 globals.css 的 .decider-scope 把
- *   --font-display 从主站的 Georgia 换成 IBM Plex，只影响本子树
+ * - 去掉 next/font（原引 IBM Plex）：主站的既定原则是不引外部 webfont
+ *   ——本地优先 + 大陆网络，且构建期不该依赖外网。字体改由 globals.css 的
+ *   .decider-scope 用系统字体栈接管，保住 decider 原本的无衬线观感
+ *   （主站 --font-display 是 Georgia 衬线，直接继承会把它变个样）
  * - AuthProvider 保留：decider 有独立的 Supabase 用户账号体系（购买解锁靠它），
  *   与主站的单人访问码（admin_auth cookie）互不相干
  */
-
-const plexSans = IBM_Plex_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-plex-sans",
-  display: "swap",
-});
-
-const plexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-plex-mono",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "出海开户决策 · 实测教程库",
@@ -35,7 +22,7 @@ export const metadata: Metadata = {
 
 export default function DeciderLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className={`decider-scope ${plexSans.variable} ${plexMono.variable}`}>
+    <div className="decider-scope">
       <AuthProvider>{children}</AuthProvider>
     </div>
   );
