@@ -20,8 +20,6 @@ const CONTACT_EMAIL = "zynqorw@gmail.com";
 
 /** 「我能帮你什么」三张卡：痛点 → 交付 → 证据 → 去处，四段式固定结构 */
 interface Service {
-  /** 需要 decider 在线才展示（门面实例没配 DECIDER_URL 时整卡隐藏，别给访客断链） */
-  needsDecider?: boolean;
   index: string;
   kicker: string;
   title: string;
@@ -36,7 +34,6 @@ interface Service {
 
 const SERVICES: Service[] = [
   {
-    needsDecider: true,
     index: "01",
     kicker: "PRODUCT",
     title: "搞清楚自己能开哪些海外账户",
@@ -74,7 +71,6 @@ const SERVICES: Service[] = [
 
 /** 产品矩阵：不包装成成熟商业项目，公开真实状态 */
 interface Product {
-  needsDecider?: boolean;
   emoji: string;
   name: string;
   slogan: string;
@@ -90,7 +86,6 @@ const DECIDER = MODULES.find((m) => m.id === "decider")!;
 
 const PRODUCTS: Product[] = [
   {
-    needsDecider: true,
     emoji: DECIDER.emoji,
     name: DECIDER.name,
     slogan: "不确定能开哪个？先测，再动手。",
@@ -139,10 +134,6 @@ export default async function Home() {
     listPosts(3).catch(() => [] as Post[]),
     authed ? pendingTotal() : Promise.resolve(null),
   ]);
-  // 公网门面实例在 decider 上线（配 DECIDER_URL）前不展示相关卡片——别给访客断链
-  const showDecider = process.env.PUBLIC_FACADE !== "1" || !!process.env.DECIDER_URL;
-  const services = SERVICES.filter((s) => !s.needsDecider || showDecider);
-  const products = PRODUCTS.filter((p) => !p.needsDecider || showDecider);
 
   const lastShip = latestPosts[0];
 
@@ -271,7 +262,7 @@ export default async function Home() {
         </p>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {services.map((s) => (
+          {SERVICES.map((s) => (
             <a
               key={s.index}
               href={s.href}
@@ -320,7 +311,7 @@ export default async function Home() {
         </p>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          {products.map((p) => (
+          {PRODUCTS.map((p) => (
             <a
               key={p.name}
               href={p.href}

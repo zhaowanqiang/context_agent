@@ -48,7 +48,7 @@ export const MODULES: SiteModule[] = [
     id: "decider",
     name: "出海开户决策",
     tagline: "海外账户/U 卡实测教程库（2 篇全文免费），也可以答几个问题拿个性化开户推荐",
-    href: "/decider", // 门户跳转路由 → 独立应用（本地 3100 / 部署后 DECIDER_URL）
+    href: "/decider", // 已并入本应用，是站内真实路由（原先是跳向独立部署的门户路由）
     emoji: "🧭",
     status: "active",
     external: true,
