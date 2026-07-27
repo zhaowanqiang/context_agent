@@ -18,13 +18,37 @@ export interface UnlockOffer {
 interface Props {
   guideId: string;
   offers: UnlockOffer[];
+  /** 服务端探测到 CREEM_API_KEY 才为 true。false 时不给「购买」按钮——
+   *  没有 key 建单必然失败，让用户点了才看到「请稍后再试」是骗人。
+   *  此时把人导去仍在运行的独立站买，两站同一个 Supabase 项目，解锁状态互通。 */
+  paymentsEnabled: boolean;
+}
+
+/** 支付未接入时的替代面板：说清楚状况 + 给一条真能买到的路 */
+function BuyElsewhere({ guideId }: { guideId: string }) {
+  return (
+    <>
+      <a
+        href={`https://decider.zynqorw.com/guide/${guideId}`}
+        target="_blank"
+        rel="noreferrer"
+        className="rounded-lg bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-slate-700"
+      >
+        前往购买解锁 ↗
+      </a>
+      <p className="max-w-xs text-center text-xs leading-relaxed text-slate-400">
+        本站支付通道正在迁移，暂由 decider.zynqorw.com 收单。
+        两处账号与已购记录互通，买完回这里登录即可查看。
+      </p>
+    </>
+  );
 }
 
 // 付费墙遮罩上的解锁面板:
 //   未登录        → 引导登录/注册(登录成功后 AuthProvider 会 router.refresh(),服务端重新判定)
 //   已登录未购买  → 展示各档购买按钮(真实支付第 4 步接 MoR,这里是占位)
 //   开发模式      → 额外提供「模拟购买」直接写 purchases 表,联调解锁链路
-export default function UnlockPanel({ guideId, offers }: Props) {
+export default function UnlockPanel({ guideId, offers, paymentsEnabled }: Props) {
   const { user, loading, supabase } = useAuth();
   const router = useRouter();
   const [showLogin, setShowLogin] = useState(false);
@@ -42,11 +66,17 @@ export default function UnlockPanel({ guideId, offers }: Props) {
         <button
           type="button"
           onClick={() => setShowLogin(true)}
-          className="rounded-lg bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-slate-700"
+          className={
+            paymentsEnabled
+              ? "rounded-lg bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-slate-700"
+              : "rounded-lg border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400"
+          }
         >
-          登录后购买解锁
+          {paymentsEnabled ? "登录后购买解锁" : "已购买过？登录查看"}
         </button>
         <p className="text-xs text-slate-400">已购买过?登录后自动恢复解锁状态</p>
+        {/* 支付未接入时，未登录用户也要有一条能真买到的路 */}
+        {!paymentsEnabled && <BuyElsewhere guideId={guideId} />}
 
         {showLogin && (
           <div
@@ -124,6 +154,8 @@ export default function UnlockPanel({ guideId, offers }: Props) {
     // 让服务端重新判定解锁状态
     router.refresh();
   }
+
+  if (!paymentsEnabled) return <BuyElsewhere guideId={guideId} />;
 
   return (
     <>

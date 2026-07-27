@@ -67,6 +67,11 @@ export default async function GuidePage({
   const guide = getGuide(id);
   const product = products.find((p) => p.id === id);
 
+  // 支付通道是否可用：没有 CREEM_API_KEY 建单必然失败，此时不展示购买按钮，
+  // 改为把用户导向仍在收单的独立站（两处同一个 Supabase，已购记录互通）。
+  // 服务端读取，客户端拿不到这个 env——只传布尔值下去。
+  const paymentsEnabled = Boolean(process.env.CREEM_API_KEY);
+
   // 还没写这篇教程:不报 404,显示同样框架的"即将上线"占位页
   if (!guide) {
     return (
@@ -242,7 +247,7 @@ export default async function GuidePage({
               <p className="text-sm font-medium text-slate-700">
                 逐步实操详情为付费内容
               </p>
-              <UnlockPanel guideId={guide.id} offers={stepOffers} />
+              <UnlockPanel guideId={guide.id} offers={stepOffers} paymentsEnabled={paymentsEnabled} />
             </LockedCard>
           )}
         </section>
@@ -264,7 +269,7 @@ export default async function GuidePage({
               <p className="text-sm font-medium text-slate-700">
                 避坑清单为完整版付费内容
               </p>
-              <UnlockPanel guideId={guide.id} offers={pitfallOffers} />
+              <UnlockPanel guideId={guide.id} offers={pitfallOffers} paymentsEnabled={paymentsEnabled} />
             </LockedCard>
           )}
         </section>

@@ -10,6 +10,17 @@ export const runtime = "nodejs";
 // 已登录用户点「购买」→ 建 Creem checkout → 返回支付页 URL,前端跳转过去。
 // 身份 {user_id, guide_id, tier} 作为 metadata 一起带上,webhook 靠它反查该给谁解锁。
 export async function POST(req: Request) {
+  // 0) 支付通道未接入(缺 CREEM_API_KEY)时明确回绝：createCheckout 反正会抛，
+  //    但那条路径返回的是「建单失败,请稍后再试」，会让用户以为是临时故障反复重试。
+  //    503 + 明确文案，前端也能据此提示去独立站购买。
+  if (!process.env.CREEM_API_KEY) {
+    console.error("[checkout] 未配置 CREEM_API_KEY，支付通道未接入");
+    return NextResponse.json(
+      { error: "本站支付通道尚未开通，请前往 decider.zynqorw.com 购买" },
+      { status: 503 }
+    );
+  }
+
   // 1) 必须登录:未登录不给建单(否则 webhook 回来不知道解锁给谁)
   const supabase = await createServerSupabase();
   const {
