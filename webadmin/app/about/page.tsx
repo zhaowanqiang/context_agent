@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 /** 公开层：关于页。纯静态内容，直接改这个文件即可。 */
 export default function AboutPage() {
   return (
-    <div className="mx-auto max-w-2xl py-10">
+    <div className="max-w-2xl py-10">
       <h1 className="font-display text-3xl font-bold tracking-tight text-neutral-900">
         关于<span className="text-amber-500">.</span>
       </h1>
@@ -57,6 +57,10 @@ export default function AboutPage() {
               </a>
             </li>
           ))}
+          <li>
+            邮箱 <a href="mailto:zynqorw@gmail.com">zynqorw@gmail.com</a>
+            ——合作、读者反馈、纠错都可以发这里。
+          </li>
         </ul>
       </div>
     </div>

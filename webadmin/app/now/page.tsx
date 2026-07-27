@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 /** 公开层：/now 页（个人网站文化标配）。纯静态，直接改这个文件更新。 */
 export default function NowPage() {
   return (
-    <div className="mx-auto max-w-2xl py-10">
+    <div className="max-w-2xl py-10">
       <h1 className="font-display text-3xl font-bold tracking-tight text-neutral-900">
         此刻<span className="text-amber-500">.</span>
       </h1>

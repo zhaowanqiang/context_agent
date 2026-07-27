@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { listPosts, type Post } from "@/lib/posts";
-import { TRACK_LABEL } from "@/lib/types";
+import PostsList from "@/components/PostsList";
 
 // ISR：公网实例 60s 再验证；本机因 layout 读 cookie 自动退回逐请求渲染
 export const revalidate = 60;
@@ -21,11 +20,11 @@ export default async function PostsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl py-10">
+    <div className="py-10">
       <h1 className="font-display text-3xl font-bold tracking-tight text-neutral-900">
         文章<span className="text-amber-500">.</span>
       </h1>
-      <p className="mt-3 text-[14.5px] leading-relaxed text-neutral-500">
+      <p className="mt-3 max-w-2xl text-[14.5px] leading-relaxed text-neutral-500">
         实测干货的公开存档——同步发布于公众号与 X，原文以这里为准。
         也可以用 <a href="/rss.xml" className="text-amber-700 underline decoration-amber-300 underline-offset-4">RSS</a> 订阅。
       </p>
@@ -35,28 +34,16 @@ export default async function PostsPage() {
           还没有文章——第一篇正在产线上。
         </p>
       ) : (
-        <ul className="mt-10 divide-y divide-neutral-200/70 border-t border-neutral-200">
-          {posts.map((p) => (
-            <li key={p.id}>
-              <Link href={`/posts/${p.slug}`} className="group grid gap-x-5 py-6 sm:grid-cols-[92px_1fr]">
-                <time className="pt-0.5 text-[12.5px] tabular-nums text-neutral-400">
-                  {new Date(p.published_at).toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" })}
-                </time>
-                <div className="min-w-0">
-                  <h2 className="text-[17px] font-semibold leading-snug text-neutral-900 transition group-hover:text-amber-700">
-                    {p.title}
-                  </h2>
-                  {p.summary && (
-                    <p className="mt-2 line-clamp-2 text-[13.5px] leading-relaxed text-neutral-500">{p.summary}</p>
-                  )}
-                  {p.track && (
-                    <p className="mt-2.5 text-[11.5px] text-neutral-400">{TRACK_LABEL[p.track]}</p>
-                  )}
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <PostsList
+          posts={posts.map((p) => ({
+            id: p.id,
+            slug: p.slug,
+            title: p.title,
+            summary: p.summary,
+            track: p.track,
+            published_at: p.published_at,
+          }))}
+        />
       )}
     </div>
   );

@@ -11,7 +11,105 @@ export const revalidate = 60;
 
 /* 首页 = 纯公开个人名片（所见即访客所见）。
    工作台总览在 /dashboard，登录后这里只多一条细栏直达——
-   对外门面和对内工具在页面级分离，互不挡路。 */
+   对外门面和对内工具在页面级分离，互不挡路。
+
+   版式：门面从「一条 42rem 窄栏」改成「Hero/长文收窄 + 卡片区撑满 5xl 网格」，
+   访客动线 = 我是谁 → 我能帮你什么 → 我在做什么 → 我写了什么 → 怎么找我。 */
+
+const CONTACT_EMAIL = "zynqorw@gmail.com";
+
+/** 「我能帮你什么」三张卡：痛点 → 交付 → 证据 → 去处，四段式固定结构 */
+interface Service {
+  /** 需要 decider 在线才展示（门面实例没配 DECIDER_URL 时整卡隐藏，别给访客断链） */
+  needsDecider?: boolean;
+  index: string;
+  kicker: string;
+  title: string;
+  problem: string;
+  delivery: string;
+  proofLabel: string;
+  proof: string;
+  cta: string;
+  /** http(s) 外链新窗口打开，站内路由/mailto 同窗口——渲染时按前缀判定 */
+  href: string;
+}
+
+const SERVICES: Service[] = [
+  {
+    needsDecider: true,
+    index: "01",
+    kicker: "PRODUCT",
+    title: "搞清楚自己能开哪些海外账户",
+    problem: "想开海外账户或 U 卡，但不知道自己这个身份能开哪些、该先开哪个、哪一步会被拒。",
+    delivery: "答几个问题，当场给出可开清单、推荐顺序和坑点；教程库里是我逐张卡实测出来的保姆级流程。",
+    proofLabel: "已有实践",
+    proof: "出海开户决策 · 2 篇教程全文免费",
+    cta: "开始测一测",
+    href: "/decider",
+  },
+  {
+    index: "02",
+    kicker: "WORKFLOW",
+    title: "把内容生产变成一条产线",
+    problem: "选题、起草、核对、发布全靠手动推，内容更新永远排不进日程。",
+    delivery:
+      "RSS 选题 + 情报监控 → AI 两跳成稿 → 事实闸门 → 人工把关发布，整套已开源，可以直接拿去改，也可以按你的场景定制。",
+    proofLabel: "运行中",
+    proof: "contentagent · 驱动本站每一篇文章",
+    cta: "看源码",
+    href: "https://github.com/zhaowanqiang/context_agent",
+  },
+  {
+    index: "03",
+    kicker: "COLLABORATION",
+    title: "把一个想法做成能用的第一版",
+    problem: "有明确场景和目标，但缺一个能从头把它做出来、并且真的上线的人。",
+    delivery: "全栈开发（Next.js + Supabase + LLM），偏跨境支付、AI 工作流和内容系统方向；也接实测向的咨询。",
+    proofLabel: "自证",
+    proof: "本站与出海开户决策均为独立开发上线",
+    cta: "说说你的问题",
+    href: `mailto:${CONTACT_EMAIL}`,
+  },
+];
+
+/** 产品矩阵：不包装成成熟商业项目，公开真实状态 */
+interface Product {
+  needsDecider?: boolean;
+  emoji: string;
+  name: string;
+  slogan: string;
+  status: string;
+  /** 状态徽章：第一枚用琥珀实心表示「已上线/运行中」 */
+  badges: string[];
+  cta: string;
+  href: string;
+}
+
+/** decider 的 href 走门户跳转路由，从注册表取，别在两处各写一份 */
+const DECIDER = MODULES.find((m) => m.id === "decider")!;
+
+const PRODUCTS: Product[] = [
+  {
+    needsDecider: true,
+    emoji: DECIDER.emoji,
+    name: DECIDER.name,
+    slogan: "不确定能开哪个？先测，再动手。",
+    status: "教程库已上线，2 篇全文免费；决策器按身份与需求给个性化开户顺序。刚完成首发定价与教程面板改版。",
+    badges: ["已上线", "Web", "付费解锁"],
+    cta: "打开",
+    href: DECIDER.href,
+  },
+  {
+    emoji: "⚙️",
+    name: "contentagent · AI 内容产线",
+    slogan: "机器起草，事实闸门把关，人只做判断。",
+    status:
+      "驱动这个网站的系统：RSS 选题 + 每日情报监控 → AI 两跳成稿 → 事实闸门 → 人工把关发布，公众号 / X 双轨产线 + 工作台。",
+    badges: ["开源", "Next.js + Supabase", "持续开发"],
+    cta: "GitHub",
+    href: "https://github.com/zhaowanqiang/context_agent",
+  },
+];
 
 /** 登录后细栏上的待办合计（查不到时静默降级为纯入口） */
 async function pendingTotal(): Promise<number | null> {
@@ -26,21 +124,33 @@ async function pendingTotal(): Promise<number | null> {
   }
 }
 
+/** 区块小标题：等宽大写字母 + 字距，全站统一 */
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="font-mono text-[11.5px] font-semibold uppercase tracking-[0.18em] text-amber-700/80">
+      {children}
+    </p>
+  );
+}
+
 export default async function Home() {
   const authed = await isAdminAuthed();
   const [latestPosts, pending] = await Promise.all([
     listPosts(3).catch(() => [] as Post[]),
     authed ? pendingTotal() : Promise.resolve(null),
   ]);
-  const decider = MODULES.find((m) => m.id === "decider")!;
+  // 公网门面实例在 decider 上线（配 DECIDER_URL）前不展示相关卡片——别给访客断链
+  const showDecider = process.env.PUBLIC_FACADE !== "1" || !!process.env.DECIDER_URL;
+  const services = SERVICES.filter((s) => !s.needsDecider || showDecider);
+  const products = PRODUCTS.filter((p) => !p.needsDecider || showDecider);
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div>
       {/* 工作台细栏（仅登录后）：不打断名片版式，一行直达 */}
       {authed && (
         <Link
           href="/dashboard"
-          className="group mt-4 flex items-center justify-between rounded-lg border border-amber-200/70 bg-amber-50/60 px-4 py-2.5 text-[13px] transition hover:border-amber-300 hover:bg-amber-50"
+          className="group mt-4 flex max-w-2xl items-center justify-between rounded-lg border border-amber-200/70 bg-amber-50/60 px-4 py-2.5 text-[13px] transition hover:border-amber-300 hover:bg-amber-50"
         >
           <span className="text-neutral-600">
             ⚡ 工作台
@@ -57,15 +167,15 @@ export default async function Home() {
       )}
 
       {/* Hero：个人名片（公开）——名字用衬线展示体做记忆点 */}
-      <section className="pb-12 pt-10 sm:pt-14">
-        <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-amber-700">
+      <section className="max-w-2xl pb-14 pt-10 sm:pt-16">
+        <p className="font-mono text-[11.5px] font-semibold uppercase tracking-[0.18em] text-amber-700">
           Full-stack Developer
         </p>
         <h1 className="font-display mt-2 text-5xl font-bold tracking-tight text-neutral-900 sm:text-6xl">
           {SITE.name}
           <span className="text-amber-500">.</span>
         </h1>
-        <p className="mt-5 max-w-xl text-[16px] leading-[1.9] text-neutral-600">
+        <p className="mt-5 text-[16px] leading-[1.9] text-neutral-600">
           写跨境金融与加密支付卡实测、AI 工具与效率实测。
           所有内容出自我自己搭的 AI 产线——机器起草，事实闸门把关，
           每一篇都经人工核对后发布。
@@ -91,21 +201,134 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* 最新文章（公开）：编辑部式扁平列表——日期左栏 + 标题 + 摘要 */}
-      <section className="border-t border-neutral-200 pt-8">
-        <div className="mb-2 flex items-baseline justify-between">
-          <h2 className="text-[12px] font-semibold uppercase tracking-[0.15em] text-neutral-400">最新文章</h2>
+      {/* P0-1 我能帮你什么：访客动线的第一个转化环节。
+          每张卡固定四段式——痛点说访客的话，交付说清给什么，证据指向真实产品，最后给去处 */}
+      <section className="border-t border-neutral-200 pt-10">
+        <SectionLabel>How I can help</SectionLabel>
+        <h2 className="font-display mt-2 max-w-2xl text-[26px] font-bold leading-snug tracking-tight text-neutral-900 sm:text-3xl">
+          有具体问题，我帮你推进到能用的结果。
+        </h2>
+        <p className="mt-3 max-w-2xl text-[14.5px] leading-relaxed text-neutral-500">
+          下面三件事我都在自己身上跑过一遍——先说你卡在哪，再判断合不合适。
+        </p>
+
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {services.map((s) => (
+            <a
+              key={s.index}
+              href={s.href}
+              {...(s.href.startsWith("http") ? { target: "_blank", rel: "noreferrer" } : {})}
+              className="group flex flex-col rounded-xl border border-neutral-200 bg-white p-5 transition hover:border-amber-300 hover:shadow-[0_1px_16px_rgba(180,83,9,0.07)]"
+            >
+              <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
+                {s.index} / {s.kicker}
+              </p>
+              <h3 className="mt-3 text-[16.5px] font-semibold leading-snug text-neutral-900 transition group-hover:text-amber-800">
+                {s.title}
+              </h3>
+
+              <dl className="mt-4 flex-1 space-y-3 text-[13.5px] leading-relaxed">
+                <div>
+                  <dt className="text-[12px] font-medium text-neutral-400">你可能正在</dt>
+                  <dd className="mt-0.5 text-neutral-600">{s.problem}</dd>
+                </div>
+                <div>
+                  <dt className="text-[12px] font-medium text-neutral-400">我可以帮你</dt>
+                  <dd className="mt-0.5 text-neutral-600">{s.delivery}</dd>
+                </div>
+              </dl>
+
+              <div className="mt-4 border-t border-neutral-200/80 pt-3">
+                <p className="text-[12px] text-neutral-400">
+                  {s.proofLabel} · <span className="text-neutral-500">{s.proof}</span>
+                </p>
+                <p className="mt-2 text-[13.5px] font-medium text-amber-700">
+                  {s.cta} <span className="inline-block transition group-hover:translate-x-0.5">→</span>
+                </p>
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      {/* P0-2 产品矩阵：状态徽章 + 一句主张 + 一句真实现状，取代原先只有一行 tagline 的作品列表 */}
+      <section className="mt-16 border-t border-neutral-200 pt-10">
+        <SectionLabel>Current products</SectionLabel>
+        <h2 className="font-display mt-2 text-[26px] font-bold leading-snug tracking-tight text-neutral-900 sm:text-3xl">
+          正在推进的产品。
+        </h2>
+        <p className="mt-3 max-w-2xl text-[14.5px] leading-relaxed text-neutral-500">
+          不包装成已经成熟的商业项目，公开真实状态。
+        </p>
+
+        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+          {products.map((p) => (
+            <a
+              key={p.name}
+              href={p.href}
+              {...(p.href.startsWith("http") ? { target: "_blank", rel: "noreferrer" } : {})}
+              className="group flex flex-col rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-amber-300 hover:shadow-[0_1px_16px_rgba(180,83,9,0.07)]"
+            >
+              <div className="flex flex-wrap items-center gap-1.5">
+                {p.badges.map((b, i) => (
+                  <span
+                    key={b}
+                    className={
+                      i === 0
+                        ? "rounded-full bg-amber-100 px-2.5 py-0.5 text-[11.5px] font-medium text-amber-800"
+                        : "rounded-full border border-neutral-200 px-2.5 py-0.5 text-[11.5px] text-neutral-500"
+                    }
+                  >
+                    {b}
+                  </span>
+                ))}
+              </div>
+
+              <div className="mt-4 flex items-start gap-3">
+                <span className="text-[26px] leading-none" aria-hidden>
+                  {p.emoji}
+                </span>
+                <div className="min-w-0">
+                  <h3 className="text-[17px] font-semibold leading-snug text-neutral-900 transition group-hover:text-amber-800">
+                    {p.name}
+                  </h3>
+                  <p className="mt-1 text-[13.5px] text-neutral-500">{p.slogan}</p>
+                </div>
+              </div>
+
+              <p className="mt-4 flex-1 text-[13.5px] leading-relaxed text-neutral-600">{p.status}</p>
+
+              <p className="mt-4 text-[13.5px] font-medium text-amber-700">
+                {p.cta} <span className="inline-block transition group-hover:translate-x-0.5">↗</span>
+              </p>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      {/* 最新文章（公开）：编辑部式扁平列表——日期左栏 + 标题 + 摘要。
+          正文列限宽 42rem，行长不随容器变宽而失控 */}
+      <section className="mt-16 border-t border-neutral-200 pt-10">
+        <div className="flex items-baseline justify-between">
+          <SectionLabel>Public notes</SectionLabel>
           <Link href="/posts" className="text-[12.5px] text-neutral-400 transition hover:text-amber-700">
             全部文章 →
           </Link>
         </div>
+        <h2 className="font-display mt-2 text-[26px] font-bold leading-snug tracking-tight text-neutral-900 sm:text-3xl">
+          把真实过程写下来。
+        </h2>
+
         {latestPosts.length === 0 ? (
-          <p className="py-8 text-center text-[13px] text-neutral-400">第一篇文章正在产线上。</p>
+          <p className="py-8 text-[13px] text-neutral-400">第一篇文章正在产线上。</p>
         ) : (
-          <ul className="divide-y divide-neutral-200/70">
+          <ul className="mt-6 divide-y divide-neutral-200/70 border-t border-neutral-200/70">
             {latestPosts.map((p) => (
               <li key={p.id}>
-                <Link href={`/posts/${p.slug}`} className="group grid gap-x-5 py-5 sm:grid-cols-[92px_1fr]">
+                <Link
+                  href={`/posts/${p.slug}`}
+                  className="group grid gap-x-5 py-5 sm:grid-cols-[92px_minmax(0,42rem)]"
+                >
                   <time className="pt-0.5 text-[12.5px] tabular-nums text-neutral-400">
                     {new Date(p.published_at).toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" })}
                   </time>
@@ -124,51 +347,38 @@ export default async function Home() {
         )}
       </section>
 
-      {/* 作品（公开）：付费产品 + 开源产线。
-          公网门面实例在 decider 上线（配 DECIDER_URL）前不展示 decider 卡——别给访客断链 */}
-      <section className="mt-12 border-t border-neutral-200 pt-8">
-        <h2 className="mb-2 text-[12px] font-semibold uppercase tracking-[0.15em] text-neutral-400">作品</h2>
-        <div className="divide-y divide-neutral-200/70">
-          {(process.env.PUBLIC_FACADE !== "1" || process.env.DECIDER_URL) && (
+      {/* P0-3 合作区：动线终点。邮箱从 /about 末行提到首页，给一个明确的下一步 */}
+      <section className="mt-16">
+        <div className="rounded-2xl border border-amber-200/70 bg-amber-50/50 px-6 py-10 sm:px-10 sm:py-12">
+          <SectionLabel>Work with me</SectionLabel>
+          <h2 className="font-display mt-2 max-w-xl text-[26px] font-bold leading-snug tracking-tight text-neutral-900 sm:text-3xl">
+            有具体问题、目标和预算，我们可以聊聊。
+          </h2>
+          <p className="mt-4 max-w-xl text-[14.5px] leading-relaxed text-neutral-600">
+            目前开放全栈产品开发、AI 内容工作流搭建，以及跨境支付与开户方向的实测咨询；
+            也接受相关工具与产品的实测合作。
+          </p>
+
+          <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3">
             <a
-              href={decider.href}
-              className="group -mx-3 flex items-start gap-4 rounded-xl px-3 py-5 transition hover:bg-amber-50/60"
+              href={`mailto:${CONTACT_EMAIL}`}
+              className="rounded-lg bg-amber-700 px-5 py-2.5 text-[14px] font-medium text-white transition hover:bg-amber-800"
             >
-              <span className="mt-0.5 text-[26px] leading-none" aria-hidden>
-                {decider.emoji}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="flex items-baseline gap-2">
-                  <h3 className="text-[16.5px] font-semibold text-neutral-900 transition group-hover:text-amber-800">
-                    {decider.name}
-                  </h3>
-                  <span className="text-[12px] text-neutral-400 opacity-0 transition group-hover:opacity-100">试一试 ↗</span>
-                </span>
-                <p className="mt-1.5 text-[13.5px] leading-relaxed text-neutral-500">{decider.tagline}</p>
-              </span>
+              {CONTACT_EMAIL}
             </a>
-          )}
-          <a
-            href="https://github.com/zhaowanqiang/context_agent"
-            target="_blank"
-            rel="noreferrer"
-            className="group -mx-3 flex items-start gap-4 rounded-xl px-3 py-5 transition hover:bg-amber-50/60"
-          >
-            <span className="mt-0.5 text-[26px] leading-none" aria-hidden>
-              ⚙️
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="flex items-baseline gap-2">
-                <h3 className="text-[16.5px] font-semibold text-neutral-900 transition group-hover:text-amber-800">
-                  contentagent · AI 内容产线（开源）
-                </h3>
-                <span className="text-[12px] text-neutral-400 opacity-0 transition group-hover:opacity-100">GitHub ↗</span>
-              </span>
-              <p className="mt-1.5 text-[13.5px] leading-relaxed text-neutral-500">
-                驱动这个网站的系统：RSS 选题 + 情报监控 → AI 两跳成稿 → 事实闸门 → 人工把关发布，双平台产线 + 工作台
-              </p>
-            </span>
-          </a>
+            <a
+              href="https://x.com/zynqorw"
+              target="_blank"
+              rel="noreferrer"
+              className="text-[13.5px] text-neutral-500 underline decoration-neutral-300 underline-offset-4 transition hover:text-amber-700 hover:decoration-amber-400"
+            >
+              或在 X 上找我 ↗
+            </a>
+          </div>
+
+          <p className="mt-5 text-[12.5px] leading-relaxed text-neutral-500">
+            来信请写清楚：你在做什么、卡在哪里、希望得到什么结果。
+          </p>
         </div>
       </section>
     </div>

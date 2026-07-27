@@ -36,7 +36,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // 布局按登录态分层：访客 = 窄栏编辑部版式（header/正文/页脚同一条 42rem 网格），
   // 登录后 = 宽幅工作台（xl 起 1480px 给轨道双侧栏让位）
   const authed = await isAdminAuthed();
-  const container = authed ? "max-w-5xl xl:max-w-[1480px]" : "max-w-2xl";
+  // 访客站从「42rem 编辑部窄栏」放宽到 64rem 常规网站宽度——两侧不再大片留白；
+  // 宽导航 + 页内长文各自居中收窄(prose 页保留 max-w-2xl)是标准网站版式
+  const container = authed ? "max-w-5xl xl:max-w-[1480px]" : "max-w-5xl";
 
   return (
     <html lang="zh-CN">
