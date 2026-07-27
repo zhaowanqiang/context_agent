@@ -37,9 +37,11 @@ export default function PostsList({ posts }: { posts: PostCard[] }) {
     });
   }, [posts, q, track]);
 
+  const filtering = q.trim() !== "" || track !== "all";
+
   return (
     <>
-      <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mt-8 flex flex-col gap-3 border-t border-neutral-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
         <input
           type="search"
           value={q}
@@ -47,35 +49,47 @@ export default function PostsList({ posts }: { posts: PostCard[] }) {
           placeholder="搜索标题 / 摘要…"
           className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-[14px] text-neutral-900 outline-none transition placeholder:text-neutral-400 focus:border-amber-300 sm:max-w-xs"
         />
-        {tracks.length > 1 && (
-          <div className="flex shrink-0 gap-1.5">
-            {(["all", ...tracks] as const).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTrack(t)}
-                className={[
-                  "rounded-full px-3 py-1 text-[12.5px] transition",
-                  track === t
-                    ? "bg-amber-100 font-medium text-amber-800"
-                    : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200",
-                ].join(" ")}
-              >
-                {t === "all" ? "全部" : TRACK_LABEL[t]}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="flex shrink-0 items-center gap-3">
+          {/* 筛选中才报计数：没筛时标题行已经给过总数 */}
+          {filtering && (
+            <span className="font-mono text-[11.5px] tabular-nums text-neutral-400">
+              {filtered.length} / {posts.length}
+            </span>
+          )}
+          {tracks.length > 1 && (
+            <div className="flex gap-1.5">
+              {(["all", ...tracks] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setTrack(t)}
+                  className={[
+                    "rounded-full px-3 py-1 text-[12.5px] transition",
+                    track === t
+                      ? "bg-amber-100 font-medium text-amber-800"
+                      : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200",
+                  ].join(" ")}
+                >
+                  {t === "all" ? "全部" : TRACK_LABEL[t]}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {filtered.length === 0 ? (
         <p className="mt-16 text-center text-[13.5px] text-neutral-400">没有匹配的文章。</p>
       ) : (
-        <ul className="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        /* 列数按「网格自身宽度」定，不看视口（容器查询）：访客版心 64rem → 3 栏，
+           登录版心 92.5rem → 4 栏，两种下每张卡都落在 320-360px 的舒适区。
+           卡片观感与首页「最新文章」统一——同类内容不该有两套样子。 */
+        <div className="@container mt-7">
+        <ul className="grid grid-cols-1 gap-4 @2xl:grid-cols-2 @4xl:grid-cols-3 @7xl:grid-cols-4">
           {filtered.map((p) => (
-            <li key={p.id} className="h-full">
+            <li key={p.id} className="flex">
               <Link
                 href={`/posts/${p.slug}`}
-                className="group flex h-full flex-col rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-md"
+                className="group flex flex-1 flex-col rounded-xl border border-neutral-200 bg-white p-5 transition hover:border-amber-300 hover:shadow-[0_1px_16px_rgba(180,83,9,0.07)]"
               >
                 <div className="flex items-center justify-between gap-2 text-[11.5px] text-neutral-400">
                   <time className="tabular-nums">
@@ -91,15 +105,17 @@ export default function PostsList({ posts }: { posts: PostCard[] }) {
                   {p.title}
                 </h2>
                 {p.summary && (
-                  <p className="mt-2 line-clamp-3 text-[13px] leading-relaxed text-neutral-500">{p.summary}</p>
+                  <p className="mt-2 line-clamp-3 flex-1 text-[13px] leading-relaxed text-neutral-500">{p.summary}</p>
                 )}
-                <span className="mt-auto pt-4 text-[12.5px] font-medium text-amber-700 opacity-0 transition group-hover:opacity-100">
-                  阅读 →
-                </span>
+                {/* 常显而非 hover 才现：触屏没有 hover，藏起来等于没有 */}
+                <p className="mt-4 text-[13px] font-medium text-amber-700">
+                  读全文 <span className="inline-block transition group-hover:translate-x-0.5">→</span>
+                </p>
               </Link>
             </li>
           ))}
         </ul>
+        </div>
       )}
     </>
   );

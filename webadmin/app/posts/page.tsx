@@ -21,13 +21,23 @@ export default async function PostsPage() {
 
   return (
     <div className="py-10">
-      <h1 className="font-display text-3xl font-bold tracking-tight text-neutral-900">
-        文章<span className="text-amber-500">.</span>
-      </h1>
-      <p className="mt-3 max-w-2xl text-[14.5px] leading-relaxed text-neutral-500">
-        实测干货的公开存档——同步发布于公众号与 X，原文以这里为准。
-        也可以用 <a href="/rss.xml" className="text-amber-700 underline decoration-amber-300 underline-offset-4">RSS</a> 订阅。
-      </p>
+      {/* 标题行左右分栏：右侧存档计数承接宽容器下的头部留白 */}
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
+        <div>
+          <h1 className="font-display text-3xl font-bold tracking-tight text-neutral-900">
+            文章<span className="text-amber-500">.</span>
+          </h1>
+          <p className="mt-3 max-w-2xl text-[14.5px] leading-relaxed text-neutral-500">
+            实测干货的公开存档——同步发布于公众号与 X，原文以这里为准。
+            也可以用 <a href="/rss.xml" className="text-amber-700 underline decoration-amber-300 underline-offset-4">RSS</a> 订阅。
+          </p>
+        </div>
+        {posts.length > 0 && (
+          <p className="font-mono text-[11.5px] uppercase tracking-[0.16em] text-neutral-400">
+            {posts.length} posts archived
+          </p>
+        )}
+      </div>
 
       {posts.length === 0 ? (
         <p className="mt-16 text-center text-[13.5px] text-neutral-400">
