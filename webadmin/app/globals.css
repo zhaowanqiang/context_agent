@@ -26,6 +26,30 @@
    * 也不用 SimSun 合成粗体（大字号发虚）。 */
   --font-display: Georgia, "Times New Roman", -apple-system, "Microsoft YaHei UI",
     "PingFang SC", serif;
+
+  /* decider（出海开户决策）并入主站后带来的色板：它的历史代码通篇写 slate-*，
+   * 这里同样整体重映射为 stone 暖灰值——与上面 neutral 的手法一致，
+   * 两套别名指向同一暖灰体系，主站自身不使用 slate-*，互不干扰。 */
+  --color-slate-50: #fafaf9;
+  --color-slate-100: #f5f5f4;
+  --color-slate-200: #e7e5e4;
+  --color-slate-300: #d6d3d1;
+  --color-slate-400: #a8a29e;
+  --color-slate-500: #78716c;
+  --color-slate-600: #57534e;
+  --color-slate-700: #44403c;
+  --color-slate-800: #292524;
+  --color-slate-900: #1c1917;
+  --color-slate-950: #0c0a09;
+}
+
+/* decider 子树的字体作用域：它用 IBM Plex（next/font 注入 --font-plex-*），
+ * 主站用 Georgia。@theme 是全局的，所以不能在那里覆盖 --font-display，
+ * 改用普通选择器重定义自定义属性——CSS 变量会向下继承，只影响 decider 页面。 */
+.decider-scope {
+  --font-display: var(--font-plex-sans), "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, monospace;
 }
 
 :root {
@@ -210,4 +234,85 @@ body {
   font-size: 15px;
   line-height: 1.85;
   color: #292524;
+}
+
+
+/* ── 以下来自 decider（出海开户决策），随该应用并入主站 ──────────────
+ * 这些 token 名（--bg/--surface/--ink/--accent/--radius…）主站自身不使用，
+ * 只有 decider 子树的组件读取，全局声明不会影响其它页面。
+ * 放普通选择器而非 @theme：它们要在运行时随 data-theme 切换，@theme 在构建期固化。
+ * 三套配色由 data-theme 切换，默认（:root / a）为「深蓝」。 */
+:root,
+[data-theme="a"] {
+  --bg: #f3f5f9;
+  --surface: #fff;
+  --surface2: #f6f8fc;
+  --ink: #0e1a2e;
+  --soft: #46546b;
+  --mute: #8b97a9;
+  --line: #e5e9f0;
+  --accent: #2f64d6;
+  --accent-ink: #fff;
+  --accent-soft: #e9f0fe;
+  --accent-line: #bcd2fb;
+  --radius: 16px;
+  --radius-sm: 11px;
+  --pill: 999px;
+  --shadow: 0 1px 2px rgba(16, 26, 46, 0.05), 0 10px 34px rgba(16, 26, 46, 0.06);
+}
+
+/* 墨黑 */
+[data-theme="b"] {
+  --bg: #faf9f6;
+  --surface: #fff;
+  --surface2: #f7f5f0;
+  --ink: #161512;
+  --soft: #55504a;
+  --mute: #9c968c;
+  --line: #e8e3da;
+  --accent: #c2570f;
+  --accent-ink: #fff;
+  --accent-soft: #fbeede;
+  --accent-line: #eec6a0;
+  --radius: 5px;
+  --radius-sm: 5px;
+  --pill: 6px;
+  --shadow: none;
+}
+
+/* 暖棕 */
+[data-theme="c"] {
+  --bg: #eeebe2;
+  --surface: #fbfaf5;
+  --surface2: #f3f0e7;
+  --ink: #272219;
+  --soft: #5b5446;
+  --mute: #948b78;
+  --line: #e0d9c8;
+  --accent: #3f7d57;
+  --accent-ink: #fff;
+  --accent-soft: #e7efe6;
+  --accent-line: #b9d0ba;
+  --radius: 14px;
+  --radius-sm: 10px;
+  --pill: 999px;
+  --shadow: 0 1px 2px rgba(60, 50, 30, 0.05), 0 10px 30px rgba(60, 50, 30, 0.06);
+}
+
+/* 结果卡进场动效(参考稿 .rec 的 rise) */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* decider 教程正文首个标题不留上边距（主站文章页不需要，故只补这一条） */
+.md-body h1:first-child,
+.md-body h2:first-child {
+  margin-top: 0.2em;
 }

@@ -6,6 +6,9 @@ import { NextResponse, type NextRequest } from "next/server";
  *   首页的工作台区块由 lib/adminAuth.ts 在渲染时按登录态增减
  * - 私有层（工作台）：/agent、/monitor 及其余一切照旧拦截
  * - /api/monitor/* 走自己的 x-monitor-token（外部推送无 cookie），不在这里管
+ * - /api/checkout、/api/webhooks/* 是 decider 的支付链路，必须放行：
+ *   前者自己查 Supabase 登录态，后者验 Creem HMAC 签名，各有各的鉴权；
+ *   一旦被这里拦下，门面模式会把它们 404 掉 —— 支付会静默失效，没有任何报错
  * - 未配置 ADMIN_ACCESS_CODE 时放行（保持旧行为），启动后警告一次
  *
  * PUBLIC_FACADE=1（公网部署实例用，如 Vercel）：纯门面模式——
@@ -69,6 +72,6 @@ export const config = {
   // 监控推送 API（token 鉴权）、Next 静态资源、favicon。
   // /login 不排除——由 proxy 代码处理（门面模式要能把它 404 掉）
   matcher: [
-    "/((?!$|posts|about|now|decider|opengraph-image|rss\\.xml|sitemap\\.xml|robots\\.txt|api/monitor|_next/static|_next/image|favicon\\.ico).*)",
+    "/((?!$|posts|about|now|decider|opengraph-image|rss\\.xml|sitemap\\.xml|robots\\.txt|api/monitor|api/checkout|api/webhooks|_next/static|_next/image|favicon\\.ico).*)",
   ],
 };
