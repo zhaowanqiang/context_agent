@@ -20,6 +20,12 @@ export default function AuthForm({ onClose }: { onClose?: () => void }) {
     setError(null);
     setMessage(null);
 
+    if (!supabase) {
+      setError("登录服务暂不可用，请稍后再试");
+      setBusy(false);
+      return;
+    }
+
     if (mode === "signup") {
       const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) {

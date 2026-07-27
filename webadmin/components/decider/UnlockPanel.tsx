@@ -141,6 +141,7 @@ export default function UnlockPanel({ guideId, offers, paymentsEnabled }: Props)
   // 开发模式下的「模拟购买」:直接往 purchases 插一条自己的记录。
   // 依赖 docs/supabase-purchases.sql 里的 DEV ONLY insert 策略,上线前必须删掉该策略。
   async function simulateBuy(tier: UnlockOffer["tier"]) {
+    if (!supabase) return;
     setBuying(tier);
     setError(null);
     const { error } = await supabase

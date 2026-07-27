@@ -10,10 +10,14 @@ export default function AuthBar() {
   const [signingOut, setSigningOut] = useState(false);
 
   async function handleSignOut() {
+    if (!supabase) return;
     setSigningOut(true);
     await supabase.auth.signOut();
     setSigningOut(false);
   }
+
+  // Supabase 未配置：登录态无从谈起，整条不渲染（教程库本身照常可看）
+  if (!supabase) return null;
 
   return (
     <div className="flex items-center justify-end gap-3">
