@@ -7,14 +7,16 @@ import { isSystemCall } from "./systemContext";
  * 服务端组件里判断当前请求是否已通过访问码登录。
  * 与 proxy.ts / actions/auth.ts 同一套约定：cookie 存 SHA-256(ADMIN_ACCESS_CODE)。
  * 公开层页面（首页/文章/关于）proxy 直接放行，靠这个函数决定"是否多渲染工作台区块"。
- * 未配置 ADMIN_ACCESS_CODE 时视为已登录（与 proxy 的放行行为保持一致）。
+ *
+ * fail-closed：未配置 ADMIN_ACCESS_CODE 一律视为未登录，与 proxy.ts 的 503 同向。
  */
 export async function isAdminAuthed(): Promise<boolean> {
-  // 公网纯门面实例永远视为未登录：否则「未配置访问码=放行」的本机约定
-  // 会让不配 ADMIN_ACCESS_CODE 的公网实例对所有人渲染工作台导航
+  // 公网纯门面实例永远视为未登录
   if (process.env.PUBLIC_FACADE === "1") return false;
   const code = process.env.ADMIN_ACCESS_CODE;
-  if (!code) return true;
+  // 未配码：不给任何登录态。旧行为是 return true（与当时 proxy 的放行对齐），
+  // 那意味着配置一缺失，工作台区块反而对所有人渲染——这是最危险的默认值。
+  if (!code) return false;
   const got = (await cookies()).get("admin_auth")?.value;
   if (!got) return false;
   return got === createHash("sha256").update(code).digest("hex");
@@ -29,6 +31,10 @@ export async function isAdminAuthed(): Promise<boolean> {
  * 跨路由调用的是 Next 的 action-路由作用域绑定，那是框架实现细节
  * （本项目还跑在 canary 上），升级后行为变了不会有任何报错提醒。
  * 这道闸是不依赖框架行为的那一层。
+ *
+ * fail-closed 由 isAdminAuthed() 继承：未配置 ADMIN_ACCESS_CODE 时它返回 false，
+ * 这里随之抛错。唯一的例外是 isSystemCall()——定时任务没有请求上下文，
+ * 且不经由网络触达，与访问码是否配置无关。
  */
 export async function requireAdmin(): Promise<void> {
   if (isSystemCall()) return; // 定时任务：无请求上下文，见 lib/systemContext.ts

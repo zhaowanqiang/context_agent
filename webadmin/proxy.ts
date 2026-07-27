@@ -5,11 +5,12 @@ import { NextResponse, type NextRequest } from "next/server";
  * - 公开层（个人网站门面）：首页、/posts、/about、/decider、RSS/sitemap/robots —— matcher 直接放行，
  *   首页的工作台区块由 lib/adminAuth.ts 在渲染时按登录态增减
  * - 私有层（工作台）：/agent、/monitor 及其余一切照旧拦截
+ * - 未配置 ADMIN_ACCESS_CODE 时 fail-closed：私有层连同登录页一律 503，
+ *   而不是放行（配置缺失必须"进不去"，不能"随便进"）
  * - /api/monitor/* 走自己的 x-monitor-token（外部推送无 cookie），不在这里管
  * - /api/checkout、/api/webhooks/* 是 decider 的支付链路，必须放行：
  *   前者自己查 Supabase 登录态，后者验 Creem HMAC 签名，各有各的鉴权；
  *   一旦被这里拦下，门面模式会把它们 404 掉 —— 支付会静默失效，没有任何报错
- * - 未配置 ADMIN_ACCESS_CODE 时放行（保持旧行为），启动后警告一次
  *
  * PUBLIC_FACADE=1（公网部署实例用，如 Vercel）：纯门面模式——
  * 工作台路由和登录页一律 404，公网上不暴露"这里有后台"这个事实本身；
@@ -38,25 +39,34 @@ let warnedNoCode = false;
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const facade = process.env.PUBLIC_FACADE === "1";
+  // 登录页也流经 proxy（matcher 不再排除），但它的处理时机在「未配码」之后：
+  // 没配码时登录本身就不可能成功，先让运维看见真正的原因
+  const isLogin = pathname === "/login" || pathname.startsWith("/login/");
 
-  // 登录页现在也流经 proxy（matcher 不再排除）：门面模式 404，否则放行
-  if (pathname === "/login" || pathname.startsWith("/login/")) {
-    if (facade) return new NextResponse(null, { status: 404 });
-    return NextResponse.next();
-  }
-  // 门面模式：走到这里的都是私有路由，直接 404（真状态码，非 soft-404）
+  // 门面模式：私有路由与登录页一律 404（真状态码，非 soft-404），
+  // 公网上不暴露"这里有后台"这个事实本身
   if (facade) return new NextResponse(null, { status: 404 });
 
+  // fail-closed：未配置访问码 = 整个私有层拒绝服务（含登录页）。
+  // 旧行为是放行——那意味着任何能连到本机/局域网的人都能直接进工作台，
+  // 而这恰恰是最容易发生的场景：新克隆的仓库、忘了填 .env.local、
+  // 变量名敲错。配置缺失必须是"进不去"，不能是"随便进"。
   const code = process.env.ADMIN_ACCESS_CODE;
   if (!code) {
     if (!warnedNoCode) {
       warnedNoCode = true;
-      console.warn(
-        "[auth] 未配置 ADMIN_ACCESS_CODE，后台对局域网无访问验证 —— 在 webadmin/.env.local 里加一条随机字符串"
+      console.error(
+        "[auth] 未配置 ADMIN_ACCESS_CODE —— 私有层已全部拒绝访问（503）。在 webadmin/.env.local 里加一条随机字符串后重启"
       );
     }
-    return NextResponse.next();
+    return new NextResponse(
+      "服务端未配置 ADMIN_ACCESS_CODE，后台已停用。请在 webadmin/.env.local 配置后重启。",
+      { status: 503, headers: { "content-type": "text/plain; charset=utf-8" } }
+    );
   }
+
+  // 配了码才谈得上登录：放行登录页，让用户输码
+  if (isLogin) return NextResponse.next();
 
   const got = request.cookies.get(COOKIE_NAME)?.value;
   if (got && got === (await expectedHash(code))) return NextResponse.next();
