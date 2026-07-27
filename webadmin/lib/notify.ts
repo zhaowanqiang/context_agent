@@ -5,6 +5,10 @@ import { smartFetch } from "./proxyFetch";
 /**
  * 双通道告警：本机 toast（人在电脑前）+ Telegram（人在外面）。
  * 定时产线的完成/失败都该走这个，单通道都可能看不见。
+ *
+ * 约定：本模块所有函数永不 throw / reject —— instrumentation.ts 的 cron 里
+ * 是 fire-and-forget 调用，一次未捕获的 rejection 会带崩整个无人值守服务。
+ * 新加通道必须在函数内部把异常全吞掉（记日志即可）。
  */
 export function notifyAll(title: string, body: string): void {
   notifyWindows(title, body);
