@@ -14,11 +14,14 @@ export const dynamic = "force-dynamic";
 export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const post = await getPostBySlug(slug).catch(() => null);
-  const { fonts, hasCjk } = await ogFonts((post?.title ?? "") + "干货帖公众号长文实测本人起草核对");
+  // 乱造的 slug 不值得走字体拉取 + Satori 渲染（公网未鉴权端点，防刷）
+  if (!post) return new Response(null, { status: 404 });
+
+  const { fonts, hasCjk } = await ogFonts(post.title + "干货帖公众号长文实测本人起草核对");
   // CJK 子集拉取失败时全部文案退回拉丁字符（豆腐块比缺图更难看）
-  const title = hasCjk ? post?.title ?? SITE.name : SITE.name;
+  const title = hasCjk ? post.title : SITE.name;
   const eyebrow = hasCjk
-    ? `${post?.track ? TRACK_LABEL[post.track] : "实测"} · 本人实测`
+    ? `${post.track ? TRACK_LABEL[post.track] : "实测"} · 本人实测`
     : "Field-tested notes";
   const footRight = hasCjk ? "AI 起草 · 人工核对" : "AI-drafted · human-verified";
 
@@ -79,6 +82,12 @@ export default async function Image({ params }: { params: Promise<{ slug: string
         />
       </div>
     ),
-    { ...size, fonts }
+    {
+      ...size,
+      fonts,
+      // force-dynamic 下 Next 不给缓存头，显式补上让 Vercel CDN 接住重复抓取
+      // （标题极少改，s-maxage 1 天 + SWR 足够；本机实例无 CDN，此头无害）
+      headers: { "Cache-Control": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400" },
+    }
   );
 }

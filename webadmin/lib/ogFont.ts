@@ -28,6 +28,11 @@ export async function ogFonts(text: string): Promise<{
   return { fonts, hasCjk: cjk !== null };
 }
 
+/** CJK 子集缓存：同一标题的字符集固定，热函数实例内不重复打 Google Fonts。
+ *  只缓存成功结果（失败可能是瞬时网络问题，下次该重试）；容量封顶防无界增长。 */
+const cjkCache = new Map<string, ArrayBuffer>();
+const CJK_CACHE_MAX = 32;
+
 /**
  * OG 图中文字体：Satori 不带 CJK 字形，整包 Noto Sans SC 有 10MB+ 塞不进函数。
  * 用 Google Fonts css2 的 text= 参数做「按需子集」——只取当前标题用到的字符，
@@ -35,8 +40,11 @@ export async function ogFonts(text: string): Promise<{
  */
 export async function loadCjkFont(text: string, weight = 700): Promise<ArrayBuffer | null> {
   try {
-    // 去重字符，附上品牌字符集（页脚固定文案也要有字形）
-    const chars = [...new Set(`${text}zynqorw.com跨境金融与AI工具实测·`)].join("");
+    // 去重字符，附上品牌字符集（页脚固定文案也要有字形）；排序让缓存键规范化
+    const chars = [...new Set(`${text}zynqorw.com跨境金融与AI工具实测·`)].sort().join("");
+    const cacheKey = `${weight}:${chars}`;
+    const hit = cjkCache.get(cacheKey);
+    if (hit) return hit;
     const cssUrl =
       `https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@${weight}` +
       `&text=${encodeURIComponent(chars)}`;
@@ -53,7 +61,12 @@ export async function loadCjkFont(text: string, weight = 700): Promise<ArrayBuff
     if (!m) return null;
     const res = await fetch(m[1], { signal: AbortSignal.timeout(8000) });
     if (!res.ok) return null;
-    return await res.arrayBuffer();
+    const buf = await res.arrayBuffer();
+    if (cjkCache.size >= CJK_CACHE_MAX) {
+      cjkCache.delete(cjkCache.keys().next().value!); // 满了淘汰最老一条
+    }
+    cjkCache.set(cacheKey, buf);
+    return buf;
   } catch {
     return null;
   }

@@ -48,6 +48,11 @@ export default async function Image() {
         />
       </div>
     ),
-    { ...size, fonts }
+    {
+      ...size,
+      fonts,
+      // force-dynamic 下 Next 不给缓存头，显式补上让 Vercel CDN 接住重复抓取（内容固定，缓 1 天）
+      headers: { "Cache-Control": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400" },
+    }
   );
 }
