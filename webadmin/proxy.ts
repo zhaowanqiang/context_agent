@@ -2,9 +2,11 @@ import { NextResponse, type NextRequest } from "next/server";
 
 /**
  * 访问码鉴权（分层）：cookie 里存 SHA-256(ADMIN_ACCESS_CODE)，比对不上就去 /login。
- * - 公开层（个人网站门面）：首页、/posts、/about、/decider、RSS/sitemap/robots —— matcher 直接放行，
- *   首页的工作台区块由 lib/adminAuth.ts 在渲染时按登录态增减
- * - 私有层（工作台）：/agent、/monitor 及其余一切照旧拦截
+ * - 公开层（个人网站门面）：首页、/posts、/now、/about、/decider、/guides、RSS/sitemap/robots
+ *   —— matcher 直接放行，首页的工作台区块由 lib/adminAuth.ts 在渲染时按登录态增减
+ * - 私有层（工作台）：/agent、/monitor、/import 及其余一切照旧拦截。
+ *   注意 /guides 是公开阅读层，写它的导入器在 /import——两者分开路由，
+ *   否则 matcher 按前缀放行会把编辑器一起放出去
  * - 未配置 ADMIN_ACCESS_CODE 时 fail-closed：私有层连同登录页一律 503，
  *   而不是放行（配置缺失必须"进不去"，不能"随便进"）
  * - /api/monitor/* 走自己的 x-monitor-token（外部推送无 cookie），不在这里管
@@ -82,6 +84,6 @@ export const config = {
   // 监控推送 API（token 鉴权）、Next 静态资源、favicon。
   // /login 不排除——由 proxy 代码处理（门面模式要能把它 404 掉）
   matcher: [
-    "/((?!$|posts|about|now|decider|opengraph-image|rss\\.xml|sitemap\\.xml|robots\\.txt|api/monitor|api/checkout|api/webhooks|_next/static|_next/image|favicon\\.ico).*)",
+    "/((?!$|posts|about|now|decider|guides|opengraph-image|rss\\.xml|sitemap\\.xml|robots\\.txt|api/monitor|api/checkout|api/webhooks|_next/static|_next/image|favicon\\.ico).*)",
   ],
 };

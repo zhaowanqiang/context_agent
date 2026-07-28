@@ -199,3 +199,35 @@ alter table clips enable row level security;
 
 -- 每周复盘：复用 briefings 表，kind 区分（日报=daily 周报=weekly）
 alter table briefings add column kind text not null default 'daily';
+
+-- ============================================================
+-- 增量（2026-07-28）：公开层教程库。已建库的只需在 SQL Editor 执行本段。
+-- X 上发过的教程线程 → 站内常青教程页（/guides）。与 posts 分开：
+-- posts 是产线成稿的时效存档（按发布日排流水），guides 是会反复修订的
+-- 常青内容（按核对时间标新鲜度），两者版式、更新节奏和 SEO 目标都不同。
+-- 与 decider 付费教程也分开：这批是免费引流内容，末尾导向 decider 深度版。
+-- ============================================================
+
+create table guides (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique,         -- 人工可读 ASCII（如 kast-card）：教程吃长尾搜索，
+                                     -- 不像 posts 那样用随机短 ID
+  title text not null,
+  summary text,                      -- 列表页 / OG description
+  content_md text not null,          -- 正文 markdown（图片以 ![](公开 URL) 内嵌）
+  source_url text,                   -- 原推文/线程链接（正文末尾标注出处）
+  cover_url text,                    -- 列表页封面（留空则列表页不出图）
+  verified_at date,                  -- 最后核对日期：跨境开户政策常变，这是最强信任要素
+  status text not null default 'draft',  -- draft / published（草稿不进公开层）
+  published_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index on guides (status, published_at desc);
+alter table guides enable row level security;
+
+-- 教程配图的公开存储桶。X 图片必须转存：pbs.twimg.com 是 X 的 CDN，
+-- 删推或防盗链一开，站上的图就全空了。
+insert into storage.buckets (id, name, public)
+values ('guide-images', 'guide-images', true)
+on conflict (id) do nothing;

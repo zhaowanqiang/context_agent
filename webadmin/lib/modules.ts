@@ -45,6 +45,14 @@ export const MODULES: SiteModule[] = [
     status: "active",
   },
   {
+    id: "guides",
+    name: "教程导入",
+    tagline: "X 上发过的教程线程 → 拆条成分步 markdown → 补图上站，公开层 /guides 的常青内容源",
+    href: "/import",
+    emoji: "📘",
+    status: "active",
+  },
+  {
     id: "decider",
     name: "出海开户决策",
     tagline: "海外账户/U 卡实测教程库（2 篇全文免费），也可以答几个问题拿个性化开户推荐",
