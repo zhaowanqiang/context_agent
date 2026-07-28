@@ -72,8 +72,8 @@ export default async function PostPage({ params }: Props) {
       />
       {/* 文末转化区：流量的终点是转化的起点——按轨道切换推广位 */}
       {post.track === "x" ? (
-        <a
-          href="https://decider.zynqorw.com"
+        <Link
+          href="/decider"
           className="group mt-10 block rounded-xl border border-amber-200/80 bg-amber-50/60 px-5 py-4 transition hover:border-amber-300 hover:bg-amber-50"
         >
           <p className="text-[14.5px] font-bold text-neutral-900">
@@ -83,7 +83,7 @@ export default async function PostPage({ params }: Props) {
             Wise / KAST / Bybit Card 等 5 篇保姆级实操，2 篇全文免费——答 4 个问题还能拿个性化开户推荐。
             <span className="ml-1 font-medium text-amber-700 opacity-0 transition group-hover:opacity-100">去看看 →</span>
           </p>
-        </a>
+        </Link>
       ) : (
         <div className="mt-10 rounded-xl border border-amber-200/80 bg-amber-50/60 px-5 py-4">
           <p className="text-[14.5px] font-bold text-neutral-900">觉得有用？我每周都在写</p>

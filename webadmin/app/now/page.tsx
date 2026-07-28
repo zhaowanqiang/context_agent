@@ -36,7 +36,7 @@ export default function NowPage() {
               AI 起草 → 事实闸门 → 人工核对发布，公众号与 X 双轨
             </li>
             <li>
-              打磨 <a href="https://decider.zynqorw.com">出海开户决策</a>——海外账户/U 卡实测教程库，
+              打磨 <a href="/decider">出海开户决策</a>——海外账户/U 卡实测教程库，
               刚完成首发定价和教程面板改版
             </li>
             <li>持续实测各家加密支付卡与跨境账户，把费率和坑写成干货</li>
