@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/components/decider/AuthProvider";
 import AuthForm from "@/components/decider/AuthForm";
 import type { Tier } from "@/lib/decider/entitlements";
+import { track } from "@/lib/track";
 
 // 一个可购买的档位(由服务端算好传进来,面板只负责展示和触发)
 export interface UnlockOffer {
@@ -24,6 +25,13 @@ interface Props {
   paymentsEnabled: boolean;
 }
 
+/* 付费墙曝光去重：一个教程页会渲染两块付费墙（逐步实操 + 避坑清单），
+   但对漏斗而言「这个访客看到了付费墙」只该算一次——否则分母翻倍，
+   转化率恒偏低一半。键里带 pathname，换教程页能重新计数；
+   同一会话内回到同一页不再重复计（略偏保守，好过虚高）。
+   不用模块级变量赋值，避免 Next 16 的 react-hooks/immutability 规则。 */
+const seenPaywall = new Set<string>();
+
 /** 支付未接入时的替代面板：说清楚状况 + 给一条真能买到的路 */
 function BuyElsewhere({ guideId }: { guideId: string }) {
   return (
@@ -32,6 +40,8 @@ function BuyElsewhere({ guideId }: { guideId: string }) {
         href={`https://decider.zynqorw.com/guide/${guideId}`}
         target="_blank"
         rel="noreferrer"
+        // 迁移期这条是唯一真能付钱的路，点击照样算购买意向
+        onClick={() => track("buy_click", { target: guideId, meta: { via: "elsewhere" } })}
         className="rounded-lg bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-slate-700"
       >
         前往购买解锁 ↗
@@ -54,6 +64,16 @@ export default function UnlockPanel({ guideId, offers, paymentsEnabled }: Props)
   const [showLogin, setShowLogin] = useState(false);
   const [buying, setBuying] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const pathname = usePathname();
+
+  // 付费墙曝光：本组件只在未解锁时（LockedCard 内）渲染，挂载即等于访客看到了墙。
+  // 配合 buy_click 就是漏斗的两端——「多少人走到付费墙前掉头走了」。
+  useEffect(() => {
+    const key = `${pathname}::${guideId}`;
+    if (seenPaywall.has(key)) return;
+    seenPaywall.add(key);
+    track("paywall_view", { target: guideId });
+  }, [guideId, pathname]);
 
   // 首次拉取 session 期间不闪「未登录」
   if (loading) {
@@ -113,6 +133,9 @@ export default function UnlockPanel({ guideId, offers, paymentsEnabled }: Props)
   async function buy(tier: UnlockOffer["tier"]) {
     setBuying(tier);
     setError(null);
+    // 在建单之前打点：这里记的是「购买意向」，付款失败或中途放弃也算——
+    // 意向数减去 purchases 实付数，就是支付环节本身漏掉的人
+    track("buy_click", { target: guideId, meta: { tier } });
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",

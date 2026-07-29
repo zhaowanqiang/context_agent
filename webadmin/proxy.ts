@@ -10,6 +10,9 @@ import { NextResponse, type NextRequest } from "next/server";
  * - 未配置 ADMIN_ACCESS_CODE 时 fail-closed：私有层连同登录页一律 503，
  *   而不是放行（配置缺失必须"进不去"，不能"随便进"）
  * - /api/monitor/* 走自己的 x-monitor-token（外部推送无 cookie），不在这里管
+ * - /api/track 是公开层的埋点收集端点，必须放行：它服务的就是未登录访客，
+ *   而且流量真正发生在公网门面实例上——被拦下就是「埋了但一条数据都没有」，
+ *   且不会有任何报错。自身防护靠白名单 + 限流（见 app/api/track/route.ts）
  * - /api/checkout、/api/webhooks/* 是 decider 的支付链路，必须放行：
  *   前者自己查 Supabase 登录态，后者验 Creem HMAC 签名，各有各的鉴权；
  *   一旦被这里拦下，门面模式会把它们 404 掉 —— 支付会静默失效，没有任何报错
@@ -84,6 +87,6 @@ export const config = {
   // 监控推送 API（token 鉴权）、Next 静态资源、favicon。
   // /login 不排除——由 proxy 代码处理（门面模式要能把它 404 掉）
   matcher: [
-    "/((?!$|posts|about|now|decider|guides|opengraph-image|rss\\.xml|sitemap\\.xml|robots\\.txt|api/monitor|api/checkout|api/webhooks|_next/static|_next/image|favicon\\.ico).*)",
+    "/((?!$|posts|about|now|decider|guides|opengraph-image|rss\\.xml|sitemap\\.xml|robots\\.txt|api/monitor|api/track|api/checkout|api/webhooks|_next/static|_next/image|favicon\\.ico).*)",
   ],
 };

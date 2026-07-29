@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { parseBriefingItems } from "@/lib/briefingItems";
+import { conversionStats, EVENT_TYPES, type EventType } from "@/lib/events";
 import { latestReport } from "@/lib/pipelineLog";
 import { db } from "@/lib/supabase";
 import type { Run, TrackId } from "@/lib/types";
@@ -105,12 +106,20 @@ const QUICK_ACTIONS = [
   { href: "/posts", label: "个人站文章", desc: "已回流的公开存档" },
 ];
 
+/** 答题目标的枚举值 → 面板文案（对齐 Decider.tsx 的 goalOptions） */
+const GOAL_LABEL: Record<string, string> = {
+  broker: "美股券商",
+  crypto: "加密出入金",
+  card: "实体消费卡",
+};
+
 export default async function DashboardPage() {
-  const [pending, briefing, usage, reports] = await Promise.all([
+  const [pending, briefing, usage, reports, conv] = await Promise.all([
     pendingByTrack(),
     briefingStat(),
     monthUsage(),
     Promise.all(TRACKS.map((t) => latestReport(t))),
+    conversionStats(30),
   ]);
   const totalPending = pending?.reduce((s, p) => s + p.count, 0) ?? 0;
 
@@ -262,6 +271,88 @@ export default async function DashboardPage() {
             </dl>
           )}
         </Card>
+
+        {/* 转化：公开层访客行为。生产端的数字（产出几篇、烧多少 token）在上面，
+            这一格是价值环的另一端——有没有人真的点、真的买 */}
+        <div className="lg:col-span-2">
+          <Card
+            title="转化 · 近 30 天"
+            action={<span className="text-[11px] text-neutral-400">来自公开层埋点</span>}
+          >
+            {conv === null ? (
+              <p className="text-[13px] text-neutral-400">
+                读不到 events 表——把 supabase/schema.sql 末尾的埋点增量段在 SQL Editor 里执行一次。
+              </p>
+            ) : (
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div>
+                  <dl className="space-y-2 text-[13px]">
+                    {(Object.keys(EVENT_TYPES) as EventType[]).map((t) => (
+                      <div key={t} className="flex items-baseline justify-between">
+                        <dt className="text-neutral-500">{EVENT_TYPES[t]}</dt>
+                        <dd className={`font-bold ${conv.counts[t] > 0 ? "text-neutral-800" : "text-neutral-300"}`}>
+                          {conv.counts[t]}
+                        </dd>
+                      </div>
+                    ))}
+                    <div className="flex items-baseline justify-between border-t border-neutral-100 pt-2">
+                      <dt className="text-neutral-500">付费墙 → 购买</dt>
+                      <dd className="font-bold text-amber-600">
+                        {conv.paywallRate === null ? (
+                          <span className="text-neutral-300">—</span>
+                        ) : (
+                          `${(conv.paywallRate * 100).toFixed(1)}%`
+                        )}
+                      </dd>
+                    </div>
+                  </dl>
+                  {conv.truncated && (
+                    <p className="mt-2 text-[11px] text-amber-600">
+                      事件数已达聚合上限，以上为低估值。
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+                      返佣点击 top
+                    </p>
+                    {conv.referrals.length === 0 ? (
+                      <p className="mt-1.5 text-[12px] text-neutral-300">还没有人点</p>
+                    ) : (
+                      <ul className="mt-1.5 space-y-1 text-[13px]">
+                        {conv.referrals.slice(0, 5).map((r) => (
+                          <li key={r.target} className="flex items-baseline justify-between">
+                            <span className="truncate text-neutral-600">{r.target}</span>
+                            <b className="ml-2 text-neutral-800">{r.count}</b>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+                      访客想要什么
+                    </p>
+                    {conv.goals.length === 0 ? (
+                      <p className="mt-1.5 text-[12px] text-neutral-300">还没有人答题</p>
+                    ) : (
+                      <ul className="mt-1.5 space-y-1 text-[13px]">
+                        {conv.goals.map((g) => (
+                          <li key={g.goal} className="flex items-baseline justify-between">
+                            <span className="text-neutral-600">{GOAL_LABEL[g.goal] ?? g.goal}</span>
+                            <b className="ml-2 text-neutral-800">{g.count}</b>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </Card>
+        </div>
 
         {/* 快捷动作 */}
         <Card title="快捷动作">

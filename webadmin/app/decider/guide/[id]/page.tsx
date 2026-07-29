@@ -3,6 +3,7 @@ import { getGuide, formatVerified } from "@/data/decider/guides";
 import { products } from "@/data/decider/products";
 import { renderMarkdown } from "@/lib/decider/markdown";
 import AuthBar from "@/components/decider/AuthBar";
+import TrackedLink from "@/components/TrackedLink";
 import UnlockPanel, { type UnlockOffer } from "@/components/decider/UnlockPanel";
 import { createServerSupabase } from "@/lib/decider/supabase-server";
 import { fetchGuideTier } from "@/lib/decider/purchases";
@@ -98,14 +99,17 @@ export default async function GuidePage({
             我们正在整理这篇的逐步实操与避坑清单,敬请期待。
           </p>
           {product?.referral_url && (
-            <a
+            <TrackedLink
+              event="referral_click"
+              target_={product.id}
+              meta={{ from: "guide_placeholder" }}
               href={product.referral_url}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-5 inline-block rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-slate-700"
             >
               先去开户 →
-            </a>
+            </TrackedLink>
           )}
         </section>
       </div>
@@ -215,14 +219,18 @@ export default async function GuidePage({
             </p>
           </div>
           {product.referral_url ? (
-            <a
+            <TrackedLink
+              event="referral_click"
+              target_={product.id}
+              // 教程页正文后的 CTA：转化率最高的位置，单独标出来和答题推荐位对比
+              meta={{ from: "guide_cta" }}
               href={product.referral_url}
               target="_blank"
               rel="noopener noreferrer"
               className="shrink-0 rounded-lg bg-slate-900 px-5 py-2.5 text-center text-sm font-medium text-white transition hover:bg-slate-700"
             >
               免费:去开户 →
-            </a>
+            </TrackedLink>
           ) : (
             <span className="min-w-0 rounded-lg border border-dashed border-amber-300 bg-white px-4 py-2.5 text-left text-xs leading-relaxed text-slate-600 sm:max-w-md">
               {product.signup_note}

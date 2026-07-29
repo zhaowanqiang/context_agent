@@ -231,3 +231,24 @@ alter table guides enable row level security;
 insert into storage.buckets (id, name, public)
 values ('guide-images', 'guide-images', true)
 on conflict (id) do nothing;
+
+-- ============================================================
+-- 增量（2026-07-29）：转化埋点。已建库的只需在 SQL Editor 执行本段。
+-- 公开层访客行为落库：返佣点击 / 答题提交 / 付费墙曝光 / 购买点击。
+-- 这是「钱漏在哪一环」的唯一数据来源——Vercel Analytics 只给 PV，
+-- 看不出有没有人点返佣链接、付费墙前有多少人掉头走。
+-- 无 PII：不写 IP、不写 user_id、不写邮箱，只有行为本身。
+-- ============================================================
+
+create table events (
+  id bigserial primary key,
+  type text not null,          -- lib/events.ts 的 EVENT_TYPES 白名单，API 层已校验
+  target text,                 -- 事件对象：产品 id / 教程 id / 档位
+  path text,                   -- 发生页面（只取 pathname，query 不入库免得带进意外参数）
+  meta jsonb,                  -- 事件特有字段（如答题选择），同样无 PII
+  created_at timestamptz not null default now()
+);
+-- 面板按 type + 时间窗聚合；单独的时间索引给「最近 N 天全表扫」用
+create index on events (type, created_at desc);
+create index on events (created_at desc);
+alter table events enable row level security;

@@ -10,6 +10,7 @@ import type {
   ScoredProduct,
 } from "@/lib/decider/types";
 import { getRecommendations } from "@/lib/decider/match";
+import { track } from "@/lib/track";
 
 const passportOptions: { value: PassportType; label: string }[] = [
   { value: "mainland", label: "大陆护照" },
@@ -129,6 +130,8 @@ function ResultCard({ item }: { item: ScoredProduct }) {
             href={product.referral_url}
             target="_blank"
             rel="noopener noreferrer"
+            // 埋点：答题推荐位的返佣点击，和教程页的点击分开看（from 区分来源）
+            onClick={() => track("referral_click", { target: product.id, meta: { from: "decider_result" } })}
             className={[
               "flex-1 rounded-lg px-4 py-2.5 text-center text-sm font-medium transition",
               product.has_paid_guide || product.has_free_guide
@@ -251,6 +254,18 @@ export default function Decider({ hero }: { hero?: React.ReactNode }) {
           disabled={!ready}
           onClick={() => {
             setSubmitted(true);
+            // 埋点：访客真实在问什么身份能开什么——这是选题和写哪篇教程的第一手依据，
+            // 比 RSS 打分靠谱。只记选项枚举值，没有任何可识别信息。
+            track("decider_submit", {
+              meta: {
+                passport,
+                hasOverseasAddress,
+                goals,
+                kyc,
+                // 推荐命中了谁：配合 referral_click 就能看出「推了但没人点」的产品
+                results: results.map((r) => r.product.id),
+              },
+            });
             // 结果区在下方,提交后带用户过去(等一帧渲染完再滚)
             setTimeout(() => {
               document.getElementById("results")?.scrollIntoView({ behavior: "smooth", block: "start" });
