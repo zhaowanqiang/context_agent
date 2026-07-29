@@ -29,6 +29,7 @@ export const metadata: Metadata = {
 const PUBLIC_NAV = [
   { label: "文章", href: "/posts" },
   { label: "教程", href: "/guides" },
+  { label: "加密卡片", href: "/cards" },
   { label: "此刻", href: "/now" },
   // decider 是站内公开路由（不是外链，不加 external），排在「关于」前：
   // 访客从任何一页都能回到产品，此前只有首页卡片一个入口

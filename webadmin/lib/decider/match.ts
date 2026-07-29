@@ -1,21 +1,34 @@
 import type { Answers, Product, ScoredProduct } from "@/lib/decider/types";
 import { products } from "@/data/decider/products";
 
-// 硬过滤:不满足就直接出局(不进推荐列表)
-function isEligible(product: Product, answers: Answers): boolean {
+/**
+ * 硬过滤的出局原因；null = 通过。
+ *
+ * 原来这里是个只返回 boolean 的 isEligible。改成返回原因，是因为
+ * /cards 的决策器要向用户解释「为什么这张卡没推给你」——
+ * 若在那边另写一份判断条件，两处规则迟早漂移。判断只此一份。
+ */
+export function exclusionReason(product: Product, answers: Answers): string | null {
   // 证件类型必须被支持
-  if (!product.passport_ok.includes(answers.passport)) return false;
+  if (!product.passport_ok.includes(answers.passport)) {
+    return "不支持你选的证件类型";
+  }
 
   // 需要海外地址但用户没有 —— 出局
   if (product.requires_overseas_address && !answers.hasOverseasAddress) {
-    return false;
+    return "需要海外地址证明，你选的是没有";
   }
 
   // 至少命中用户想要的一类
-  const matchesGoal = product.tags.some((tag) => answers.goals.includes(tag));
-  if (!matchesGoal) return false;
+  if (!product.tags.some((tag) => answers.goals.includes(tag))) {
+    return "覆盖的用途和你要的对不上";
+  }
 
-  return true;
+  return null;
+}
+
+function isEligible(product: Product, answers: Answers): boolean {
+  return exclusionReason(product, answers) === null;
 }
 
 // 打分:分越高排越前。理由数组用于解释 + 以后调参。

@@ -53,6 +53,15 @@ export const MODULES: SiteModule[] = [
     status: "active",
   },
   {
+    id: "cards",
+    name: "加密卡片",
+    tagline: "加密支付卡陈列：卡面 → 开户决策（该不该办、适合谁）→ 申请教程，邀请码一键复制",
+    href: "/cards",
+    emoji: "💳",
+    status: "active",
+    external: true, // 公开层路由，和 decider 一样走整页跳转
+  },
+  {
     id: "decider",
     name: "出海开户决策",
     tagline: "海外账户/U 卡实测教程库（2 篇全文免费），也可以答几个问题拿个性化开户推荐",

@@ -319,3 +319,146 @@ body {
 .md-body h2:first-child {
   margin-top: 0.2em;
 }
+
+/* ============================================================
+ * 加密卡片模块（/cards）的动效层。
+ *
+ * 为什么写在 CSS 而不是组件里：指针跟随必须走 CSS 变量 + rAF 直接改
+ * style property，绝不能在 mousemove 里 setState——那会每帧触发一次
+ * React 重渲染，60fps 是不可能的。组件只负责写 --cc-rx/--cc-ry/--cc-mx/--cc-my，
+ * 剩下的位移、高光、阴影全由这里的规则消费，合成器上跑。
+ *
+ * 所有动画只用 transform / opacity，不碰 width/top/left，避免 layout thrashing。
+ * ============================================================ */
+
+/* 移动端筛选条横向滚动但不显示滚动条（Tailwind v4 无内置工具类） */
+.cc-noscrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.cc-noscrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.cc-tile {
+  --cc-rx: 0deg;
+  --cc-ry: 0deg;
+  --cc-mx: 50%;
+  --cc-my: 50%;
+  --cc-glare: 0;
+  --cc-lift: 0px;
+  transform: translateY(var(--cc-lift));
+  transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 300ms ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* 卡面本体：3D 倾斜发生在这一层，文字层不跟着转（避免可读性下降） */
+.cc-art {
+  transform: rotateX(var(--cc-rx)) rotateY(var(--cc-ry));
+  transform-style: preserve-3d;
+  transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+/* 径向高光：跟着指针走，离开时淡出 */
+.cc-glare {
+  background: radial-gradient(
+    circle at var(--cc-mx) var(--cc-my),
+    rgba(255, 255, 255, 0.55),
+    rgba(255, 255, 255, 0) 55%
+  );
+  mix-blend-mode: overlay;
+  opacity: var(--cc-glare);
+  transition: opacity 300ms ease;
+  pointer-events: none;
+}
+
+/* 斜向 shine：只在指针进入时跑一次（组件加 .cc-shine-run 触发，动画结束后移除） */
+.cc-shine {
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.42) 50%,
+    transparent 65%
+  );
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+.cc-shine-run .cc-shine {
+  animation: cc-shine-sweep 600ms ease-out;
+}
+@keyframes cc-shine-sweep {
+  to {
+    transform: translateX(120%);
+  }
+}
+
+/* badge chips 依次微微上浮（--cc-i 由组件按索引写入，30ms stagger） */
+.cc-chip {
+  transform: translateY(0);
+  transition: transform 220ms ease;
+  transition-delay: calc(var(--cc-i, 0) * 30ms);
+}
+
+/* CTA 箭头 */
+.cc-arrow {
+  transition: transform 220ms ease;
+}
+
+/* 悬停态：只在真有悬停能力的设备上生效（触屏不该被 hover 粘住） */
+@media (hover: hover) and (pointer: fine) {
+  /* :has() 而不是 :focus-visible —— 可聚焦的是卡内那个覆盖式命中按钮（.cc-hit），
+     不是卡片本身。理由见 CardTile.tsx：容器挂 role="button" 会和内部的
+     链接/复制按钮构成嵌套交互控件，axe 的 nested-interactive 会判失败。 */
+  .cc-tile:hover,
+  .cc-tile:has(.cc-hit:focus-visible) {
+    --cc-lift: -6px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.14);
+  }
+  .cc-tile:hover .cc-chip,
+  .cc-tile:has(.cc-hit:focus-visible) .cc-chip {
+    transform: translateY(-2px);
+  }
+  .cc-tile:hover .cc-arrow,
+  .cc-tile:has(.cc-hit:focus-visible) .cc-arrow {
+    transform: translate(2px, -2px);
+  }
+}
+
+/* 详情面板：无 framer-motion，用 220ms fade+scale 降级 */
+@keyframes cc-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes cc-modal-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes cc-sheet-in {
+  from { transform: translateY(100%); }
+  to { transform: none; }
+}
+.cc-overlay { animation: cc-overlay-in 220ms ease-out; }
+.cc-modal { animation: cc-modal-in 220ms cubic-bezier(0.22, 1, 0.36, 1); }
+.cc-sheet { animation: cc-sheet-in 260ms cubic-bezier(0.22, 1, 0.36, 1); }
+
+/* 无障碍：用户要求减少动效时，所有位移/倾斜/扫光一律关掉，只留颜色与阴影过渡。
+ * 注意不是「关掉 transition」——颜色过渡保留能让交互仍有反馈。 */
+@media (prefers-reduced-motion: reduce) {
+  .cc-tile,
+  .cc-art,
+  .cc-chip,
+  .cc-arrow {
+    transform: none !important;
+    transition: box-shadow 200ms ease, background-color 200ms ease, border-color 200ms ease;
+  }
+  .cc-shine-run .cc-shine,
+  .cc-overlay,
+  .cc-modal,
+  .cc-sheet {
+    animation: none;
+  }
+  .cc-glare {
+    display: none;
+  }
+}

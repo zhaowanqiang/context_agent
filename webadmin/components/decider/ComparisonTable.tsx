@@ -16,10 +16,12 @@ function typeLabel(tags: string[]): string {
   return "支付卡";
 }
 
-/** 卡片全列的横向对比,补足"答题漏斗 / 单卡教程"看不到的全局视角 */
-export default function ComparisonTable() {
+/** 卡片全列的横向对比,补足"答题漏斗 / 单卡教程"看不到的全局视角。
+ *  only:限定只对比这些产品 id（/cards 用它把券商类过滤掉）；不传 = 全部，行为不变。 */
+export default function ComparisonTable({ only }: { only?: string[] } = {}) {
+  const source = only ? products.filter((p) => only.includes(p.id)) : products;
   // 先卡后券商,组内按 KYC 从易到难——访客一眼看到最好上手的
-  const rows = [...products].sort((a, b) => {
+  const rows = [...source].sort((a, b) => {
     const ac = a.tags.includes("card") ? 0 : 1;
     const bc = b.tags.includes("card") ? 0 : 1;
     return ac - bc || a.kyc_difficulty - b.kyc_difficulty;
@@ -67,16 +69,16 @@ export default function ComparisonTable() {
                   </td>
                   <td className="px-4 py-3">
                     {mainlandOk ? (
-                      <span className="font-medium text-emerald-600">✓ 可开</span>
+                      <span className="font-medium text-emerald-700">✓ 可开</span>
                     ) : (
-                      <span className="text-slate-400">✗ 暂不可</span>
+                      <span className="text-slate-600">✗ 暂不可</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
                     {p.requires_overseas_address ? (
                       <span className="text-amber-700">需要</span>
                     ) : (
-                      <span className="text-slate-400">—</span>
+                      <span className="text-slate-600">—</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -85,7 +87,7 @@ export default function ComparisonTable() {
                         {guides[p.id].paidMd === null ? "免费全文 →" : "看教程 →"}
                       </Link>
                     ) : (
-                      <span className="text-[13px] text-slate-400">暂无</span>
+                      <span className="text-[13px] text-slate-600">暂无</span>
                     )}
                   </td>
                 </tr>
