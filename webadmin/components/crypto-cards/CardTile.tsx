@@ -13,6 +13,8 @@ const STATUS: Record<CryptoCard["status"], { label: string; cta: string; tone: s
   waitlist: { label: "等待名单", cta: "加入等待名单", tone: "bg-amber-100 text-amber-800" },
   "invite-only": { label: "仅限邀请", cta: "看怎么拿邀请码", tone: "bg-amber-100 text-amber-800" },
   deprecated: { label: "已停用", cta: "查看详情", tone: "bg-neutral-200 text-neutral-600" },
+  // 只收录了卡面：CTA 绝不能写成「立即领取」——那等于暗示这张卡已经可以开
+  pending: { label: "内容整理中", cta: "查看详情", tone: "bg-neutral-200 text-neutral-600" },
 };
 
 export default function CardTile({ card, onOpen }: { card: CryptoCard; onOpen: () => void }) {
@@ -88,6 +90,9 @@ export default function CardTile({ card, onOpen }: { card: CryptoCard; onOpen: (
   const badge = STATUS[card.status];
   const ctaLabel = badge?.cta ?? "立即领取";
   const href = card.invite?.url;
+  // 同品牌多卡面（XPlace ×2、Zen ×2）和 9 张「待确认」重名，
+  // 卡名后缀上 variant 才能让标题和读屏标签互相区分得开
+  const fullName = card.variant ? `${card.name} · ${card.variant}` : card.name;
 
   return (
     <article
@@ -106,7 +111,7 @@ export default function CardTile({ card, onOpen }: { card: CryptoCard; onOpen: (
         onClick={onOpen}
         className="cc-hit absolute inset-0 z-0 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2"
       >
-        <span className="sr-only">查看 {card.name} 详情</span>
+        <span className="sr-only">查看 {fullName} 详情</span>
       </button>
 
       <CardArt card={card} />
@@ -119,6 +124,9 @@ export default function CardTile({ card, onOpen }: { card: CryptoCard; onOpen: (
 
       <h3 className="pointer-events-none mt-3 text-base font-semibold tracking-tight text-neutral-900">
         {card.name}
+        {card.variant && (
+          <span className="ml-1.5 text-[12px] font-normal text-neutral-500">{card.variant}</span>
+        )}
       </h3>
 
       <div className="pointer-events-none mt-2 flex flex-wrap gap-1.5">
@@ -138,7 +146,7 @@ export default function CardTile({ card, onOpen }: { card: CryptoCard; onOpen: (
           <InviteCode code={card.invite.code} cardSlug={card.slug} className="relative z-10" />
         ) : (
           <p className="min-w-0 flex-1 truncate text-[12px] text-neutral-600" title={card.signupNote}>
-            {card.signupNote ?? "开户入口见详情"}
+            {card.signupNote ?? (card.status === "pending" ? "开户信息整理中" : "开户入口见详情")}
           </p>
         )}
 

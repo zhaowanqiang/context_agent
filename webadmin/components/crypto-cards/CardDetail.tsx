@@ -58,6 +58,24 @@ function List({ title, items, tone }: { title: string; items: string[]; tone: st
   );
 }
 
+/**
+ * 详情未整理时的统一空状态。
+ *
+ * 刻意不渲染成「骨架屏」或空白区块：那两种都在暗示「内容马上就来 / 加载失败」，
+ * 而真实情况是这张卡只收录了卡面，事实字段一个都没核实过。直说更省访客时间。
+ */
+function EmptyState({ what }: { what: string }) {
+  return (
+    <div className="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-6 text-center">
+      <p className="text-[13.5px] font-semibold text-neutral-800">内容整理中</p>
+      <p className="mx-auto mt-1.5 max-w-[46ch] text-[12.5px] leading-relaxed text-neutral-700">
+        这张卡目前只收录了卡面信息，{what}尚未实测核实。
+        按本站的规矩，没有可靠来源的字段一律空着，不写看起来合理的数字。
+      </p>
+    </div>
+  );
+}
+
 type Tab = "decision" | "tutorial" | "faq";
 
 export default function CardDetail({ card, onClose }: { card: CryptoCard; onClose: () => void }) {
@@ -150,9 +168,13 @@ export default function CardDetail({ card, onClose }: { card: CryptoCard; onClos
   }, [onClose]);
 
   const f = card.facts;
-  const notes = f.notes ?? {};
+  const notes = f?.notes ?? {};
   const href = card.invite?.url;
   const titleId = `cc-detail-title-${card.slug}`;
+  const fullName = card.variant ? `${card.name} · ${card.variant}` : card.name;
+  // 三块全空 = 这张卡只有卡面：给一句「内容整理中」就够了。
+  // 硬撑出指标格 + 三个 tab、每个里面再放一遍同样的空状态，只是把噪音翻三倍。
+  const detailReady = Boolean(f || card.decision || card.tutorial);
 
   const TABS: { id: Tab; label: string }[] = [
     { id: "decision", label: "开户决策" },
@@ -190,15 +212,39 @@ export default function CardDetail({ card, onClose }: { card: CryptoCard; onClos
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h2 id={titleId} className="text-lg font-bold tracking-tight text-neutral-900">
-                {card.name}
+                {fullName}
               </h2>
               {card.status !== "live" && (
-                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800">
-                  {card.status === "waitlist" ? "等待名单" : card.status === "invite-only" ? "仅限邀请" : "已停用"}
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                    card.status === "pending"
+                      ? "bg-neutral-200 text-neutral-700"
+                      : "bg-amber-100 text-amber-800"
+                  }`}
+                >
+                  {card.status === "waitlist"
+                    ? "等待名单"
+                    : card.status === "invite-only"
+                      ? "仅限邀请"
+                      : card.status === "pending"
+                        ? "内容整理中"
+                        : "已停用"}
+                </span>
+              )}
+              {/* 卡组织与等级是从卡面读的，没核实过，标题旁如实标注 */}
+              {card.tier && (
+                <span className="text-[11px] text-neutral-500">
+                  {card.issuer} {card.tier}
                 </span>
               )}
             </div>
-            <p className="mt-1 text-[13px] leading-relaxed text-neutral-600">{card.decision.verdict}</p>
+            {card.decision ? (
+              <p className="mt-1 text-[13px] leading-relaxed text-neutral-600">{card.decision.verdict}</p>
+            ) : (
+              <p className="mt-1 text-[13px] leading-relaxed text-neutral-600">
+                卡面信息已收录，开户决策与教程还没整理。
+              </p>
+            )}
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
               {href ? (
@@ -234,23 +280,31 @@ export default function CardDetail({ card, onClose }: { card: CryptoCard; onClos
 
         {/* 可滚动内容区 */}
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
-          {/* 关键指标 6 宫格 */}
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-            <Metric label="返现" value={factText(f.cashback)} note={notes.cashback} />
-            <Metric label="年费" value={factText(f.annualFee)} />
-            <Metric label="KYC" value={f.kyc ? KYC_LABEL[f.kyc] : UNKNOWN} />
-            <Metric label="地区" value={factText(f.regions)} note={notes.regions} />
-            <Metric
-              label="充值方式"
-              value={factText(f.stablecoins ?? f.chains)}
-            />
-            <Metric
-              label="托管方式"
-              value={f.custody ? (f.custody === "custodial" ? "平台托管" : "自托管") : UNKNOWN}
-            />
-          </div>
+          {!detailReady && (
+            <EmptyState what="费率、年费、KYC 门槛、支持地区、开户步骤与风险提示" />
+          )}
+
+          {/* 关键指标 6 宫格。整块没有就不渲染 6 个「待核实」占位——
+              6 个空格子比一句「内容整理中」更像是页面坏了 */}
+          {detailReady &&
+            (f ? (
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+              <Metric label="返现" value={factText(f.cashback)} note={notes.cashback} />
+              <Metric label="年费" value={factText(f.annualFee)} />
+              <Metric label="KYC" value={f.kyc ? KYC_LABEL[f.kyc] : UNKNOWN} />
+              <Metric label="地区" value={factText(f.regions)} note={notes.regions} />
+              <Metric label="充值方式" value={factText(f.stablecoins ?? f.chains)} />
+              <Metric
+                label="托管方式"
+                value={f.custody ? (f.custody === "custodial" ? "平台托管" : "自托管") : UNKNOWN}
+              />
+              </div>
+            ) : (
+              <EmptyState what="费率、年费、KYC 门槛、支持地区、充值方式与托管方式" />
+            ))}
 
           {/* Tabs */}
+          {detailReady && (
           <div role="tablist" aria-label="卡片详情" className="mt-6 flex gap-1 border-b border-neutral-200">
             {TABS.map((t) => (
               <button
@@ -269,9 +323,15 @@ export default function CardDetail({ card, onClose }: { card: CryptoCard; onClos
               </button>
             ))}
           </div>
+          )}
 
+          {detailReady && (
           <div className="pt-4">
-            {tab === "decision" && (
+            {tab === "decision" && !card.decision && (
+              <EmptyState what="适合谁、优缺点与风险" />
+            )}
+
+            {tab === "decision" && card.decision && (
               <div className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <List title="适合谁" items={card.decision.bestFor} tone="text-neutral-700" />
@@ -293,7 +353,11 @@ export default function CardDetail({ card, onClose }: { card: CryptoCard; onClos
               </div>
             )}
 
-            {tab === "tutorial" && (
+            {tab === "tutorial" && !card.tutorial && (
+              <EmptyState what="开户步骤与前置准备" />
+            )}
+
+            {tab === "tutorial" && card.tutorial && (
               <div className="space-y-5">
                 {card.tutorial.prerequisites.length > 0 && (
                   <List title="开始前准备" items={card.tutorial.prerequisites} tone="text-neutral-700" />
@@ -345,21 +409,24 @@ export default function CardDetail({ card, onClose }: { card: CryptoCard; onClos
 
             {tab === "faq" && (
               <div className="space-y-3">
-                {card.tutorial.faq?.length ? (
+                {card.tutorial?.faq?.length ? (
                   card.tutorial.faq.map((q) => (
                     <details key={q.q} className="rounded-xl border border-neutral-200 p-3">
                       <summary className="cursor-pointer text-[13.5px] font-medium text-neutral-900">{q.q}</summary>
                       <p className="mt-2 text-[13px] leading-relaxed text-neutral-600">{q.a}</p>
                     </details>
                   ))
-                ) : (
+                ) : card.tutorial ? (
                   <p className="text-[13px] text-neutral-600">
                     这张卡还没整理常见问题。教程页里有更完整的实操说明。
                   </p>
+                ) : (
+                  <EmptyState what="常见问题" />
                 )}
               </div>
             )}
           </div>
+          )}
 
           {/* 免责声明：固定在内容底部 */}
           <p className="mt-8 border-t border-neutral-100 pt-4 text-[11.5px] leading-relaxed text-neutral-600">

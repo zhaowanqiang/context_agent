@@ -17,6 +17,30 @@
  *
  * 现有 3 张卡的内容全部迁移自 data/decider/products.ts 与 guides.ts 的免费层
  * （即 @zynqorw 本人实测教程），观点原样保留，未重写。
+ *
+ * ────────────────────────────────────────────────────────────────
+ * TODO 区（2026-07 批量新增 40 张「只有卡面」的条目，见文件下半部分 faceOnly 段）
+ *
+ * 这 40 条的 issuer / tier / badges **全部来自卡面图片的肉眼读取，未经核实**，
+ * 只用于渲染卡面，不代表这张卡真的属于该卡组织或等级。除此之外一个字段都没填：
+ * 费率、返现、开卡费、月费、手续费、汇率加点、KYC、地区、额度、链与币种、
+ * 邀请码、上线状态 —— 一律 null，UI 渲染成「内容整理中」。
+ *
+ * ① 9 张品牌未确认（卡面无可辨识标识，**不允许按卡面特征猜品牌名**）：
+ *    unknown-07 unknown-08 unknown-12 unknown-15 unknown-16
+ *    unknown-22 unknown-28 unknown-31 unknown-35
+ *    确认品牌后：改 slug（深链会变，注意同步外链）、改 name、删掉 variant 里的编号。
+ *
+ * ② 3 张疑似与现有条目是「同一产品的不同卡面」，需人工确认是否合并：
+ *    plasma-visa-signature  ↔  plasma-one
+ *    kast-visa-platinum     ↔  kast
+ *    bybit-mastercard-virtual ↔ bybit-card
+ *    按「同品牌多卡面各自独立成条、不合并不去重」的规则先各自建条。
+ *    若确认是同一张卡，删掉新条目、把卡面信息并进老条目即可（组件零改动）。
+ *
+ * ③ 全部 40 条待补：facts / decision / tutorial 三块。补的时候记住第 2 条硬约束——
+ *    没有实测来源就继续留 null，别为了「填满」写看起来合理的数字。
+ * ────────────────────────────────────────────────────────────────
  */
 
 /** 事实字段的「未核实」用 null 表示——比猜一个值诚实，UI 会显示「待核实」 */
@@ -27,6 +51,12 @@ export interface CryptoCard {
   slug: string;
   name: string;
   issuer: Unknown<"Visa" | "Mastercard" | "Other">;
+  /** 卡面印着的等级文案（Platinum / Signature / Infinite / Business…）。卡面没印就不填。
+   *  纯展示：印在卡面右下角，不参与筛选排序，也不代表这张卡的实际权益。 */
+  tier?: string;
+  /** 同一品牌多个卡面时的区分文案（如 XPlace 蓝 / 银白，Zen 白 / PRO 绿）。
+   *  刻意不做去重合并——不同卡面权益可能不同，合并等于替发卡方下结论。 */
+  variant?: string;
   /** 卡面是装饰性渲染，不是品牌资产：仓库没有卡面图，统一用暖色渐变 + 文字标识 */
   art: {
     type: "image" | "gradient";
@@ -40,8 +70,12 @@ export interface CryptoCard {
   invite: { code: string; url: string } | null;
   /** 没有直达链接时的开户指引（如「应用商店搜索」「蹲邀请码」） */
   signupNote?: string;
-  status: "live" | "waitlist" | "invite-only" | "deprecated";
+  /** "pending" = 只收录了卡面，上线状态本身也未核实——不是「已上线」的同义词 */
+  status: "live" | "waitlist" | "invite-only" | "deprecated" | "pending";
 
+  /* 下面三块是「详情层」。整块 null = 还没整理，UI 渲染统一的「内容整理中」空状态。
+     为什么是整块 null 而不是把每个字段填空字符串：空字符串会被渲染成空白区块，
+     看起来像内容加载失败；null 让组件能明确知道「这块压根还没有」。 */
   facts: {
     cashback: Unknown<string>;
     annualFee: Unknown<string>;
@@ -59,7 +93,7 @@ export interface CryptoCard {
     custody: Unknown<"custodial" | "self-custody">;
     /** 某个事实带条件时的补充说明（如「取决于开卡时的国家选择」） */
     notes?: Partial<Record<"applePay" | "googlePay" | "regions" | "cashback", string>>;
-  };
+  } | null;
 
   decision: {
     verdict: string;
@@ -71,7 +105,7 @@ export interface CryptoCard {
     risks: string[];
     /** 核对时间。来源（guides.ts verified_at）只精确到月，故用 YYYY-MM */
     updatedAt: string;
-  };
+  } | null;
 
   tutorial: {
     prerequisites: string[];
@@ -79,6 +113,38 @@ export interface CryptoCard {
     faq?: { q: string; a: string }[];
     /** 站内完整教程。付费正文不在本文件，点过去由付费墙判定 */
     guide?: { href: string; free: boolean };
+  } | null;
+}
+
+/* ── 卡面渐变的两个小工具：把 40 条重复的 art 字面量压成一行 ────────── */
+
+/** 亮字卡面（深色底） */
+const dark = (from: string, to: string): CryptoCard["art"] =>
+  ({ type: "gradient", from, to, textColor: "light" });
+
+/** 暗字卡面（浅色底） */
+const pale = (from: string, to: string): CryptoCard["art"] =>
+  ({ type: "gradient", from, to, textColor: "dark" });
+
+/**
+ * 「只有卡面」的占位条目工厂。
+ *
+ * 存在的意义不是省字数，是**结构性地堵死编造**：调用方只能传卡面相关的字段，
+ * facts / decision / tutorial 由这里统一钉死成 null，
+ * 想在批量新增里塞一个「看起来合理」的返现率，类型这关就过不去。
+ */
+function faceOnly(
+  card: Pick<CryptoCard, "slug" | "name" | "issuer" | "art"> &
+    Partial<Pick<CryptoCard, "tier" | "variant" | "badges">>
+): CryptoCard {
+  return {
+    badges: [],
+    ...card,
+    invite: null, // 邀请码属于「不准编造」清单
+    status: "pending",
+    facts: null,
+    decision: null,
+    tutorial: null,
   };
 }
 
@@ -255,9 +321,75 @@ export const cards: CryptoCard[] = [
       guide: { href: "/decider/guide/plasma-one", free: true },
     },
   },
+
+  /* ══════════════════════════════════════════════════════════════
+   * 2026-07 批量收录：只有卡面，没有内容。
+   *
+   * 每一条的 issuer / tier / badges 都来自卡面图片的肉眼读取，未经核实；
+   * 渐变色是按卡面主色**自行设计的装饰**，不是品牌资产、不是官方配色规范。
+   * 详情三块一律 null（faceOnly 钉死），详见文件头 TODO 区。
+   * ══════════════════════════════════════════════════════════════ */
+
+  faceOnly({ slug: "krak", name: "Krak", issuer: "Mastercard", badges: ["VIRTUAL", "world elite debit"], art: dark("#FF3B24", "#A8180A") }),
+  faceOnly({ slug: "peanut", name: "Peanut", issuer: "Visa", tier: "Platinum", art: dark("#FF4FD8", "#A21CAF") }),
+  faceOnly({ slug: "metamask", name: "MetaMask", issuer: "Mastercard", art: dark("#F5841F", "#B45309") }),
+  faceOnly({ slug: "n26", name: "N26", issuer: "Mastercard", art: dark("#2E8B7A", "#124F44") }),
+  faceOnly({ slug: "dpt-oxygen", name: "DPT (oxygen)", issuer: "Visa", tier: "Platinum", art: pale("#FFFFFF", "#E7E5E4") }),
+
+  // ⚠️ 疑似与上面的 plasma-one 是同一产品的不同卡面——待人工确认，见文件头 TODO ②
+  faceOnly({ slug: "plasma-visa-signature", name: "Plasma", issuer: "Visa", tier: "Signature", variant: "深灰黑卡面", art: dark("#44403C", "#141210") }),
+
+  faceOnly({ slug: "unknown-07", name: "待确认", issuer: "Visa", variant: "编号 07", art: pale("#FFFFFF", "#E7E5E4") }),
+  faceOnly({ slug: "unknown-08", name: "待确认", issuer: "Visa", variant: "编号 08", badges: ["Debit"], art: dark("#3B82F6", "#1E3A8A") }),
+  faceOnly({ slug: "lava", name: "Lava", issuer: "Visa", tier: "Infinite", art: dark("#1C1917", "#0A0908") }),
+  faceOnly({ slug: "kolo", name: "Kolo", issuer: "Visa", art: pale("#4ADE50", "#15A33C") }),
+  faceOnly({ slug: "kraken", name: "Kraken", issuer: "Mastercard", badges: ["VIRTUAL", "world elite debit"], art: pale("#F7F6F4", "#D2CEC9") }),
+  faceOnly({ slug: "unknown-12", name: "待确认", issuer: "Visa", variant: "编号 12", art: dark("#22200F", "#0A0A05") }),
+  faceOnly({ slug: "redotpay", name: "RedotPay", issuer: "Visa", tier: "Platinum", art: dark("#16A34A", "#04543A") }),
+  faceOnly({ slug: "okx", name: "OKX", issuer: "Mastercard", art: dark("#2B2B2B", "#0A0A0A") }),
+  faceOnly({ slug: "unknown-15", name: "待确认", issuer: "Visa", variant: "编号 15", badges: ["Debit"], art: pale("#DDD6FE", "#FBCFE8") }),
+  faceOnly({ slug: "unknown-16", name: "待确认", issuer: "Visa", tier: "Signature", variant: "编号 16", art: dark("#818CF8", "#3730A3") }),
+  faceOnly({ slug: "zen", name: "Zen", issuer: "Mastercard", variant: "白色卡面", badges: ["zero effort non-bank"], art: pale("#FFFFFF", "#E7E5E4") }),
+  faceOnly({ slug: "tria", name: "Tria", issuer: "Visa", tier: "Platinum", art: dark("#152238", "#04070D") }),
+
+  // ⚠️ 疑似与最上面的 kast 是同一产品的不同卡面——待人工确认，见文件头 TODO ②
+  faceOnly({ slug: "kast-visa-platinum", name: "KAST", issuer: "Visa", tier: "Platinum", variant: "银色卡面", art: pale("#EDEBE8", "#B4AFA8") }),
+
+  faceOnly({ slug: "nexo", name: "Nexo", issuer: "Mastercard", art: dark("#1E3A8A", "#0F1F4D") }),
+  faceOnly({ slug: "startale", name: "Startale", issuer: "Visa", tier: "Platinum", art: pale("#F5F5F4", "#BDB9B4") }),
+  faceOnly({ slug: "unknown-22", name: "待确认", issuer: "Mastercard", variant: "编号 22", badges: ["platinum debit"], art: dark("#1C1917", "#0A0908") }),
+  faceOnly({ slug: "wirex", name: "Wirex", issuer: "Visa", badges: ["Virtual card"], art: pale("#E4DEFE", "#BEB0F5") }),
+  faceOnly({ slug: "solayer", name: "Solayer", issuer: "Visa", tier: "Signature", badges: ["InfiniSVM"], art: dark("#0B4D3C", "#022C22") }),
+  faceOnly({ slug: "slash", name: "Slash", issuer: "Visa", tier: "Business", art: pale("#EBD49B", "#B8925A") }),
+  faceOnly({ slug: "hyperbeat", name: "Hyperbeat", issuer: "Visa", tier: "Platinum", art: dark("#8A817B", "#3D3733") }),
+  faceOnly({ slug: "xplace-blue", name: "XPlace", issuer: "Visa", tier: "Platinum", variant: "蓝色卡面", art: dark("#3B82F6", "#16308F") }),
+  faceOnly({ slug: "unknown-28", name: "待确认", issuer: "Visa", tier: "Platinum", variant: "编号 28", art: pale("#FFFFFF", "#F2F1EF") }),
+  faceOnly({ slug: "jupiter", name: "Jupiter", issuer: "Visa", tier: "Platinum", art: dark("#0F2620", "#05100C") }),
+  faceOnly({ slug: "tuyo", name: "Tuyo", issuer: "Visa", tier: "Platinum", art: dark("#14532D", "#04240F") }),
+  faceOnly({ slug: "unknown-31", name: "待确认", issuer: "Visa", tier: "Platinum", variant: "编号 31", art: dark("#232020", "#0B0A0A") }),
+  faceOnly({ slug: "bitget-wallet", name: "Bitget Wallet", issuer: "Mastercard", art: dark("#1D4ED8", "#152C7A") }),
+
+  // 与 xplace-blue 同品牌不同卡面：刻意不合并，权益是否相同没有来源
+  faceOnly({ slug: "xplace-silver", name: "XPlace", issuer: "Visa", tier: "Platinum", variant: "银白卡面", art: pale("#F7F6F4", "#CFCAC4") }),
+
+  faceOnly({ slug: "solflare", name: "Solflare", issuer: "Mastercard", badges: ["debit"], art: dark("#211E1C", "#0A0908") }),
+  faceOnly({ slug: "unknown-35", name: "待确认", issuer: "Visa", tier: "Platinum", variant: "编号 35", art: dark("#1F1C1B", "#080706") }),
+  faceOnly({ slug: "mexc", name: "MEXC", issuer: "Visa", tier: "Signature", art: dark("#2A2A2A", "#080808") }),
+
+  // ⚠️ 疑似与上面的 bybit-card 是同一产品的不同卡面——待人工确认，见文件头 TODO ②
+  faceOnly({ slug: "bybit-mastercard-virtual", name: "Bybit", issuer: "Mastercard", variant: "白色虚拟卡面", badges: ["Virtual", "prepaid"], art: pale("#FFFFFF", "#E7E5E4") }),
+
+  // 与 zen 同品牌不同卡面：同上，不合并
+  faceOnly({ slug: "zen-com-pro", name: "Zen.com PRO", issuer: "Mastercard", variant: "PRO 绿卡面", art: dark("#22C55E", "#14713A") }),
+
+  faceOnly({ slug: "flex", name: "Flex", issuer: "Visa", tier: "Infinite Business", art: dark("#14532D", "#03210E") }),
+  faceOnly({ slug: "moto", name: "Moto", issuer: "Visa", art: dark("#1F1D1C", "#070606") }),
 ];
 
-/** 区块头用：全部卡片里最新的核对时间 */
+/** 区块头用：全部卡片里最新的核对时间。只有卡面的条目没有核对时间，跳过 */
 export function maxUpdatedAt(list: CryptoCard[] = cards): string {
-  return list.reduce((max, c) => (c.decision.updatedAt > max ? c.decision.updatedAt : max), "");
+  return list.reduce((max, c) => {
+    const at = c.decision?.updatedAt;
+    return at && at > max ? at : max;
+  }, "");
 }

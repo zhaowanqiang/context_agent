@@ -35,10 +35,12 @@ export function matchesFilter(card: CryptoCard, filter: FilterId): boolean {
   switch (filter) {
     case "mainland":
       return productOf(card)?.passport_ok.includes("mainland") ?? false;
+    // 只有卡面的条目 facts 为 null：一律筛不出来。
+    // 这是对的——「有实体卡」是个事实断言，没核实过就不该被筛进来充数。
     case "physical":
-      return card.facts.physicalCard === true;
+      return card.facts?.physicalCard === true;
     case "applepay":
-      return card.facts.applePay === true;
+      return card.facts?.applePay === true;
     default:
       return true;
   }
@@ -110,7 +112,7 @@ export function recommendCards(answers: HelperAnswers, list: CryptoCard[] = card
 
     const hit = scored.find((s) => s.product.id === card.slug);
     if (hit) {
-      top.push({ card, score: hit.score, reason: hit.reasons[0] ?? card.decision.verdict });
+      top.push({ card, score: hit.score, reason: hit.reasons[0] ?? card.decision?.verdict ?? "" });
     } else {
       excluded.push({
         card,

@@ -7,6 +7,46 @@ import type { CryptoCard } from "@/data/crypto-cards";
  * 3D 倾斜、高光、扫光三层都在这里（消费 .cc-* 变量，规则见 globals.css），
  * 但驱动它们的指针数值由 CardTile 写入，本组件是纯展示、无状态。
  */
+
+/**
+ * 品牌标识占位：首字母 monogram。
+ *
+ * 为什么不下载品牌 logo：那是第三方商标资产，仓库里一个都没有，
+ * 也不引外部图床/CDN（离线即碎图，且等于把访客 IP 送给第三方）。
+ * 底色取卡面主色的反相层（浅底卡用深色块、深底卡用浅色块），
+ * 字母用卡面主色，保证两种卡面上都有对比度。
+ */
+function Monogram({ name, brand, light, compact }: { name: string; brand: string; light: boolean; compact: boolean }) {
+  // 取首个拉丁字母；「待确认」这类没有拉丁字母的条目退回 "?"，不猜品牌
+  const initial = name.match(/[A-Za-z0-9]/)?.[0].toUpperCase() ?? "?";
+  const plate = light ? "#ffffff" : "#1c1917";
+  const size = compact ? 14 : 22;
+
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      width={size}
+      height={size}
+      className="shrink-0"
+      style={{ opacity: 0.92 }}
+    >
+      <rect width="24" height="24" rx="7" fill={plate} />
+      <text
+        x="12"
+        y="12"
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontSize="13"
+        fontWeight="700"
+        fill={brand}
+        fontFamily="ui-sans-serif, system-ui, sans-serif"
+      >
+        {initial}
+      </text>
+    </svg>
+  );
+}
 export default function CardArt({
   card,
   className = "",
@@ -51,24 +91,38 @@ export default function CardArt({
         </g>
       </svg>
 
-      {/* 卡名 */}
-      <p
-        className={`absolute left-[7%] top-[10%] pr-[7%] font-semibold tracking-tight ${
-          compact ? "text-[11px]" : "text-sm"
-        } ${light ? "text-white/90" : "text-neutral-900/90"}`}
-      >
-        {card.name}
-      </p>
-
-      {/* 卡组织：未核实就不写，避免把猜测印在卡面上 */}
-      {card.issuer && card.issuer !== "Other" && (
+      {/* 卡名 + 首字母占位标识 */}
+      <div className={`absolute left-[7%] top-[9%] flex items-center pr-[7%] ${compact ? "gap-1" : "gap-1.5"}`}>
+        <Monogram name={card.name} brand={art.from ?? "#44403c"} light={light} compact={compact} />
         <p
-          className={`absolute bottom-[9%] right-[7%] font-semibold italic tracking-tight ${
-            compact ? "text-[11px]" : "text-base"
-          } ${light ? "text-white/85" : "text-neutral-900/80"}`}
+          className={`truncate font-semibold tracking-tight ${
+            compact ? "text-[11px]" : "text-sm"
+          } ${light ? "text-white/90" : "text-neutral-900/90"}`}
         >
-          {card.issuer}
+          {card.name}
         </p>
+      </div>
+
+      {/* 卡组织 + 等级：都是「卡面上印着什么就写什么」，没读到就不印，避免把猜测印上去 */}
+      {card.issuer && card.issuer !== "Other" && (
+        <div className="absolute bottom-[8%] right-[7%] text-right">
+          <p
+            className={`font-semibold italic tracking-tight ${
+              compact ? "text-[11px]" : "text-base"
+            } ${light ? "text-white/85" : "text-neutral-900/80"}`}
+          >
+            {card.issuer}
+          </p>
+          {card.tier && (
+            <p
+              className={`-mt-0.5 tracking-wide ${compact ? "text-[6px]" : "text-[9px]"} ${
+                light ? "text-white/70" : "text-neutral-900/60"
+              }`}
+            >
+              {card.tier}
+            </p>
+          )}
+        </div>
       )}
 
       {/* 高光与扫光：pointer-events-none，不挡点击 */}

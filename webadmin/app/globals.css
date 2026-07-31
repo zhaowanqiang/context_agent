@@ -350,6 +350,12 @@ body {
   transform: translateY(var(--cc-lift));
   transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 300ms ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  /* 卡片数量上到 40+ 之后：视口外的卡跳过渲染（样式/布局/绘制全免）。
+     contain-intrinsic-size 给一个占位高度，滚动条长度才不会来回抽搐；
+     auto 关键字让浏览器记住上次真实高度，回滚时用真值。
+     深链定位不受影响：跳过渲染的元素仍参与查找、锚点与焦点导航。 */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 320px; /* 实测卡片高度 298–356px（375/768/1280 三档），取中位数 */
 }
 
 /* 卡面本体：3D 倾斜发生在这一层，文字层不跟着转（避免可读性下降） */
@@ -357,7 +363,8 @@ body {
   transform: rotateX(var(--cc-rx)) rotateY(var(--cc-ry));
   transform-style: preserve-3d;
   transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: transform;
+  /* will-change 刻意不常驻：40+ 张卡同时挂 will-change 会预先合成 40 个图层，
+     显存和首屏合成成本都是白付的。改成悬停/聚焦时才提升（见下面的 hover 块）。 */
 }
 
 /* 径向高光：跟着指针走，离开时淡出 */
@@ -414,6 +421,11 @@ body {
   .cc-tile:has(.cc-hit:focus-visible) {
     --cc-lift: -6px;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.14);
+  }
+  /* 只给当前正在动的那一张提升图层——鼠标进入到第一帧倾斜之间有足够时间 */
+  .cc-tile:hover .cc-art,
+  .cc-tile:has(.cc-hit:focus-visible) .cc-art {
+    will-change: transform;
   }
   .cc-tile:hover .cc-chip,
   .cc-tile:has(.cc-hit:focus-visible) .cc-chip {
