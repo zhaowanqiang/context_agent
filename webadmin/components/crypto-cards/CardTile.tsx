@@ -2,21 +2,19 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import type { CryptoCard } from "@/data/crypto-cards";
+import { glowOf } from "@/lib/cardFace";
 import { track } from "@/lib/track";
-import CardArt from "./CardArt";
-import InviteCode from "./InviteCode";
+import CardFace from "./CardFace";
 
-const MAX_TILT = 8; // deg
+const MAX_TILT = 7; // deg。再大就不像卡片倾斜，像页面翻了
 
-const STATUS: Record<CryptoCard["status"], { label: string; cta: string; tone: string } | null> = {
-  live: null, // 正常状态不打角标
-  waitlist: { label: "等待名单", cta: "加入等待名单", tone: "bg-amber-100 text-amber-800" },
-  "invite-only": { label: "仅限邀请", cta: "看怎么拿邀请码", tone: "bg-amber-100 text-amber-800" },
-  deprecated: { label: "已停用", cta: "查看详情", tone: "bg-neutral-200 text-neutral-600" },
-  // 只收录了卡面：CTA 绝不能写成「立即领取」——那等于暗示这张卡已经可以开
-  pending: { label: "内容整理中", cta: "查看详情", tone: "bg-neutral-200 text-neutral-600" },
-};
-
+/**
+ * 网格里的一张卡：卡面 + 精简信息区共用同一个容器。
+ *
+ * 状态不再用灰色 pill 标签表达——43 张卡里 40 张挂「内容整理中」，
+ * 标签本身成了噪音，反而把真正能用的 3 张卡淹了。
+ * 改成视觉权重：资料完整的全饱和，只有卡面的降饱和 + 降透明 + 右上一个 6px 小点。
+ */
 export default function CardTile({ card, onOpen }: { card: CryptoCard; onOpen: () => void }) {
   const tileRef = useRef<HTMLElement | null>(null);
   const frame = useRef<number | null>(null);
@@ -39,8 +37,10 @@ export default function CardTile({ card, onOpen }: { card: CryptoCard; onOpen: (
     };
   }, []);
 
-  /* 关键：mousemove 里绝不 setState。只把坐标存进 ref，用 rAF 节流成每帧一次，
-     再直接写 CSS 变量——整条链路不触发 React 重渲染，动画跑在合成器上。 */
+  /* 关键：pointermove 里绝不 setState。坐标只进 ref，用 rAF 节流成每帧一次，
+     再直接写 CSS 自定义属性——整条链路不触发 React 重渲染，动画跑在合成器上。
+     阴影偏移用无单位数字（--cc-sx/--cc-sy），CSS 那边 calc(… * 1px)：
+     deg 不能直接参与 px 运算，所以倾斜角和阴影偏移各写一份。 */
   const apply = useCallback(() => {
     frame.current = null;
     const el = tileRef.current;
@@ -53,7 +53,9 @@ export default function CardTile({ card, onOpen }: { card: CryptoCard; onOpen: (
     el.style.setProperty("--cc-rx", `${(0.5 - py) * 2 * MAX_TILT}deg`);
     el.style.setProperty("--cc-mx", `${px * 100}%`);
     el.style.setProperty("--cc-my", `${py * 100}%`);
-    el.style.setProperty("--cc-glare", "0.35");
+    el.style.setProperty("--cc-sx", `${(0.5 - px) * 16}`);
+    el.style.setProperty("--cc-sy", `${(0.5 - py) * 10 + 20}`);
+    el.style.setProperty("--cc-glare", "0.28");
   }, []);
 
   const onMove = useCallback(
@@ -81,18 +83,20 @@ export default function CardTile({ card, onOpen }: { card: CryptoCard; onOpen: (
       cancelAnimationFrame(frame.current);
       frame.current = null;
     }
-    // 归零 → CSS transition 负责 300ms 弹性回位
+    // 归零 → CSS 负责 400ms 回弹（比进入的 240ms 慢，手感上「松手才慢慢回位」）
     el.style.setProperty("--cc-rx", "0deg");
     el.style.setProperty("--cc-ry", "0deg");
+    el.style.setProperty("--cc-sx", "0");
+    el.style.setProperty("--cc-sy", "20");
     el.style.setProperty("--cc-glare", "0");
   }, []);
 
-  const badge = STATUS[card.status];
-  const ctaLabel = badge?.cta ?? "立即领取";
+  const isPending = card.status === "pending";
   const href = card.invite?.url;
-  // 同品牌多卡面（XPlace ×2、Zen ×2）和 9 张「待确认」重名，
-  // 卡名后缀上 variant 才能让标题和读屏标签互相区分得开
   const fullName = card.variant ? `${card.name} · ${card.variant}` : card.name;
+  // 网格态最多两个标签，其余进详情面板——信息密度优先
+  const chips = card.badges.slice(0, 2);
+  const hiddenChips = card.badges.length - chips.length;
 
   return (
     <article
@@ -100,56 +104,63 @@ export default function CardTile({ card, onOpen }: { card: CryptoCard; onOpen: (
       onPointerMove={onMove}
       onPointerEnter={onEnter}
       onPointerLeave={onLeave}
-      className="cc-tile relative flex flex-col rounded-2xl border border-neutral-200 bg-white p-4"
-      style={{ perspective: "1000px" }}
+      data-pending={isPending || undefined}
+      className="cc-tile relative flex flex-col rounded-2xl border border-neutral-200 bg-white p-3.5"
+      style={
+        {
+          perspective: "1200px",
+          "--cc-glow": glowOf(card.faceStyle),
+        } as React.CSSProperties
+      }
     >
       {/* 覆盖整卡的命中区。用真 <button> 而不是给 <article> 加 role="button"：
-          后者会让卡内的链接和复制按钮变成「嵌套交互控件」，axe 直接判失败。
-          z-0 压在下面，CTA / 复制按钮 z-10 浮在上面，各点各的。 */}
+          后者会让卡内的链接变成「嵌套交互控件」，axe 直接判失败。
+          焦点环画在 .cc-tile 自己身上（见 globals.css）——content-visibility 带来的
+          paint containment 会把子元素画到边界外的 ring 裁掉，画在容器自身则不受影响。 */}
       <button
         type="button"
         onClick={onOpen}
-        className="cc-hit absolute inset-0 z-0 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2"
+        className="cc-hit absolute inset-0 z-0 rounded-2xl focus:outline-none"
       >
         <span className="sr-only">查看 {fullName} 详情</span>
       </button>
 
-      <CardArt card={card} />
+      <CardFace card={card} />
 
-      {badge && (
-        <span className={`absolute right-6 top-6 z-10 rounded-full px-2 py-0.5 text-[10px] font-medium ${badge.tone}`}>
-          {badge.label}
+      {/* 状态点：6px，不抢视线。hover 出原生 tooltip，读屏走 sr-only */}
+      {isPending && (
+        <span
+          className="absolute right-5 top-5 z-10 flex items-center"
+          title="内容整理中：这张卡目前只收录了卡面信息"
+        >
+          <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-neutral-400 ring-2 ring-white/70" />
+          <span className="sr-only">内容整理中</span>
         </span>
       )}
 
-      <h3 className="pointer-events-none mt-3 text-base font-semibold tracking-tight text-neutral-900">
-        {card.name}
+      <h3 className="pointer-events-none mt-3 flex items-baseline gap-1.5 text-[15px] font-semibold tracking-tight text-neutral-900">
+        <span className="truncate">{card.name}</span>
         {card.variant && (
-          <span className="ml-1.5 text-[12px] font-normal text-neutral-500">{card.variant}</span>
+          <span className="shrink-0 text-[11.5px] font-normal text-neutral-600">{card.variant}</span>
         )}
       </h3>
 
-      <div className="pointer-events-none mt-2 flex flex-wrap gap-1.5">
-        {card.badges.map((b, i) => (
-          <span
-            key={b}
-            className="cc-chip rounded-full bg-amber-50 px-2 py-0.5 text-[11px] text-amber-800"
-            style={{ "--cc-i": i } as React.CSSProperties}
-          >
-            {b}
-          </span>
-        ))}
-      </div>
+      <div className="mt-auto flex items-center gap-2 pt-2.5">
+        <div className="pointer-events-none flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+          {chips.map((b, i) => (
+            <span
+              key={b}
+              className="cc-chip truncate rounded-full bg-amber-50 px-2 py-0.5 text-[11px] text-amber-800"
+              style={{ "--cc-i": i } as React.CSSProperties}
+            >
+              {b}
+            </span>
+          ))}
+          {hiddenChips > 0 && <span className="text-[11px] text-neutral-600">+{hiddenChips}</span>}
+        </div>
 
-      <div className="mt-auto flex items-center gap-2 pt-3">
-        {card.invite ? (
-          <InviteCode code={card.invite.code} cardSlug={card.slug} className="relative z-10" />
-        ) : (
-          <p className="min-w-0 flex-1 truncate text-[12px] text-neutral-600" title={card.signupNote}>
-            {card.signupNote ?? (card.status === "pending" ? "开户信息整理中" : "开户入口见详情")}
-          </p>
-        )}
-
+        {/* 唯一的次要操作。邀请码复制框已移进详情面板，但这个链接留在网格里：
+            它挂着 referral_click 埋点，全移走会直接压低返佣点击 */}
         {href ? (
           <a
             href={href}
@@ -159,13 +170,13 @@ export default function CardTile({ card, onOpen }: { card: CryptoCard; onOpen: (
               e.stopPropagation();
               track("referral_click", { target: card.slug, meta: { from: "cards_tile" } });
             }}
-            className="relative z-10 shrink-0 rounded-lg bg-neutral-900 px-3 py-2 text-[13px] font-medium text-white transition hover:bg-neutral-700"
+            className="relative z-10 shrink-0 rounded-lg bg-neutral-900 px-2.5 py-1.5 text-[12.5px] font-medium text-white transition hover:bg-neutral-700"
           >
-            {ctaLabel} <span className="cc-arrow inline-block">↗</span>
+            立即领取 <span className="cc-arrow inline-block">↗</span>
           </a>
         ) : (
-          <span className="pointer-events-none shrink-0 rounded-lg border border-neutral-300 px-3 py-2 text-[13px] font-medium text-neutral-600">
-            {ctaLabel} <span className="cc-arrow inline-block">→</span>
+          <span className="pointer-events-none shrink-0 text-[12.5px] font-medium text-neutral-600">
+            详情 <span className="cc-arrow inline-block">→</span>
           </span>
         )}
       </div>

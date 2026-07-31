@@ -2,10 +2,11 @@
 
 import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { cards, maxUpdatedAt } from "@/data/crypto-cards";
-import { matchesFilter, sortCards, type FilterId, type SortId } from "@/lib/cryptoCards";
+import { filterCounts, matchesFilter, sortCards, type FilterId, type SortId } from "@/lib/cryptoCards";
 import CardDetail from "./CardDetail";
 import CardTile from "./CardTile";
 import DecisionHelper from "./DecisionHelper";
+import FacePatterns from "./FacePatterns";
 import FilterBar from "./FilterBar";
 
 const HASH_PREFIX = "#card-";
@@ -80,8 +81,12 @@ export default function CryptoCardsSection() {
   );
   const openCard = openSlug ? cards.find((c) => c.slug === openSlug) ?? null : null;
 
+  const counts = useMemo(() => filterCounts(cards), []);
+
   return (
     <div className="mx-auto max-w-[1200px]">
+      {/* 图案几何整页只声明一次，43 张卡按 id 复用 */}
+      <FacePatterns />
       <header className="flex gap-3">
         <span aria-hidden="true" className="mt-1 w-[3px] shrink-0 self-stretch rounded-full bg-amber-600" />
         <div>
@@ -97,7 +102,14 @@ export default function CryptoCardsSection() {
       </div>
 
       <div className="mt-6">
-        <FilterBar filter={filter} sort={sort} onFilter={setFilter} onSort={setSort} count={visible.length} />
+        <FilterBar
+          filter={filter}
+          sort={sort}
+          onFilter={setFilter}
+          onSort={setSort}
+          counts={counts}
+          total={visible.length}
+        />
       </div>
 
       {visible.length === 0 ? (
@@ -105,7 +117,15 @@ export default function CryptoCardsSection() {
           没有符合这个条件的卡。
         </p>
       ) : (
-        <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        /* auto-fill + minmax 代替固定断点：列数由可用宽度自己算。
+           最小列宽取 280 而不是 300：站点 <main> 有 max-width:1024px，
+           /cards 的实际可用宽度只有 944px，300px 起跳会掉到 2 列。
+           280 → 375:1 列 / 768:2 列 / 1280:3 列。
+           1600 想上 4-5 列必须先放宽 <main> 的站点级 max-width，那是全站改动，没动。 */
+        <div
+          className="mt-6 grid gap-6"
+          style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}
+        >
           {visible.map((card) => (
             <CardTile key={card.slug} card={card} onOpen={() => open(card.slug)} />
           ))}

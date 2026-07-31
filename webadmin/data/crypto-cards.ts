@@ -46,6 +46,33 @@
 /** 事实字段的「未核实」用 null 表示——比猜一个值诚实，UI 会显示「待核实」 */
 export type Unknown<T> = T | null;
 
+/* ══════════════════════════════════════════════════════════════════
+ * 卡面配方系统
+ *
+ * 一张卡的视觉身份由 faceStyle 一个字段决定，组件按 kind 分派渲染。
+ * 全部是 CSS + 内联 SVG，仓库里没有、也不会有任何品牌位图资产。
+ *
+ * 为什么不用官方 logo：调研结论见 docs/card-faces-research.md。
+ * 一句话——本环境取不到官方 SVG（工具不通），且已核实的品牌条款里没有
+ * 一条明确允许带返佣链接的页面使用其商标。所以卡面识别度靠配方，不靠 logo。
+ *
+ * ⚠️ 这里的颜色是**装饰性设计**，不是从官方品牌规范抄来的，
+ *    也不代表真实卡面就长这样。别把它当事实字段引用。
+ * ══════════════════════════════════════════════════════════════════ */
+
+/** 图案层可选的纹理。几何定义在 FacePatterns.tsx 里只声明一次，各卡按 id 复用 */
+export type PatternId = "grid" | "dots" | "rays" | "waves" | "pixels" | "topo" | "circuit";
+
+export type CardFace =
+  | { kind: "solid"; color: string }
+  | { kind: "linear"; from: string; to: string; angle: number }
+  | { kind: "radial"; from: string; to: string; at: [number, number] }
+  | { kind: "mesh"; stops: Array<{ color: string; at: [number, number] }> }
+  | { kind: "metallic"; base: string; sheenAngle: number }
+  /** 大字 logo 当图案：品牌首字母放大到出血，当作卡面的主视觉 */
+  | { kind: "wordmark"; bg: string; markColor: string; scale: number }
+  | { kind: "pattern"; bg: string; pattern: PatternId; opacity: number; blend: string };
+
 export interface CryptoCard {
   /** 唯一标识，用于 URL hash（#card-{slug}）。与 products.ts 的 id 对齐以便复用决策逻辑 */
   slug: string;
@@ -57,15 +84,8 @@ export interface CryptoCard {
   /** 同一品牌多个卡面时的区分文案（如 XPlace 蓝 / 银白，Zen 白 / PRO 绿）。
    *  刻意不做去重合并——不同卡面权益可能不同，合并等于替发卡方下结论。 */
   variant?: string;
-  /** 卡面是装饰性渲染，不是品牌资产：仓库没有卡面图，统一用暖色渐变 + 文字标识 */
-  art: {
-    type: "image" | "gradient";
-    src?: string;
-    from?: string;
-    to?: string;
-    logo?: string;
-    textColor: "light" | "dark";
-  };
+  /** 卡面配方。深浅字色不在这里声明——由底色的相对亮度自动判定，见 lib/cardFace.ts */
+  faceStyle: CardFace;
   badges: string[];
   invite: { code: string; url: string } | null;
   /** 没有直达链接时的开户指引（如「应用商店搜索」「蹲邀请码」） */
@@ -116,15 +136,19 @@ export interface CryptoCard {
   } | null;
 }
 
-/* ── 卡面渐变的两个小工具：把 40 条重复的 art 字面量压成一行 ────────── */
+/* ── 配方简写：把重复的字面量压成一行，读起来还能看出这张卡长什么样 ────── */
 
-/** 亮字卡面（深色底） */
-const dark = (from: string, to: string): CryptoCard["art"] =>
-  ({ type: "gradient", from, to, textColor: "light" });
-
-/** 暗字卡面（浅色底） */
-const pale = (from: string, to: string): CryptoCard["art"] =>
-  ({ type: "gradient", from, to, textColor: "dark" });
+const linear = (from: string, to: string, angle = 135): CardFace => ({ kind: "linear", from, to, angle });
+const radial = (from: string, to: string, x: number, y: number): CardFace =>
+  ({ kind: "radial", from, to, at: [x, y] });
+const solid = (color: string): CardFace => ({ kind: "solid", color });
+const metallic = (base: string, sheenAngle = 108): CardFace => ({ kind: "metallic", base, sheenAngle });
+const wordmark = (bg: string, markColor: string, scale = 1.4): CardFace =>
+  ({ kind: "wordmark", bg, markColor, scale });
+const pattern = (bg: string, id: PatternId, opacity: number, blend = "overlay"): CardFace =>
+  ({ kind: "pattern", bg, pattern: id, opacity, blend });
+const mesh = (...stops: Array<[string, number, number]>): CardFace =>
+  ({ kind: "mesh", stops: stops.map(([color, x, y]) => ({ color, at: [x, y] as [number, number] })) });
 
 /**
  * 「只有卡面」的占位条目工厂。
@@ -134,7 +158,7 @@ const pale = (from: string, to: string): CryptoCard["art"] =>
  * 想在批量新增里塞一个「看起来合理」的返现率，类型这关就过不去。
  */
 function faceOnly(
-  card: Pick<CryptoCard, "slug" | "name" | "issuer" | "art"> &
+  card: Pick<CryptoCard, "slug" | "name" | "issuer" | "faceStyle"> &
     Partial<Pick<CryptoCard, "tier" | "variant" | "badges">>
 ): CryptoCard {
   return {
@@ -154,7 +178,7 @@ export const cards: CryptoCard[] = [
     slug: "kast",
     name: "KAST Visa 稳定币卡",
     issuer: "Visa",
-    art: { type: "gradient", from: "#78350f", to: "#292524", textColor: "light" },
+    faceStyle: linear("#78350f", "#292524", 135),
     badges: ["无需海外地址", "新人积分", "可绑 Apple / Google Pay"],
     invite: { code: "O0J1Z2AL", url: "https://app.kast.xyz/referral/O0J1Z2AL" },
     status: "live",
@@ -209,7 +233,7 @@ export const cards: CryptoCard[] = [
     slug: "bybit-card",
     name: "Bybit Card",
     issuer: null, // TODO: 卡组织未核实（仓库素材未提及 Visa/Mastercard）
-    art: { type: "gradient", from: "#44403c", to: "#1c1917", textColor: "light" },
+    faceStyle: linear("#44403c", "#1c1917", 135),
     badges: ["首月最高 10% 返现", "10 USDT 体验金", "约 5 分钟开卡"],
     invite: { code: "RRBQBG1", url: "https://bybit.com/cards/?ref=RRBQBG1&source=applet_invite" },
     status: "live",
@@ -266,7 +290,7 @@ export const cards: CryptoCard[] = [
     slug: "plasma-one",
     name: "Plasma One",
     issuer: "Visa",
-    art: { type: "gradient", from: "#292524", to: "#0c0a09", textColor: "light" },
+    faceStyle: linear("#292524", "#0c0a09", 135),
     badges: ["欧洲 IBAN 账户", "实体卡 + 虚拟卡", "USDT 充值"],
     invite: null,
     signupNote: "需要邀请码才能注册且数量有限——可关注 X @zynqorw 蹲邀请码",
@@ -330,60 +354,60 @@ export const cards: CryptoCard[] = [
    * 详情三块一律 null（faceOnly 钉死），详见文件头 TODO 区。
    * ══════════════════════════════════════════════════════════════ */
 
-  faceOnly({ slug: "krak", name: "Krak", issuer: "Mastercard", badges: ["VIRTUAL", "world elite debit"], art: dark("#FF3B24", "#A8180A") }),
-  faceOnly({ slug: "peanut", name: "Peanut", issuer: "Visa", tier: "Platinum", art: dark("#FF4FD8", "#A21CAF") }),
-  faceOnly({ slug: "metamask", name: "MetaMask", issuer: "Mastercard", art: dark("#F5841F", "#B45309") }),
-  faceOnly({ slug: "n26", name: "N26", issuer: "Mastercard", art: dark("#2E8B7A", "#124F44") }),
-  faceOnly({ slug: "dpt-oxygen", name: "DPT (oxygen)", issuer: "Visa", tier: "Platinum", art: pale("#FFFFFF", "#E7E5E4") }),
+  faceOnly({ slug: "krak", name: "Krak", issuer: "Mastercard", badges: ["VIRTUAL", "world elite debit"], faceStyle: radial("#FF3B24", "#A8180A", 28, 74) }),
+  faceOnly({ slug: "peanut", name: "Peanut", issuer: "Visa", tier: "Platinum", faceStyle: linear("#FF4FD8", "#A21CAF", 120) }),
+  faceOnly({ slug: "metamask", name: "MetaMask", issuer: "Mastercard", faceStyle: radial("#F5841F", "#B45309", 76, 44) }),
+  faceOnly({ slug: "n26", name: "N26", issuer: "Mastercard", faceStyle: radial("#3AA08C", "#10493F", 72, 34) }),
+  faceOnly({ slug: "dpt-oxygen", name: "DPT (oxygen)", issuer: "Visa", tier: "Platinum", faceStyle: pattern("#F7F7F5", "circuit", 0.14, "multiply") }),
 
   // ⚠️ 疑似与上面的 plasma-one 是同一产品的不同卡面——待人工确认，见文件头 TODO ②
-  faceOnly({ slug: "plasma-visa-signature", name: "Plasma", issuer: "Visa", tier: "Signature", variant: "深灰黑卡面", art: dark("#44403C", "#141210") }),
+  faceOnly({ slug: "plasma-visa-signature", name: "Plasma", issuer: "Visa", tier: "Signature", variant: "深灰黑卡面", faceStyle: metallic("#3A3532", 118) }),
 
-  faceOnly({ slug: "unknown-07", name: "待确认", issuer: "Visa", variant: "编号 07", art: pale("#FFFFFF", "#E7E5E4") }),
-  faceOnly({ slug: "unknown-08", name: "待确认", issuer: "Visa", variant: "编号 08", badges: ["Debit"], art: dark("#3B82F6", "#1E3A8A") }),
-  faceOnly({ slug: "lava", name: "Lava", issuer: "Visa", tier: "Infinite", art: dark("#1C1917", "#0A0908") }),
-  faceOnly({ slug: "kolo", name: "Kolo", issuer: "Visa", art: pale("#4ADE50", "#15A33C") }),
-  faceOnly({ slug: "kraken", name: "Kraken", issuer: "Mastercard", badges: ["VIRTUAL", "world elite debit"], art: pale("#F7F6F4", "#D2CEC9") }),
-  faceOnly({ slug: "unknown-12", name: "待确认", issuer: "Visa", variant: "编号 12", art: dark("#22200F", "#0A0A05") }),
-  faceOnly({ slug: "redotpay", name: "RedotPay", issuer: "Visa", tier: "Platinum", art: dark("#16A34A", "#04543A") }),
-  faceOnly({ slug: "okx", name: "OKX", issuer: "Mastercard", art: dark("#2B2B2B", "#0A0A0A") }),
-  faceOnly({ slug: "unknown-15", name: "待确认", issuer: "Visa", variant: "编号 15", badges: ["Debit"], art: pale("#DDD6FE", "#FBCFE8") }),
-  faceOnly({ slug: "unknown-16", name: "待确认", issuer: "Visa", tier: "Signature", variant: "编号 16", art: dark("#818CF8", "#3730A3") }),
-  faceOnly({ slug: "zen", name: "Zen", issuer: "Mastercard", variant: "白色卡面", badges: ["zero effort non-bank"], art: pale("#FFFFFF", "#E7E5E4") }),
-  faceOnly({ slug: "tria", name: "Tria", issuer: "Visa", tier: "Platinum", art: dark("#152238", "#04070D") }),
+  faceOnly({ slug: "unknown-07", name: "待确认", issuer: "Visa", variant: "编号 07", faceStyle: mesh(["#F2F0EE", 20, 20], ["#E4E1DD", 78, 68], ["#FAFAF9", 50, 100]) }),
+  faceOnly({ slug: "unknown-08", name: "待确认", issuer: "Visa", variant: "编号 08", badges: ["Debit"], faceStyle: mesh(["#1E3A8A", 78, 72], ["#5FA8FF", 22, 26], ["#2563EB", 50, 50]) }),
+  faceOnly({ slug: "lava", name: "Lava", issuer: "Visa", tier: "Infinite", faceStyle: solid("#141110") }),
+  faceOnly({ slug: "kolo", name: "Kolo", issuer: "Visa", faceStyle: pattern("#4ADE50", "dots", 0.2) }),
+  faceOnly({ slug: "kraken", name: "Kraken", issuer: "Mastercard", badges: ["VIRTUAL", "world elite debit"], faceStyle: metallic("#E8E6E3", 102) }),
+  faceOnly({ slug: "unknown-12", name: "待确认", issuer: "Visa", variant: "编号 12", faceStyle: pattern("#22200F", "rays", 0.42, "screen") }),
+  faceOnly({ slug: "redotpay", name: "RedotPay", issuer: "Visa", tier: "Platinum", faceStyle: linear("#16A34A", "#04543A", 145) }),
+  faceOnly({ slug: "okx", name: "OKX", issuer: "Mastercard", faceStyle: pattern("#2B2B2B", "grid", 0.16) }),
+  faceOnly({ slug: "unknown-15", name: "待确认", issuer: "Visa", variant: "编号 15", badges: ["Debit"], faceStyle: mesh(["#DDD6FE", 18, 24], ["#FBCFE8", 82, 30], ["#A7F3D0", 50, 86]) }),
+  faceOnly({ slug: "unknown-16", name: "待确认", issuer: "Visa", tier: "Signature", variant: "编号 16", faceStyle: linear("#818CF8", "#3730A3", 150) }),
+  faceOnly({ slug: "zen", name: "Zen", issuer: "Mastercard", variant: "白色卡面", badges: ["zero effort non-bank"], faceStyle: solid("#FBFBFA") }),
+  faceOnly({ slug: "tria", name: "Tria", issuer: "Visa", tier: "Platinum", faceStyle: linear("#152238", "#04070D", 160) }),
 
   // ⚠️ 疑似与最上面的 kast 是同一产品的不同卡面——待人工确认，见文件头 TODO ②
-  faceOnly({ slug: "kast-visa-platinum", name: "KAST", issuer: "Visa", tier: "Platinum", variant: "银色卡面", art: pale("#EDEBE8", "#B4AFA8") }),
+  faceOnly({ slug: "kast-visa-platinum", name: "KAST", issuer: "Visa", tier: "Platinum", variant: "银色卡面", faceStyle: metallic("#EDEBE8", 96) }),
 
-  faceOnly({ slug: "nexo", name: "Nexo", issuer: "Mastercard", art: dark("#1E3A8A", "#0F1F4D") }),
-  faceOnly({ slug: "startale", name: "Startale", issuer: "Visa", tier: "Platinum", art: pale("#F5F5F4", "#BDB9B4") }),
-  faceOnly({ slug: "unknown-22", name: "待确认", issuer: "Mastercard", variant: "编号 22", badges: ["platinum debit"], art: dark("#1C1917", "#0A0908") }),
-  faceOnly({ slug: "wirex", name: "Wirex", issuer: "Visa", badges: ["Virtual card"], art: pale("#E4DEFE", "#BEB0F5") }),
-  faceOnly({ slug: "solayer", name: "Solayer", issuer: "Visa", tier: "Signature", badges: ["InfiniSVM"], art: dark("#0B4D3C", "#022C22") }),
-  faceOnly({ slug: "slash", name: "Slash", issuer: "Visa", tier: "Business", art: pale("#EBD49B", "#B8925A") }),
-  faceOnly({ slug: "hyperbeat", name: "Hyperbeat", issuer: "Visa", tier: "Platinum", art: dark("#8A817B", "#3D3733") }),
-  faceOnly({ slug: "xplace-blue", name: "XPlace", issuer: "Visa", tier: "Platinum", variant: "蓝色卡面", art: dark("#3B82F6", "#16308F") }),
-  faceOnly({ slug: "unknown-28", name: "待确认", issuer: "Visa", tier: "Platinum", variant: "编号 28", art: pale("#FFFFFF", "#F2F1EF") }),
-  faceOnly({ slug: "jupiter", name: "Jupiter", issuer: "Visa", tier: "Platinum", art: dark("#0F2620", "#05100C") }),
-  faceOnly({ slug: "tuyo", name: "Tuyo", issuer: "Visa", tier: "Platinum", art: dark("#14532D", "#04240F") }),
-  faceOnly({ slug: "unknown-31", name: "待确认", issuer: "Visa", tier: "Platinum", variant: "编号 31", art: dark("#232020", "#0B0A0A") }),
-  faceOnly({ slug: "bitget-wallet", name: "Bitget Wallet", issuer: "Mastercard", art: dark("#1D4ED8", "#152C7A") }),
+  faceOnly({ slug: "nexo", name: "Nexo", issuer: "Mastercard", faceStyle: linear("#1E3A8A", "#0F1F4D", 130) }),
+  faceOnly({ slug: "startale", name: "Startale", issuer: "Visa", tier: "Platinum", faceStyle: pattern("#F0F0EE", "pixels", 0.5, "multiply") }),
+  faceOnly({ slug: "unknown-22", name: "待确认", issuer: "Mastercard", variant: "编号 22", badges: ["platinum debit"], faceStyle: solid("#171412") }),
+  faceOnly({ slug: "wirex", name: "Wirex", issuer: "Visa", badges: ["Virtual card"], faceStyle: linear("#E4DEFE", "#BEB0F5", 115) }),
+  faceOnly({ slug: "solayer", name: "Solayer", issuer: "Visa", tier: "Signature", badges: ["InfiniSVM"], faceStyle: linear("#0B4D3C", "#022C22", 140) }),
+  faceOnly({ slug: "slash", name: "Slash", issuer: "Visa", tier: "Business", faceStyle: metallic("#E3C57E", 112) }),
+  faceOnly({ slug: "hyperbeat", name: "Hyperbeat", issuer: "Visa", tier: "Platinum", faceStyle: wordmark("#6E6763", "#565049", 1.5) }),
+  faceOnly({ slug: "xplace-blue", name: "XPlace", issuer: "Visa", tier: "Platinum", variant: "蓝色卡面", faceStyle: mesh(["#16308F", 76, 74], ["#5B8DEF", 24, 30], ["#3B82F6", 48, 48]) }),
+  faceOnly({ slug: "unknown-28", name: "待确认", issuer: "Visa", tier: "Platinum", variant: "编号 28", faceStyle: solid("#FCFCFB") }),
+  faceOnly({ slug: "jupiter", name: "Jupiter", issuer: "Visa", tier: "Platinum", faceStyle: pattern("#0F2620", "waves", 0.34, "screen") }),
+  faceOnly({ slug: "tuyo", name: "Tuyo", issuer: "Visa", tier: "Platinum", faceStyle: wordmark("#14532D", "#0C3A1F", 1.8) }),
+  faceOnly({ slug: "unknown-31", name: "待确认", issuer: "Visa", tier: "Platinum", variant: "编号 31", faceStyle: solid("#232020") }),
+  faceOnly({ slug: "bitget-wallet", name: "Bitget Wallet", issuer: "Mastercard", faceStyle: wordmark("#1D4ED8", "#4F82F0", 1.35) }),
 
   // 与 xplace-blue 同品牌不同卡面：刻意不合并，权益是否相同没有来源
-  faceOnly({ slug: "xplace-silver", name: "XPlace", issuer: "Visa", tier: "Platinum", variant: "银白卡面", art: pale("#F7F6F4", "#CFCAC4") }),
+  faceOnly({ slug: "xplace-silver", name: "XPlace", issuer: "Visa", tier: "Platinum", variant: "银白卡面", faceStyle: metallic("#F2F1EF", 100) }),
 
-  faceOnly({ slug: "solflare", name: "Solflare", issuer: "Mastercard", badges: ["debit"], art: dark("#211E1C", "#0A0908") }),
-  faceOnly({ slug: "unknown-35", name: "待确认", issuer: "Visa", tier: "Platinum", variant: "编号 35", art: dark("#1F1C1B", "#080706") }),
-  faceOnly({ slug: "mexc", name: "MEXC", issuer: "Visa", tier: "Signature", art: dark("#2A2A2A", "#080808") }),
+  faceOnly({ slug: "solflare", name: "Solflare", issuer: "Mastercard", badges: ["debit"], faceStyle: pattern("#211E1C", "grid", 0.12) }),
+  faceOnly({ slug: "unknown-35", name: "待确认", issuer: "Visa", tier: "Platinum", variant: "编号 35", faceStyle: pattern("#1F1C1B", "topo", 0.3, "screen") }),
+  faceOnly({ slug: "mexc", name: "MEXC", issuer: "Visa", tier: "Signature", faceStyle: linear("#2A2A2A", "#080808", 125) }),
 
   // ⚠️ 疑似与上面的 bybit-card 是同一产品的不同卡面——待人工确认，见文件头 TODO ②
-  faceOnly({ slug: "bybit-mastercard-virtual", name: "Bybit", issuer: "Mastercard", variant: "白色虚拟卡面", badges: ["Virtual", "prepaid"], art: pale("#FFFFFF", "#E7E5E4") }),
+  faceOnly({ slug: "bybit-mastercard-virtual", name: "Bybit", issuer: "Mastercard", variant: "白色虚拟卡面", badges: ["Virtual", "prepaid"], faceStyle: solid("#FBFBFA") }),
 
   // 与 zen 同品牌不同卡面：同上，不合并
-  faceOnly({ slug: "zen-com-pro", name: "Zen.com PRO", issuer: "Mastercard", variant: "PRO 绿卡面", art: dark("#22C55E", "#14713A") }),
+  faceOnly({ slug: "zen-com-pro", name: "Zen.com PRO", issuer: "Mastercard", variant: "PRO 绿卡面", faceStyle: wordmark("#22C55E", "#0F7A38", 1.9) }),
 
-  faceOnly({ slug: "flex", name: "Flex", issuer: "Visa", tier: "Infinite Business", art: dark("#14532D", "#03210E") }),
-  faceOnly({ slug: "moto", name: "Moto", issuer: "Visa", art: dark("#1F1D1C", "#070606") }),
+  faceOnly({ slug: "flex", name: "Flex", issuer: "Visa", tier: "Infinite Business", faceStyle: metallic("#123F26", 120) }),
+  faceOnly({ slug: "moto", name: "Moto", issuer: "Visa", faceStyle: radial("#2A2726", "#070606", 34, 26) }),
 ];
 
 /** 区块头用：全部卡片里最新的核对时间。只有卡面的条目没有核对时间，跳过 */

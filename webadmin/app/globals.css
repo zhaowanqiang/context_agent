@@ -320,15 +320,16 @@ body {
   margin-top: 0.2em;
 }
 
+
 /* ============================================================
- * 加密卡片模块（/cards）的动效层。
+ * 加密卡片模块（/cards）的卡面与动效层。
  *
  * 为什么写在 CSS 而不是组件里：指针跟随必须走 CSS 变量 + rAF 直接改
- * style property，绝不能在 mousemove 里 setState——那会每帧触发一次
- * React 重渲染，60fps 是不可能的。组件只负责写 --cc-rx/--cc-ry/--cc-mx/--cc-my，
- * 剩下的位移、高光、阴影全由这里的规则消费，合成器上跑。
+ * style property，绝不能在 pointermove 里 setState——那会每帧触发一次
+ * React 重渲染。组件只负责写 --cc-rx/--cc-ry/--cc-mx/--cc-my/--cc-sx/--cc-sy，
+ * 剩下的位移、倾斜、高光、阴影全由这里的规则消费，跑在合成器上。
  *
- * 所有动画只用 transform / opacity，不碰 width/top/left，避免 layout thrashing。
+ * 所有动画只用 transform / opacity / box-shadow，不碰会触发 layout 的属性。
  * ============================================================ */
 
 /* 移动端筛选条横向滚动但不显示滚动条（Tailwind v4 无内置工具类） */
@@ -345,49 +346,72 @@ body {
   --cc-ry: 0deg;
   --cc-mx: 50%;
   --cc-my: 50%;
+  --cc-sx: 0;
+  --cc-sy: 20;
   --cc-glare: 0;
   --cc-lift: 0px;
-  transform: translateY(var(--cc-lift));
-  transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 300ms ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  /* 卡片数量上到 40+ 之后：视口外的卡跳过渲染（样式/布局/绘制全免）。
-     contain-intrinsic-size 给一个占位高度，滚动条长度才不会来回抽搐；
-     auto 关键字让浏览器记住上次真实高度，回滚时用真值。
+  --cc-scale: 1;
+  transform: translateY(var(--cc-lift)) scale(var(--cc-scale));
+  /* 离开时 400ms 慢回弹；进入时下面的 hover 规则把它压到 240ms */
+  transition: transform 400ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 400ms ease,
+    opacity 240ms ease, filter 240ms ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+  /* 43 张卡：视口外的跳过渲染（样式/布局/绘制全免）。
+     contain-intrinsic-size 给占位高度，滚动条长度才不会抽搐；auto 让浏览器记住真实值。
      深链定位不受影响：跳过渲染的元素仍参与查找、锚点与焦点导航。 */
   content-visibility: auto;
-  contain-intrinsic-size: auto 320px; /* 实测卡片高度 298–356px（375/768/1280 三档），取中位数 */
+  contain-intrinsic-size: auto 330px;
 }
 
-/* 卡面本体：3D 倾斜发生在这一层，文字层不跟着转（避免可读性下降） */
-.cc-art {
+/* 卡面本体：3D 倾斜发生在这一层，信息区不跟着转（避免文字可读性下降）。
+ *
+ * 注意这里没有 transform-style: preserve-3d —— 卡面需要 overflow:hidden 裁掉
+ * wordmark 出血和扫光，而任何裁剪（overflow / clip-path / mask）都会让
+ * preserve-3d 退化成 flat，子层的 translateZ 直接失效。所以视差改用 2D 位移
+ * （见 .cc-face-l1 / .cc-face-l3），视觉结果一致，且不依赖会被裁剪破坏的 3D 上下文。 */
+.cc-face {
   transform: rotateX(var(--cc-rx)) rotateY(var(--cc-ry));
-  transform-style: preserve-3d;
-  transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
-  /* will-change 刻意不常驻：40+ 张卡同时挂 will-change 会预先合成 40 个图层，
-     显存和首屏合成成本都是白付的。改成悬停/聚焦时才提升（见下面的 hover 块）。 */
+  transition: transform 400ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-/* 径向高光：跟着指针走，离开时淡出 */
+/* 视差：图案层与内容层反向微移，制造纵深。幅度按规格压在 4px 以内 */
+.cc-face-l1 {
+  transform: translate(calc(var(--cc-sx) * 0.18px), calc((var(--cc-sy) - 20) * 0.18px));
+  transition: transform 400ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.cc-face-l3 {
+  transform: translate(calc(var(--cc-sx) * -0.4px), calc((var(--cc-sy) - 20) * -0.4px));
+  transition: transform 400ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* L4 镜面高光：跟着指针走，离开时淡出 */
 .cc-glare {
   background: radial-gradient(
-    circle at var(--cc-mx) var(--cc-my),
-    rgba(255, 255, 255, 0.55),
-    rgba(255, 255, 255, 0) 55%
+    circle 200px at var(--cc-mx) var(--cc-my),
+    rgba(255, 255, 255, 0.28),
+    transparent 60%
   );
-  mix-blend-mode: overlay;
   opacity: var(--cc-glare);
   transition: opacity 300ms ease;
   pointer-events: none;
 }
 
-/* 斜向 shine：只在指针进入时跑一次（组件加 .cc-shine-run 触发，动画结束后移除） */
-.cc-shine {
+/* 金属卡面额外的斜向扫光：随倾斜角移动，静止时也留一点，否则不像金属 */
+.cc-sheen {
   background: linear-gradient(
-    105deg,
-    transparent 35%,
-    rgba(255, 255, 255, 0.42) 50%,
-    transparent 65%
+    calc(105deg + var(--cc-ry)),
+    transparent 38%,
+    rgba(255, 255, 255, 0.22) 50%,
+    transparent 62%
   );
+  pointer-events: none;
+  transition: background 300ms ease;
+}
+
+/* 斜向 shine：只在指针进入时扫一次 */
+.cc-shine {
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.42) 50%, transparent 65%);
   transform: translateX(-120%);
   pointer-events: none;
 }
@@ -407,34 +431,67 @@ body {
   transition-delay: calc(var(--cc-i, 0) * 30ms);
 }
 
-/* CTA 箭头 */
 .cc-arrow {
   transition: transform 220ms ease;
 }
 
+/* 「内容整理中」不打标签，改用视觉权重：降饱和 + 降透明。
+ * hover / 聚焦时恢复满饱和——想细看的那一张不该还是灰的。 */
+.cc-tile[data-pending] {
+  opacity: 0.82;
+}
+.cc-tile[data-pending] .cc-face {
+  filter: saturate(0.75);
+}
+.cc-tile[data-pending]:hover,
+.cc-tile[data-pending]:has(.cc-hit:focus-visible) {
+  opacity: 1;
+}
+.cc-tile[data-pending]:hover .cc-face,
+.cc-tile[data-pending]:has(.cc-hit:focus-visible) .cc-face {
+  filter: none;
+}
+
 /* 悬停态：只在真有悬停能力的设备上生效（触屏不该被 hover 粘住） */
 @media (hover: hover) and (pointer: fine) {
-  /* :has() 而不是 :focus-visible —— 可聚焦的是卡内那个覆盖式命中按钮（.cc-hit），
-     不是卡片本身。理由见 CardTile.tsx：容器挂 role="button" 会和内部的
-     链接/复制按钮构成嵌套交互控件，axe 的 nested-interactive 会判失败。 */
-  .cc-tile:hover,
-  .cc-tile:has(.cc-hit:focus-visible) {
+  .cc-tile:hover {
     --cc-lift: -6px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.14);
+    --cc-scale: 1.015;
+    transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 240ms ease,
+      opacity 240ms ease, filter 240ms ease;
+    /* 阴影按倾斜方向偏移；深色卡面再叠一层品牌色辉光（--cc-glow 由组件按底色算） */
+    box-shadow: calc(var(--cc-sx) * 1px) calc(var(--cc-sy) * 1px) 40px -12px rgba(0, 0, 0, 0.35),
+      0 12px 32px -8px var(--cc-glow, transparent);
   }
-  /* 只给当前正在动的那一张提升图层——鼠标进入到第一帧倾斜之间有足够时间 */
-  .cc-tile:hover .cc-art,
-  .cc-tile:has(.cc-hit:focus-visible) .cc-art {
+  .cc-tile:hover .cc-face {
+    transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    /* will-change 只在悬停期间挂：43 张卡常驻会预先合成 43 个图层，显存白付 */
     will-change: transform;
   }
-  .cc-tile:hover .cc-chip,
-  .cc-tile:has(.cc-hit:focus-visible) .cc-chip {
+  .cc-tile:hover .cc-chip {
     transform: translateY(-2px);
   }
-  .cc-tile:hover .cc-arrow,
-  .cc-tile:has(.cc-hit:focus-visible) .cc-arrow {
+  .cc-tile:hover .cc-arrow {
     transform: translate(2px, -2px);
   }
+}
+
+/* 触摸设备：不做倾斜，按下时整卡轻微内缩 */
+@media (hover: none) {
+  .cc-tile:active {
+    --cc-scale: 0.98;
+    transition: transform 120ms ease;
+  }
+}
+
+/* 键盘焦点：复用 hover 的抬升，但不做倾斜（没有指针位置，倾斜是假的）。
+ * 焦点环画在 .cc-tile 自身——content-visibility 的 paint containment 会裁掉
+ * 子元素画到边界外的 ring，画在容器自己身上则由容器自己绘制，不受裁剪影响。 */
+.cc-tile:has(.cc-hit:focus-visible) {
+  --cc-lift: -6px;
+  outline: 2px solid #d97706;
+  outline-offset: 2px;
+  box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.35);
 }
 
 /* 详情面板：无 framer-motion，用 220ms fade+scale 降级 */
@@ -454,15 +511,23 @@ body {
 .cc-modal { animation: cc-modal-in 220ms cubic-bezier(0.22, 1, 0.36, 1); }
 .cc-sheet { animation: cc-sheet-in 260ms cubic-bezier(0.22, 1, 0.36, 1); }
 
-/* 无障碍：用户要求减少动效时，所有位移/倾斜/扫光一律关掉，只留颜色与阴影过渡。
- * 注意不是「关掉 transition」——颜色过渡保留能让交互仍有反馈。 */
+/* 无障碍：用户要求减少动效时，倾斜与视差一律关掉，只保留阴影加深 + 亮度微增，
+ * transition 缩到 100ms。注意不是「关掉所有反馈」——交互仍要有响应感。 */
 @media (prefers-reduced-motion: reduce) {
   .cc-tile,
-  .cc-art,
+  .cc-face,
+  .cc-face-l1,
+  .cc-face-l3,
   .cc-chip,
   .cc-arrow {
     transform: none !important;
-    transition: box-shadow 200ms ease, background-color 200ms ease, border-color 200ms ease;
+    transition: box-shadow 100ms ease, filter 100ms ease, opacity 100ms ease !important;
+  }
+  .cc-tile:hover {
+    box-shadow: 0 12px 28px -10px rgba(0, 0, 0, 0.35);
+  }
+  .cc-tile:hover .cc-face {
+    filter: brightness(1.04);
   }
   .cc-shine-run .cc-shine,
   .cc-overlay,
@@ -470,7 +535,8 @@ body {
   .cc-sheet {
     animation: none;
   }
-  .cc-glare {
+  .cc-glare,
+  .cc-sheen {
     display: none;
   }
 }

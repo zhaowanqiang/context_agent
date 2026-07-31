@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { CryptoCard } from "@/data/crypto-cards";
 import { track } from "@/lib/track";
-import CardArt from "./CardArt";
+import CardFace from "./CardFace";
 import InviteCode from "./InviteCode";
 
 /**
@@ -207,7 +207,7 @@ export default function CardDetail({ card, onClose }: { card: CryptoCard; onClos
         {/* Hero */}
         <div className="flex shrink-0 items-start gap-4 border-b border-neutral-100 px-5 pb-4 sm:px-6 sm:pt-6">
           <div className="w-24 shrink-0 sm:w-32">
-            <CardArt card={card} compact />
+            <CardFace card={card} compact />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">

@@ -57,10 +57,27 @@ export const SORTS: { id: SortId; label: string }[] = [
   { id: "kyc", label: "KYC 门槛（低→高）" },
 ];
 
+/** 资料完整度：有决策内容的排前面。43 张卡里只有 3 张有内容，
+ *  不显式排一次的话，能用的卡会被淹在 40 张空壳中间 */
+function completeness(c: CryptoCard): number {
+  return c.decision ? 0 : 1;
+}
+
 export function sortCards(list: CryptoCard[], sort: SortId): CryptoCard[] {
-  if (sort !== "kyc") return list;
-  return [...list].sort(
-    (a, b) => (productOf(a)?.kyc_difficulty ?? 99) - (productOf(b)?.kyc_difficulty ?? 99)
+  if (sort === "kyc") {
+    return [...list].sort(
+      (a, b) => (productOf(a)?.kyc_difficulty ?? 99) - (productOf(b)?.kyc_difficulty ?? 99)
+    );
+  }
+  // 「推荐顺序」= 资料完整的在前，组内保持数组原序（stable sort）
+  return [...list].sort((a, b) => completeness(a) - completeness(b));
+}
+
+/** 每个筛选项能筛出多少张——直接标在 chip 上，避免点进去才发现是空的 */
+export function filterCounts(list: CryptoCard[] = cards): Record<FilterId, number> {
+  return FILTERS.reduce(
+    (acc, f) => ({ ...acc, [f.id]: list.filter((c) => matchesFilter(c, f.id)).length }),
+    {} as Record<FilterId, number>
   );
 }
 
