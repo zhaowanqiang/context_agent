@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { cards, maxUpdatedAt } from "@/data/crypto-cards";
 import { filterCounts, matchesFilter, sortCards, type FilterId, type SortId } from "@/lib/cryptoCards";
-import CardDetail from "./CardDetail";
+import CardDetail, { TABS, type Tab } from "./CardDetail";
 import CardTile from "./CardTile";
 import DecisionHelper from "./DecisionHelper";
 import FacePatterns from "./FacePatterns";
@@ -28,13 +28,26 @@ function subscribeHash(onChange: () => void): () => void {
   };
 }
 
+/** 订阅的是「hash + query」整体：哪张卡展开看 hash，停在哪个 tab 看 ?tab= */
 function readHash(): string {
-  return window.location.hash;
+  return window.location.search + window.location.hash;
 }
 
-/** SSR 阶段没有 hash：返回空串，首屏渲染成「没有展开的卡」 */
+/** SSR 阶段没有 URL 片段：返回空串，首屏渲染成「没有展开的卡」 */
 function readHashServer(): string {
   return "";
+}
+
+function slugFromUrl(url: string): string | null {
+  const i = url.indexOf(HASH_PREFIX);
+  return i === -1 ? null : slugOf(url.slice(i));
+}
+
+/** ?tab= 只认三个已知值，别的（含手写乱值）一律回落到默认页 */
+function tabFromUrl(url: string): Tab {
+  const m = /[?&]tab=([a-z]+)/.exec(url);
+  const found = TABS.find((t) => t.id === m?.[1]);
+  return found?.id ?? "decision";
 }
 
 function slugOf(hash: string): string | null {
@@ -52,26 +65,37 @@ function navigate(mutate: () => void) {
 export default function CryptoCardsSection() {
   const [filter, setFilter] = useState<FilterId>("all");
   const [sort, setSort] = useState<SortId>("default");
-  const hash = useSyncExternalStore(subscribeHash, readHash, readHashServer);
-  const openSlug = slugOf(hash);
+  const url = useSyncExternalStore(subscribeHash, readHash, readHashServer);
+  const openSlug = slugFromUrl(url);
+  const openTab = tabFromUrl(url);
   // 详情是我们 pushState 打开的，还是用户带着 hash 直接进来的——决定关闭时该 back 还是 replace
   const pushed = useRef(false);
 
   const open = useCallback((slug: string) => {
-    navigate(() => window.history.pushState(null, "", `${HASH_PREFIX}${slug}`));
+    // 打开时不带 tab：默认停在「开户决策」，URL 里就不写多余的 query
+    navigate(() => window.history.pushState(null, "", `${window.location.pathname}${HASH_PREFIX}${slug}`));
     pushed.current = true;
   }, []);
 
+  /* 切 tab 用 replaceState 而不是 pushState：
+     浏览器后退键应该是「关闭面板」，不该变成「退回上一个 tab」，
+     否则连点三个 tab 之后要按四次后退才回得到列表。 */
+  const selectTab = useCallback((t: Tab) => {
+    navigate(() => {
+      const q = t === "decision" ? "" : `?tab=${t}`;
+      window.history.replaceState(null, "", `${window.location.pathname}${q}${window.location.hash}`);
+    });
+  }, []);
+
   const close = useCallback(() => {
+    // 关闭时把 ?tab= 一起抹掉，避免列表页 URL 上挂着无意义的 query
     // 我们压过一条历史 → 回退，让浏览器后退键和关闭按钮行为一致；
     // 直链进来的没有可退的上一步，改成抹掉 hash，否则会把人退出站外
     if (pushed.current) {
       pushed.current = false;
       window.history.back(); // 会触发 popstate，订阅者自然重算
     } else {
-      navigate(() =>
-        window.history.replaceState(null, "", window.location.pathname + window.location.search)
-      );
+      navigate(() => window.history.replaceState(null, "", window.location.pathname));
     }
   }, []);
 
@@ -138,7 +162,7 @@ export default function CryptoCardsSection() {
         跨境政策与费率随时会变，标「待核实」的字段表示尚未实测核实，请以官方页面为准。
       </p>
 
-      {openCard && <CardDetail card={openCard} onClose={close} />}
+      {openCard && <CardDetail card={openCard} tab={openTab} onTab={selectTab} onClose={close} />}
     </div>
   );
 }

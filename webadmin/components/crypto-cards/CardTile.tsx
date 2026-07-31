@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import type { CryptoCard } from "@/data/crypto-cards";
 import { glowOf } from "@/lib/cardFace";
-import { track } from "@/lib/track";
 import CardFace from "./CardFace";
 
 const MAX_TILT = 7; // deg。再大就不像卡片倾斜，像页面翻了
@@ -92,7 +91,6 @@ export default function CardTile({ card, onOpen }: { card: CryptoCard; onOpen: (
   }, []);
 
   const isPending = card.status === "pending";
-  const href = card.invite?.url;
   const fullName = card.variant ? `${card.name} · ${card.variant}` : card.name;
   // 网格态最多两个标签，其余进详情面板——信息密度优先
   const chips = card.badges.slice(0, 2);
@@ -113,30 +111,34 @@ export default function CardTile({ card, onOpen }: { card: CryptoCard; onOpen: (
         } as React.CSSProperties
       }
     >
-      {/* 覆盖整卡的命中区。用真 <button> 而不是给 <article> 加 role="button"：
-          后者会让卡内的链接变成「嵌套交互控件」，axe 直接判失败。
+      {/* 覆盖整卡的命中区，z-10 压在卡面之上。
+          原先它是 z-0，而卡面是 relative（z-auto）且在 DOM 里排在后面——
+          同层级按 DOM 顺序绘制，卡面盖住了按钮，导致点卡面完全没反应，
+          整卡只有下半部约 45% 能打开详情。这是 KAST/Bybit「点了就外跳」的根因之一。
+
+          用真 <button> 而不是给 <article> 加 role="button"：后者会让卡内的
+          交互元素变成「嵌套交互控件」，axe 直接判失败。
           焦点环画在 .cc-tile 自己身上（见 globals.css）——content-visibility 带来的
           paint containment 会把子元素画到边界外的 ring 裁掉，画在容器自身则不受影响。 */}
       <button
         type="button"
         onClick={onOpen}
-        className="cc-hit absolute inset-0 z-0 rounded-2xl focus:outline-none"
+        title={isPending ? "内容整理中：这张卡目前只收录了卡面信息" : undefined}
+        className="cc-hit absolute inset-0 z-10 rounded-2xl focus:outline-none"
       >
-        <span className="sr-only">查看 {fullName} 详情</span>
+        <span className="sr-only">
+          查看 {fullName} 详情{isPending ? "（内容整理中）" : ""}
+        </span>
+        {/* 状态点画在命中区内部：放在外面会再挖掉一小块不可点区域 */}
+        {isPending && (
+          <span
+            aria-hidden="true"
+            className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-neutral-400 ring-2 ring-white/70"
+          />
+        )}
       </button>
 
       <CardFace card={card} />
-
-      {/* 状态点：6px，不抢视线。hover 出原生 tooltip，读屏走 sr-only */}
-      {isPending && (
-        <span
-          className="absolute right-5 top-5 z-10 flex items-center"
-          title="内容整理中：这张卡目前只收录了卡面信息"
-        >
-          <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-neutral-400 ring-2 ring-white/70" />
-          <span className="sr-only">内容整理中</span>
-        </span>
-      )}
 
       <h3 className="pointer-events-none mt-3 flex items-baseline gap-1.5 text-[15px] font-semibold tracking-tight text-neutral-900">
         <span className="truncate">{card.name}</span>
@@ -145,6 +147,8 @@ export default function CardTile({ card, onOpen }: { card: CryptoCard; onOpen: (
         )}
       </h3>
 
+      {/* 网格态不再有任何外跳入口：点卡片任意位置都是打开详情，
+          外跳只发生在详情面板底部的 CTA 上。这样 43 张卡的信息密度也一致了。 */}
       <div className="mt-auto flex items-center gap-2 pt-2.5">
         <div className="pointer-events-none flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
           {chips.map((b, i) => (
@@ -159,26 +163,9 @@ export default function CardTile({ card, onOpen }: { card: CryptoCard; onOpen: (
           {hiddenChips > 0 && <span className="text-[11px] text-neutral-600">+{hiddenChips}</span>}
         </div>
 
-        {/* 唯一的次要操作。邀请码复制框已移进详情面板，但这个链接留在网格里：
-            它挂着 referral_click 埋点，全移走会直接压低返佣点击 */}
-        {href ? (
-          <a
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => {
-              e.stopPropagation();
-              track("referral_click", { target: card.slug, meta: { from: "cards_tile" } });
-            }}
-            className="relative z-10 shrink-0 rounded-lg bg-neutral-900 px-2.5 py-1.5 text-[12.5px] font-medium text-white transition hover:bg-neutral-700"
-          >
-            立即领取 <span className="cc-arrow inline-block">↗</span>
-          </a>
-        ) : (
-          <span className="pointer-events-none shrink-0 text-[12.5px] font-medium text-neutral-600">
-            详情 <span className="cc-arrow inline-block">→</span>
-          </span>
-        )}
+        <span className="pointer-events-none shrink-0 text-[12.5px] font-medium text-neutral-600">
+          详情 <span className="cc-arrow inline-block">→</span>
+        </span>
       </div>
     </article>
   );

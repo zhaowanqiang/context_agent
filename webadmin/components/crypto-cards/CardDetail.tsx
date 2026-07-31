@@ -1,97 +1,125 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
-import type { CryptoCard } from "@/data/crypto-cards";
+import type { CryptoCard, FactValue } from "@/data/crypto-cards";
 import { track } from "@/lib/track";
 import CardFace from "./CardFace";
 import InviteCode from "./InviteCode";
 
 /**
- * 详情面板：桌面居中 Modal，移动端从底部升起的 sheet（可下拉关闭）。
+ * 卡片详情面板：桌面居中 Modal，移动端从底部升起的 sheet（可下拉关闭）。
+ *
+ * 全站 43 张卡共用这一个组件，没有第二套实现——
+ * 有内容的卡和只有卡面的卡走同一条渲染路径，差别只在数据本身。
+ *
  * 无 framer-motion（仓库没这个依赖，也不为一个模块引入），
- * 走 spec 给的降级路径：220ms fade + scale（keyframes 在 globals.css）。
+ * 走 220ms fade + scale（keyframes 在 globals.css，reduced-motion 下整段关掉）。
  */
 
-const KYC_LABEL: Record<string, string> = {
-  none: "免 KYC",
-  light: "轻度",
-  full: "完整（证件 + 地址证明）",
-};
+export type Tab = "decision" | "tutorial" | "faq";
 
-const UNKNOWN = "待核实";
+export const TABS: { id: Tab; label: string }[] = [
+  { id: "decision", label: "开户决策" },
+  { id: "tutorial", label: "申请教程" },
+  { id: "faq", label: "常见问题" },
+];
 
-/** 事实字段的统一渲染：没来源就明说，不猜 */
-function factText(v: string | string[] | boolean | null, whenTrue = "支持", whenFalse = "不支持"): string {
-  if (v === null || v === undefined) return UNKNOWN;
-  if (typeof v === "boolean") return v ? whenTrue : whenFalse;
-  if (Array.isArray(v)) return v.length ? v.join(" / ") : UNKNOWN;
-  return v;
-}
+const FACT_LABELS: Array<[keyof CryptoCard["detail"]["facts"], string]> = [
+  ["cashback", "返现"],
+  ["annualFee", "年费"],
+  ["kyc", "KYC"],
+  ["region", "地区"],
+  ["topUp", "充值方式"],
+  ["custody", "托管方式"],
+];
 
-function Metric({ label, value, note }: { label: string; value: string; note?: string }) {
-  const unknown = value === UNKNOWN;
+/**
+ * 一格事实。三种状态的渲染必须看得出区别：
+ *   verified 正常字色｜partial 正常字色 + 边界说明｜pending 斜体「待核实」
+ * 把 partial 和 pending 画成同一种灰，等于把「知道一半」和「完全不知道」抹平。
+ */
+function Fact({ label, value }: { label: string; value: FactValue }) {
   return (
     <div className="rounded-xl border border-neutral-200 p-3">
       <p className="text-[11px] font-medium uppercase tracking-wider text-neutral-600">{label}</p>
-      <p className={`mt-1 text-[13.5px] font-semibold ${unknown ? "italic text-neutral-600" : "text-neutral-900"}`}>
-        {value}
-      </p>
-      {note && <p className="mt-1 text-[11.5px] leading-relaxed text-neutral-600">{note}</p>}
+      {value.status === "pending" ? (
+        <p className="mt-1 text-[13.5px] font-medium italic text-neutral-600">待核实</p>
+      ) : (
+        <>
+          <p className="mt-1 text-[13.5px] font-medium text-neutral-900">{value.value}</p>
+          {value.note && (
+            <p className="mt-1 text-[11.5px] leading-relaxed text-neutral-600">{value.note}</p>
+          )}
+        </>
+      )}
     </div>
   );
 }
 
-function List({ title, items, tone }: { title: string; items: string[]; tone: string }) {
-  if (items.length === 0) return null;
+function List({ title, items }: { title: string; items: string[] }) {
   return (
     <div>
       <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-600">{title}</p>
-      <ul className="mt-1.5 space-y-1">
-        {items.map((it) => (
-          <li key={it} className={`text-[13px] leading-relaxed ${tone}`}>
-            · {it}
-          </li>
-        ))}
-      </ul>
+      {items.length === 0 ? (
+        <p className="mt-1.5 text-[13px] italic text-neutral-600">待整理</p>
+      ) : (
+        <ul className="mt-1.5 space-y-1">
+          {items.map((it) => (
+            <li key={it} className="text-[13px] leading-relaxed text-neutral-700">
+              · {it}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
 
-/**
- * 详情未整理时的统一空状态。
- *
- * 刻意不渲染成「骨架屏」或空白区块：那两种都在暗示「内容马上就来 / 加载失败」，
- * 而真实情况是这张卡只收录了卡面，事实字段一个都没核实过。直说更省访客时间。
- */
-function EmptyState({ what }: { what: string }) {
-  return (
-    <div className="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-6 text-center">
-      <p className="text-[13.5px] font-semibold text-neutral-800">内容整理中</p>
-      <p className="mx-auto mt-1.5 max-w-[46ch] text-[12.5px] leading-relaxed text-neutral-700">
-        这张卡目前只收录了卡面信息，{what}尚未实测核实。
-        按本站的规矩，没有可靠来源的字段一律空着，不写看起来合理的数字。
-      </p>
-    </div>
-  );
-}
+const STATUS_LABEL: Partial<Record<CryptoCard["status"], string>> = {
+  waitlist: "等待名单",
+  "invite-only": "仅限邀请",
+  deprecated: "已停用",
+  pending: "内容整理中",
+};
 
-type Tab = "decision" | "tutorial" | "faq";
-
-export default function CardDetail({ card, onClose }: { card: CryptoCard; onClose: () => void }) {
-  const [tab, setTab] = useState<Tab>("decision"); // spec：默认停在开户决策
+export default function CardDetail({
+  card,
+  tab,
+  onTab,
+  onClose,
+}: {
+  card: CryptoCard;
+  tab: Tab;
+  onTab: (t: Tab) => void;
+  onClose: () => void;
+}) {
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const sheetRef = useRef<HTMLDivElement | null>(null);
   const restoreTo = useRef<HTMLElement | null>(null);
+  const tablistRef = useRef<HTMLDivElement | null>(null);
 
-  /* 打开时记住焦点来处，关闭后归位；同时锁住背景滚动 */
+  const d = card.detail;
+  // useMemo 不是为了性能：enabled 进了下面 onTablistKey 的依赖数组，
+  // 每次渲染新建对象会让那个 useCallback 每帧失效（eslint 也会拦）
+  const enabled: Record<Tab, boolean> = useMemo(
+    () => ({ decision: true, tutorial: d.tutorial !== null, faq: d.faq !== null }),
+    [d.tutorial, d.faq]
+  );
+
+  /* 打开时记住焦点来处，关闭后归位；同时锁背景滚动。
+     锁滚动要补偿滚动条宽度，否则 body 变窄，背景整页横向抖一下。 */
   useEffect(() => {
     restoreTo.current = document.activeElement as HTMLElement | null;
     const prevOverflow = document.body.style.overflow;
+    const prevPad = document.body.style.paddingRight;
+    const barWidth = window.innerWidth - document.documentElement.clientWidth;
     document.body.style.overflow = "hidden";
+    if (barWidth > 0) document.body.style.paddingRight = `${barWidth}px`;
     dialogRef.current?.focus();
     return () => {
       document.body.style.overflow = prevOverflow;
+      document.body.style.paddingRight = prevPad;
       restoreTo.current?.focus?.();
     };
   }, []);
@@ -167,20 +195,34 @@ export default function CardDetail({ card, onClose }: { card: CryptoCard; onClos
     };
   }, [onClose]);
 
-  const f = card.facts;
-  const notes = f?.notes ?? {};
-  const href = card.invite?.url;
+  /* WAI-ARIA tabs：左右方向键在 tablist 内移动，Home/End 跳首尾。
+     置灰的 tab 仍然能被方向键走到（ARIA 允许 disabled tab 保持可聚焦），
+     但激活是空操作——否则键盘用户根本不知道那两个 tab 存在。 */
+  const onTablistKey = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (!["ArrowRight", "ArrowLeft", "Home", "End"].includes(e.key)) return;
+      e.preventDefault();
+      const i = TABS.findIndex((t) => t.id === tab);
+      const next =
+        e.key === "Home"
+          ? 0
+          : e.key === "End"
+            ? TABS.length - 1
+            : e.key === "ArrowRight"
+              ? (i + 1) % TABS.length
+              : (i - 1 + TABS.length) % TABS.length;
+      const target = TABS[next];
+      tablistRef.current?.querySelector<HTMLElement>(`#cc-tab-${target.id}`)?.focus();
+      if (enabled[target.id]) onTab(target.id);
+    },
+    [tab, onTab, enabled]
+  );
+
   const titleId = `cc-detail-title-${card.slug}`;
   const fullName = card.variant ? `${card.name} · ${card.variant}` : card.name;
-  // 三块全空 = 这张卡只有卡面：给一句「内容整理中」就够了。
-  // 硬撑出指标格 + 三个 tab、每个里面再放一遍同样的空状态，只是把噪音翻三倍。
-  const detailReady = Boolean(f || card.decision || card.tutorial);
-
-  const TABS: { id: Tab; label: string }[] = [
-    { id: "decision", label: "开户决策" },
-    { id: "tutorial", label: "申请教程" },
-    { id: "faq", label: "常见问题" },
-  ];
+  const statusLabel = STATUS_LABEL[card.status];
+  // URL 里带了个内容为空的 tab（如直链 ?tab=faq 但这张卡没有 faq）时回落到默认页
+  const activeTab = enabled[tab] ? tab : "decision";
 
   return (
     <div
@@ -204,176 +246,122 @@ export default function CardDetail({ card, onClose }: { card: CryptoCard; onClos
           <span className="h-1 w-10 rounded-full bg-neutral-300" />
         </div>
 
-        {/* Hero */}
-        <div className="flex shrink-0 items-start gap-4 border-b border-neutral-100 px-5 pb-4 sm:px-6 sm:pt-6">
-          <div className="w-24 shrink-0 sm:w-32">
-            <CardFace card={card} compact />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 id={titleId} className="text-lg font-bold tracking-tight text-neutral-900">
-                {fullName}
-              </h2>
-              {card.status !== "live" && (
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                    card.status === "pending"
-                      ? "bg-neutral-200 text-neutral-700"
-                      : "bg-amber-100 text-amber-800"
-                  }`}
-                >
-                  {card.status === "waitlist"
-                    ? "等待名单"
-                    : card.status === "invite-only"
-                      ? "仅限邀请"
-                      : card.status === "pending"
-                        ? "内容整理中"
-                        : "已停用"}
-                </span>
-              )}
-              {/* 卡组织与等级是从卡面读的，没核实过，标题旁如实标注 */}
-              {card.tier && (
-                <span className="text-[11px] text-neutral-500">
-                  {card.issuer} {card.tier}
-                </span>
-              )}
+        {/* ── 1. 头部：固定不滚 ─────────────────────────────── */}
+        <div className="shrink-0 border-b border-neutral-100">
+          <div className="flex items-start gap-4 px-5 pb-4 sm:px-6 sm:pt-6">
+            {/* 卡面缩略图复用同一个渲染组件的 compact 变体，不另做一张图 */}
+            <div className="w-24 shrink-0 sm:w-32">
+              <CardFace card={card} compact />
             </div>
-            {card.decision ? (
-              <p className="mt-1 text-[13px] leading-relaxed text-neutral-600">{card.decision.verdict}</p>
-            ) : (
-              <p className="mt-1 text-[13px] leading-relaxed text-neutral-600">
-                卡面信息已收录，开户决策与教程还没整理。
-              </p>
-            )}
 
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              {href ? (
-                <a
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => track("referral_click", { target: card.slug, meta: { from: "cards_detail" } })}
-                  className="rounded-lg bg-neutral-900 px-4 py-2 text-[13px] font-medium text-white transition hover:bg-neutral-700"
-                >
-                  立即领取 ↗
-                </a>
-              ) : (
-                card.signupNote && (
-                  <p className="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 px-3 py-2 text-[12px] leading-relaxed text-neutral-600">
-                    {card.signupNote}
-                  </p>
-                )
-              )}
-              {card.invite && <InviteCode code={card.invite.code} cardSlug={card.slug} className="max-w-[190px]" />}
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 id={titleId} className="text-lg font-semibold tracking-tight text-neutral-900">
+                  {fullName}
+                </h2>
+                {statusLabel && (
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800">
+                    {statusLabel}
+                  </span>
+                )}
+              </div>
+              <p className="mt-1 text-[13px] leading-relaxed text-neutral-600">{d.summary}</p>
             </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="关闭"
+              className="shrink-0 rounded-md px-2 text-xl leading-none text-neutral-600 transition hover:text-neutral-900"
+            >
+              ×
+            </button>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="关闭"
-            className="shrink-0 rounded-md px-2 text-xl leading-none text-neutral-600 transition hover:text-neutral-900"
-          >
-            ×
-          </button>
+          {/* notice：只在有硬性前置条件时出现 */}
+          {d.notice && (
+            <p className="border-t border-neutral-100 bg-neutral-50 px-5 py-2.5 text-[12.5px] leading-relaxed text-neutral-700 sm:px-6">
+              {d.notice}
+            </p>
+          )}
         </div>
 
-        {/* 可滚动内容区 */}
+        {/* ── 内容区：只有这里滚 ────────────────────────────── */}
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
-          {!detailReady && (
-            <EmptyState what="费率、年费、KYC 门槛、支持地区、开户步骤与风险提示" />
-          )}
-
-          {/* 关键指标 6 宫格。整块没有就不渲染 6 个「待核实」占位——
-              6 个空格子比一句「内容整理中」更像是页面坏了 */}
-          {detailReady &&
-            (f ? (
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-              <Metric label="返现" value={factText(f.cashback)} note={notes.cashback} />
-              <Metric label="年费" value={factText(f.annualFee)} />
-              <Metric label="KYC" value={f.kyc ? KYC_LABEL[f.kyc] : UNKNOWN} />
-              <Metric label="地区" value={factText(f.regions)} note={notes.regions} />
-              <Metric label="充值方式" value={factText(f.stablecoins ?? f.chains)} />
-              <Metric
-                label="托管方式"
-                value={f.custody ? (f.custody === "custodial" ? "平台托管" : "自托管") : UNKNOWN}
-              />
-              </div>
-            ) : (
-              <EmptyState what="费率、年费、KYC 门槛、支持地区、充值方式与托管方式" />
-            ))}
-
-          {/* Tabs */}
-          {detailReady && (
-          <div role="tablist" aria-label="卡片详情" className="mt-6 flex gap-1 border-b border-neutral-200">
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                role="tab"
-                type="button"
-                aria-selected={tab === t.id}
-                onClick={() => setTab(t.id)}
-                className={`-mb-px border-b-2 px-3 py-2 text-[13.5px] font-medium transition ${
-                  tab === t.id
-                    ? "border-amber-600 text-neutral-900"
-                    : "border-transparent text-neutral-600 hover:text-neutral-700"
-                }`}
-              >
-                {t.label}
-              </button>
+          {/* 2. facts 网格：3 列 → 900px 以下 2 列 → 600px 以下 1 列 */}
+          <div className="grid grid-cols-1 gap-2.5 min-[600px]:grid-cols-2 min-[900px]:grid-cols-3">
+            {FACT_LABELS.map(([key, label]) => (
+              <Fact key={key} label={label} value={d.facts[key]} />
             ))}
           </div>
-          )}
 
-          {detailReady && (
+          {/* 3. Tab 区。内容为 null 的 tab 保留但置灰——直接隐藏会让不同卡片的
+                 tab 数量不一致，切卡时整条 tab 栏会跳 */}
+          <div
+            ref={tablistRef}
+            role="tablist"
+            aria-label="卡片详情"
+            onKeyDown={onTablistKey}
+            className="mt-6 flex gap-1 border-b border-neutral-200"
+          >
+            {TABS.map((t) => {
+              const on = enabled[t.id];
+              const selected = activeTab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  id={`cc-tab-${t.id}`}
+                  role="tab"
+                  type="button"
+                  aria-selected={selected}
+                  aria-controls={`cc-panel-${t.id}`}
+                  aria-disabled={!on || undefined}
+                  tabIndex={selected ? 0 : -1}
+                  title={on ? undefined : "内容整理中"}
+                  onClick={() => on && onTab(t.id)}
+                  className={`-mb-px border-b-2 px-3 py-2 text-[13.5px] font-medium transition ${
+                    selected
+                      ? "border-amber-600 text-neutral-900"
+                      : on
+                        ? "border-transparent text-neutral-600 hover:text-neutral-700"
+                        : "cursor-not-allowed border-transparent text-neutral-400"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
+
           <div className="pt-4">
-            {tab === "decision" && !card.decision && (
-              <EmptyState what="适合谁、优缺点与风险" />
-            )}
-
-            {tab === "decision" && card.decision && (
-              <div className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <List title="适合谁" items={card.decision.bestFor} tone="text-neutral-700" />
-                  <List title="不适合谁" items={card.decision.notFor} tone="text-neutral-700" />
-                  <List title="优点" items={card.decision.pros} tone="text-neutral-700" />
-                  <List title="缺点" items={card.decision.cons} tone="text-neutral-700" />
-                </div>
-                <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-800">风险</p>
-                  <ul className="mt-1.5 space-y-1">
-                    {card.decision.risks.map((r) => (
-                      <li key={r} className="text-[13px] leading-relaxed text-amber-900">
-                        · {r}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <p className="text-[11.5px] text-neutral-600">最后核对：{card.decision.updatedAt}</p>
+            {/* 4. 开户决策：两列 × 两行，700px 以下堆成单列 */}
+            {activeTab === "decision" && (
+              <div
+                id="cc-panel-decision"
+                role="tabpanel"
+                aria-labelledby="cc-tab-decision"
+                className="grid gap-4 min-[700px]:grid-cols-2"
+              >
+                <List title="适合谁" items={d.decision.suitableFor} />
+                <List title="不适合谁" items={d.decision.notSuitableFor} />
+                <List title="优点" items={d.decision.pros} />
+                <List title="缺点" items={d.decision.cons} />
               </div>
             )}
 
-            {tab === "tutorial" && !card.tutorial && (
-              <EmptyState what="开户步骤与前置准备" />
-            )}
-
-            {tab === "tutorial" && card.tutorial && (
-              <div className="space-y-5">
-                {card.tutorial.prerequisites.length > 0 && (
-                  <List title="开始前准备" items={card.tutorial.prerequisites} tone="text-neutral-700" />
-                )}
-
+            {activeTab === "tutorial" && d.tutorial && (
+              <div id="cc-panel-tutorial" role="tabpanel" aria-labelledby="cc-tab-tutorial" className="space-y-5">
                 {/* 带序号的时间轴：左侧圆点 + 连线 */}
                 <ol className="relative space-y-5 border-l border-neutral-200 pl-6">
-                  {card.tutorial.steps.map((s, i) => (
+                  {d.tutorial.map((s, i) => (
                     <li key={s.title} className="relative">
                       <span className="absolute -left-[31px] flex h-6 w-6 items-center justify-center rounded-full border border-neutral-200 bg-white text-[11px] font-bold text-neutral-500">
                         {i + 1}
                       </span>
                       <p className="text-[13.5px] font-semibold text-neutral-900">{s.title}</p>
                       <p className="mt-1 whitespace-pre-line text-[13px] leading-relaxed text-neutral-600">{s.body}</p>
-                      {/* tip 用 emerald 而非 spec 里的蓝色：全站是 Stone 暖灰 + amber，
-                          没有任何冷色；emerald 在 decider 里已经在用，语义区分照旧成立 */}
+                      {/* tip 用 emerald：全站是 Stone 暖灰 + amber，没有冷色；
+                          emerald 在 decider 里已经在用，语义区分照旧成立 */}
                       {s.tip && (
                         <p className="mt-2 border-l-2 border-emerald-400 bg-emerald-50/60 px-3 py-2 text-[12.5px] leading-relaxed text-emerald-900">
                           {s.tip}
@@ -389,16 +377,16 @@ export default function CardDetail({ card, onClose }: { card: CryptoCard; onClos
                 </ol>
 
                 {/* 完整教程入口。付费正文不在本模块的数据里，点过去由 /decider 的付费墙判定 */}
-                {card.tutorial.guide && (
+                {d.guide && (
                   <Link
-                    href={card.tutorial.guide.href}
+                    href={d.guide.href}
                     className="block rounded-xl border border-neutral-200 bg-neutral-50 p-4 transition hover:border-amber-300 hover:bg-amber-50/40"
                   >
                     <p className="text-[13.5px] font-semibold text-neutral-900">
-                      {card.tutorial.guide.free ? "阅读完整教程（全文免费）→" : "解锁完整实操 + 避坑清单 →"}
+                      {d.guide.free ? "阅读完整教程（全文免费）→" : "解锁完整实操 + 避坑清单 →"}
                     </p>
                     <p className="mt-1 text-[12.5px] leading-relaxed text-neutral-600">
-                      {card.tutorial.guide.free
+                      {d.guide.free
                         ? "站内教程页有全部步骤，无付费墙。"
                         : "上面是免费部分；逐步实操与避坑清单在教程页，含最后核对时间。"}
                     </p>
@@ -407,33 +395,59 @@ export default function CardDetail({ card, onClose }: { card: CryptoCard; onClos
               </div>
             )}
 
-            {tab === "faq" && (
-              <div className="space-y-3">
-                {card.tutorial?.faq?.length ? (
-                  card.tutorial.faq.map((q) => (
-                    <details key={q.q} className="rounded-xl border border-neutral-200 p-3">
-                      <summary className="cursor-pointer text-[13.5px] font-medium text-neutral-900">{q.q}</summary>
-                      <p className="mt-2 text-[13px] leading-relaxed text-neutral-600">{q.a}</p>
-                    </details>
-                  ))
-                ) : card.tutorial ? (
-                  <p className="text-[13px] text-neutral-600">
-                    这张卡还没整理常见问题。教程页里有更完整的实操说明。
-                  </p>
-                ) : (
-                  <EmptyState what="常见问题" />
-                )}
+            {activeTab === "faq" && d.faq && (
+              <div id="cc-panel-faq" role="tabpanel" aria-labelledby="cc-tab-faq" className="space-y-3">
+                {d.faq.map((q) => (
+                  <details key={q.q} className="rounded-xl border border-neutral-200 p-3">
+                    <summary className="cursor-pointer text-[13.5px] font-medium text-neutral-900">{q.q}</summary>
+                    <p className="mt-2 text-[13px] leading-relaxed text-neutral-600">{q.a}</p>
+                  </details>
+                ))}
               </div>
             )}
           </div>
-          )}
 
-          {/* 免责声明：固定在内容底部 */}
-          <p className="mt-8 border-t border-neutral-100 pt-4 text-[11.5px] leading-relaxed text-neutral-600">
+          {/* 5. 风险区块。TODO 项照常显示，不隐藏——藏起来等于假装已经核实过 */}
+          <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50/60 p-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-800">风险</p>
+            <ul className="mt-1.5 space-y-1">
+              {d.risk.map((r) => (
+                <li key={r} className="text-[13px] leading-relaxed text-amber-900">
+                  · {r}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* 6. 底部：核对时间 + CTA（外跳只发生在这里） */}
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-4">
+            <p className="text-[11.5px] text-neutral-600">
+              最后核对：{d.lastVerified ?? <span className="italic">未核对</span>}
+            </p>
+
+            {d.cta && (
+              <div className="flex min-w-0 items-center gap-2">
+                {d.cta.inviteCode && (
+                  <InviteCode code={d.cta.inviteCode} cardSlug={card.slug} className="max-w-[190px]" />
+                )}
+                <a
+                  href={d.cta.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => track("referral_click", { target: card.slug, meta: { from: "cards_detail" } })}
+                  className="shrink-0 rounded-lg bg-neutral-900 px-4 py-2 text-[13px] font-medium text-white transition hover:bg-neutral-700"
+                >
+                  {d.cta.label} ↗
+                </a>
+              </div>
+            )}
+          </div>
+
+          <p className="mt-6 text-[11.5px] leading-relaxed text-neutral-600">
             以上为个人实测记录与判断，<b className="font-medium text-neutral-800">不构成投资或理财建议</b>。
             页面内的邀请码与开户链接为返佣链接，你通过它注册我可能获得推荐奖励，
             但不影响你的费用，也不影响上面写的优缺点。
-            跨境开户政策、费率与地区可用性随时会变，请以官方页面为准；标注「{UNKNOWN}」的字段表示我尚未实测核实，不做猜测。
+            跨境开户政策、费率与地区可用性随时会变，请以官方页面为准；标注「待核实」的字段表示我尚未实测核实，不做猜测。
           </p>
         </div>
       </div>

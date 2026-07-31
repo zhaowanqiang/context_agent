@@ -35,12 +35,13 @@ export function matchesFilter(card: CryptoCard, filter: FilterId): boolean {
   switch (filter) {
     case "mainland":
       return productOf(card)?.passport_ok.includes("mainland") ?? false;
-    // 只有卡面的条目 facts 为 null：一律筛不出来。
-    // 这是对的——「有实体卡」是个事实断言，没核实过就不该被筛进来充数。
+    // 筛选走 traits 而不是 detail.facts：后者是给人看的字符串（FactValue），
+    // 筛不了。骨架卡的 traits 全是 null，一律筛不出来——这是对的，
+    // 「有实体卡」是个事实断言，没核实过就不该被筛进来充数。
     case "physical":
-      return card.facts?.physicalCard === true;
+      return card.traits.physicalCard === true;
     case "applepay":
-      return card.facts?.applePay === true;
+      return card.traits.applePay === true;
     default:
       return true;
   }
@@ -57,10 +58,11 @@ export const SORTS: { id: SortId; label: string }[] = [
   { id: "kyc", label: "KYC 门槛（低→高）" },
 ];
 
-/** 资料完整度：有决策内容的排前面。43 张卡里只有 3 张有内容，
- *  不显式排一次的话，能用的卡会被淹在 40 张空壳中间 */
+/** 资料完整度：人工核对过的排前面。43 张卡里只有 3 张有内容，
+ *  不显式排一次的话，能用的卡会被淹在 40 张空壳中间。
+ *  判据用 lastVerified 而不是「数组非空」：核对过才算有内容。 */
 function completeness(c: CryptoCard): number {
-  return c.decision ? 0 : 1;
+  return c.detail.lastVerified ? 0 : 1;
 }
 
 export function sortCards(list: CryptoCard[], sort: SortId): CryptoCard[] {
@@ -129,7 +131,7 @@ export function recommendCards(answers: HelperAnswers, list: CryptoCard[] = card
 
     const hit = scored.find((s) => s.product.id === card.slug);
     if (hit) {
-      top.push({ card, score: hit.score, reason: hit.reasons[0] ?? card.decision?.verdict ?? "" });
+      top.push({ card, score: hit.score, reason: hit.reasons[0] ?? card.detail.summary });
     } else {
       excluded.push({
         card,

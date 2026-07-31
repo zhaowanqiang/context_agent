@@ -5,7 +5,7 @@ import { track } from "@/lib/track";
 
 /**
  * 邀请码 + 一键复制。
- * 复制成功后图标切对勾 1.5s，并通过 aria-live 播报——只靠图标变化，
+ * 复制成功后图标切对勾 2s，并通过 aria-live 播报——只靠图标变化，
  * 读屏用户不会知道发生了什么。
  */
 export default function InviteCode({
@@ -34,12 +34,22 @@ export default function InviteCode({
     track("referral_click", { target: cardSlug, meta: { from: "cards_invite_copy" } });
     setCopied(true);
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => setCopied(false), 1500);
+    timer.current = setTimeout(() => setCopied(false), 2000);
   }
 
   return (
     <div className={`flex min-w-0 flex-1 items-center gap-1.5 rounded-lg border border-neutral-200 bg-neutral-50 px-2.5 py-1.5 ${className}`}>
-      <code className="min-w-0 flex-1 truncate font-mono text-[12.5px] text-neutral-700">{code}</code>
+      {/* 只读输入框而不是 <code>：用户可以直接选中、也能用键盘全选复制 */}
+      <input
+        readOnly
+        value={code}
+        aria-label="邀请码"
+        onClick={(e) => {
+          e.stopPropagation();
+          e.currentTarget.select();
+        }}
+        className="min-w-0 flex-1 truncate bg-transparent font-mono text-[12.5px] text-neutral-700 outline-none"
+      />
       <button
         type="button"
         onClick={copy}

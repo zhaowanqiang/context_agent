@@ -38,8 +38,10 @@
  *    按「同品牌多卡面各自独立成条、不合并不去重」的规则先各自建条。
  *    若确认是同一张卡，删掉新条目、把卡面信息并进老条目即可（组件零改动）。
  *
- * ③ 全部 40 条待补：facts / decision / tutorial 三块。补的时候记住第 2 条硬约束——
- *    没有实测来源就继续留 null，别为了「填满」写看起来合理的数字。
+ * ③ 全部 40 条待补：detail 整块（facts 六项、decision 四组、tutorial / faq、
+ *    risk、cta、lastVerified）。补的时候记住第 2 条硬约束——
+ *    没有实测来源就继续留 pending，别为了「填满」写看起来合理的数字。
+ *    facts 的 partial 态必须带 note，用来写清「已知信息的边界」。
  * ────────────────────────────────────────────────────────────────
  */
 
@@ -73,6 +75,66 @@ export type CardFace =
   | { kind: "wordmark"; bg: string; markColor: string; scale: number }
   | { kind: "pattern"; bg: string; pattern: PatternId; opacity: number; blend: string };
 
+/* ══════════════════════════════════════════════════════════════════
+ * 详情面板 schema
+ *
+ * 一个事实字段有三种状态，渲染样式必须区分——「没核实」和「核实过但有边界」
+ * 是两回事，混成同一种灰字等于把「我不知道」和「我知道但只知道一半」抹平。
+ * ══════════════════════════════════════════════════════════════════ */
+
+export type FactValue =
+  /** 有可靠来源，可直接示人 */
+  | { status: "verified"; value: string; note?: string }
+  /** 只核实了一部分。note 必填——必须写清楚「已知信息的边界在哪」，
+   *  例如地区只验证过一条注册路径，就得写明这不代表完整支持列表 */
+  | { status: "partial"; value: string; note: string }
+  /** 没核实过。渲染成斜体「待核实」，不允许省略字段、不允许填空字符串 */
+  | { status: "pending" };
+
+export interface TutorialStep {
+  title: string;
+  body: string;
+  image?: string;
+  tip?: string;
+  warning?: string;
+}
+
+export interface CardDetail {
+  /** 标题下一句话概述：核心价值 + 主要门槛 */
+  summary: string;
+  /** 顶部提示条。只在有硬性前置条件时出现（如「需要邀请码」），不是通用说明位 */
+  notice?: string;
+  facts: {
+    cashback: FactValue;
+    annualFee: FactValue;
+    kyc: FactValue;
+    region: FactValue;
+    topUp: FactValue;
+    custody: FactValue;
+  };
+  decision: {
+    suitableFor: string[];
+    notSuitableFor: string[];
+    pros: string[];
+    cons: string[];
+  };
+  tutorial: TutorialStep[] | null;
+  faq: Array<{ q: string; a: string }> | null;
+  /** 风险提示。允许 'TODO: xxx' 未完成项，渲染时照常显示，不隐藏 */
+  risk: string[];
+  cta?: {
+    label: string;
+    url: string;
+    inviteCode?: string;
+  };
+  /** 站内完整教程入口。付费正文不在本文件，点过去由 /decider 的付费墙判定。
+   *  schema 里额外保留这一项：它是付费漏斗入口，砍掉等于把三张卡的转化路径断了 */
+  guide?: { href: string; free: boolean };
+  /** 'YYYY-MM'，人工核对时间，由人提供，**不允许自动填当前日期**。
+   *  null = 从没人工核对过（只收录了卡面的骨架卡），UI 显示「未核对」 */
+  lastVerified: string | null;
+}
+
 export interface CryptoCard {
   /** 唯一标识，用于 URL hash（#card-{slug}）。与 products.ts 的 id 对齐以便复用决策逻辑 */
   slug: string;
@@ -87,53 +149,23 @@ export interface CryptoCard {
   /** 卡面配方。深浅字色不在这里声明——由底色的相对亮度自动判定，见 lib/cardFace.ts */
   faceStyle: CardFace;
   badges: string[];
-  invite: { code: string; url: string } | null;
-  /** 没有直达链接时的开户指引（如「应用商店搜索」「蹲邀请码」） */
-  signupNote?: string;
   /** "pending" = 只收录了卡面，上线状态本身也未核实——不是「已上线」的同义词 */
   status: "live" | "waitlist" | "invite-only" | "deprecated" | "pending";
 
-  /* 下面三块是「详情层」。整块 null = 还没整理，UI 渲染统一的「内容整理中」空状态。
-     为什么是整块 null 而不是把每个字段填空字符串：空字符串会被渲染成空白区块，
-     看起来像内容加载失败；null 让组件能明确知道「这块压根还没有」。 */
-  facts: {
-    cashback: Unknown<string>;
-    annualFee: Unknown<string>;
-    fxFee: Unknown<string>;
-    topUpFee: Unknown<string>;
-    kyc: Unknown<"none" | "light" | "full">;
-    regions: Unknown<string[]>;
-    blockedRegions?: string[];
-    chains: Unknown<string[]>;
-    stablecoins: Unknown<string[]>;
+  /** 只供筛选器使用的结构化布尔位，**不参与详情面板渲染**。
+   *  详情面板的六项事实走 detail.facts（FactValue 三态）；这里单独留一份的原因是
+   *  「有实体卡」「支持 Apple Pay」两个筛选 chip 需要能被程序判定的真假值，
+   *  而 FactValue 是给人看的字符串，筛不了。两者不要互相同步——
+   *  展示层写什么由人核对，筛选位只在确证之后才从 null 改成布尔。 */
+  traits: {
+    physicalCard: Unknown<boolean>;
     applePay: Unknown<boolean>;
     googlePay: Unknown<boolean>;
-    physicalCard: Unknown<boolean>;
-    limits: Unknown<string>;
-    custody: Unknown<"custodial" | "self-custody">;
-    /** 某个事实带条件时的补充说明（如「取决于开卡时的国家选择」） */
-    notes?: Partial<Record<"applePay" | "googlePay" | "regions" | "cashback", string>>;
-  } | null;
+  };
 
-  decision: {
-    verdict: string;
-    bestFor: string[];
-    notFor: string[];
-    pros: string[];
-    cons: string[];
-    /** 风控/冻结/跑路风险。没有实测来源就留 TODO——这一栏最不能猜 */
-    risks: string[];
-    /** 核对时间。来源（guides.ts verified_at）只精确到月，故用 YYYY-MM */
-    updatedAt: string;
-  } | null;
-
-  tutorial: {
-    prerequisites: string[];
-    steps: { title: string; body: string; image?: string; tip?: string; warning?: string }[];
-    faq?: { q: string; a: string }[];
-    /** 站内完整教程。付费正文不在本文件，点过去由付费墙判定 */
-    guide?: { href: string; free: boolean };
-  } | null;
+  /** 详情面板的全部内容。骨架卡也有这个对象（facts 六项全 pending），
+   *  不再用整块 null——schema 要求六个字段一个都不能省。 */
+  detail: CardDetail;
 }
 
 /* ── 配方简写：把重复的字面量压成一行，读起来还能看出这张卡长什么样 ────── */
@@ -154,21 +186,42 @@ const mesh = (...stops: Array<[string, number, number]>): CardFace =>
  * 「只有卡面」的占位条目工厂。
  *
  * 存在的意义不是省字数，是**结构性地堵死编造**：调用方只能传卡面相关的字段，
- * facts / decision / tutorial 由这里统一钉死成 null，
+ * detail 骨架由这里统一钉死，
  * 想在批量新增里塞一个「看起来合理」的返现率，类型这关就过不去。
+ *
+ * 骨架的形状按 schema 纪律：facts 六项全部 pending（不省略、不填空串），
+ * decision 四个数组为空，tutorial / faq 为 null，risk 一条 TODO，
+ * lastVerified 为 null（从没人工核对过，不允许拿当前日期充数）。
  */
 function faceOnly(
   card: Pick<CryptoCard, "slug" | "name" | "issuer" | "faceStyle"> &
     Partial<Pick<CryptoCard, "tier" | "variant" | "badges">>
 ): CryptoCard {
+  const pending: FactValue = { status: "pending" };
   return {
     badges: [],
     ...card,
-    invite: null, // 邀请码属于「不准编造」清单
     status: "pending",
-    facts: null,
-    decision: null,
-    tutorial: null,
+    traits: { physicalCard: null, applePay: null, googlePay: null },
+    detail: {
+      // summary 用 TODO 而不是空串：空串会渲染成一条看不见的空行，
+      // 像是内容没加载出来；TODO 至少说清楚缺的是什么。
+      summary: "TODO: 待补充一句话概述",
+      facts: {
+        cashback: pending,
+        annualFee: pending,
+        kyc: pending,
+        region: pending,
+        topUp: pending,
+        custody: pending,
+      },
+      decision: { suitableFor: [], notSuitableFor: [], pros: [], cons: [] },
+      tutorial: null,
+      faq: null,
+      risk: ["TODO: 待核实"],
+      // cta 缺席 = 没有可信的开户入口。邀请码属于「不准编造」清单
+      lastVerified: null,
+    },
   };
 }
 
@@ -180,35 +233,26 @@ export const cards: CryptoCard[] = [
     issuer: "Visa",
     faceStyle: linear("#78350f", "#292524", 135),
     badges: ["无需海外地址", "新人积分", "可绑 Apple / Google Pay"],
-    invite: { code: "O0J1Z2AL", url: "https://app.kast.xyz/referral/O0J1Z2AL" },
     status: "live",
-    facts: {
-      cashback: null,
-      annualFee: null,
-      fxFee: null,
-      topUpFee: null,
-      kyc: "full", // 教程免费层：需上传护照 + 填资金来源 + 地址证明
-      regions: null, // 已知「大陆护照可开」，但完整支持地区列表无来源
-      chains: null,
-      stablecoins: null, // 名为稳定币卡，但免费层未点名具体币种
-      applePay: true, // 教程目录第三步：开虚拟卡并绑定 Apple Pay / Google Pay
-      googlePay: true,
-      physicalCard: true, // 坑位提到「实体卡要先确认地区支持寄送」
-      limits: null,
-      custody: null,
-    },
-    decision: {
-      verdict: "无需海外地址、KYC 较友好，适合大陆护照先上车的人。",
-      bestFor: ["持大陆护照、暂时拿不出海外地址证明", "想先开一张能用的卡试水"],
-      notFor: ["TODO: 补充明确不适合的人群"],
-      pros: ["不需要海外地址证明", "注册填邀请码可拿新人积分", "可绑 Apple Pay / Google Pay"],
-      cons: ["验证码接收对 +86 手机号不友好", "充值路径有讲究", "实体卡要先确认地区支持寄送"],
-      risks: ["TODO: 风控/冻结/跑路风险未实测核实——发布前必须补真实来源，不要凭印象写"],
-      updatedAt: "2026-07",
-    },
-    tutorial: {
-      prerequisites: ["护照（KYC 用）", "一个常用邮箱", "能收验证码的手机号（+86 大概率收不到，最好备海外号）"],
-      steps: [
+    traits: { physicalCard: true, applePay: true, googlePay: true },
+    detail: {
+      summary: "无需海外地址、KYC 较友好，适合大陆护照先上车的人。",
+      facts: {
+        cashback: { status: "pending" },
+        annualFee: { status: "pending" },
+        // 教程免费层：需上传护照 + 填资金来源 + 地址证明
+        kyc: { status: "verified", value: "完整（证件 + 地址证明）" },
+        region: { status: "pending" }, // 已知「大陆护照可开」，但完整支持地区列表无来源
+        topUp: { status: "pending" }, // 名为稳定币卡，但免费层未点名具体币种
+        custody: { status: "pending" },
+      },
+      decision: {
+        suitableFor: ["持大陆护照、暂时拿不出海外地址证明", "想先开一张能用的卡试水"],
+        notSuitableFor: ["TODO: 补充明确不适合的人群"],
+        pros: ["不需要海外地址证明", "注册填邀请码可拿新人积分", "可绑 Apple Pay / Google Pay"],
+        cons: ["验证码接收对 +86 手机号不友好", "充值路径有讲究", "实体卡要先确认地区支持寄送"],
+      },
+      tutorial: [
         {
           title: "注册账号并设置 PIN",
           body: "下载 KAST App，用邮箱 + 手机号注册，过程中设置 PIN。",
@@ -224,7 +268,15 @@ export const cards: CryptoCard[] = [
         },
         { title: "首次充值与消费", body: "TODO: 免费层未公开该步骤细节，完整版教程里有。" },
       ],
+      faq: null,
+      risk: ["TODO: 风控/冻结/跑路风险未实测核实——发布前必须补真实来源，不要凭印象写"],
+      cta: {
+        label: "立即领取",
+        url: "https://app.kast.xyz/referral/O0J1Z2AL",
+        inviteCode: "O0J1Z2AL",
+      },
       guide: { href: "/decider/guide/kast", free: false },
+      lastVerified: "2026-07",
     },
   },
 
@@ -235,39 +287,33 @@ export const cards: CryptoCard[] = [
     issuer: null, // TODO: 卡组织未核实（仓库素材未提及 Visa/Mastercard）
     faceStyle: linear("#44403c", "#1c1917", 135),
     badges: ["首月最高 10% 返现", "10 USDT 体验金", "约 5 分钟开卡"],
-    invite: { code: "RRBQBG1", url: "https://bybit.com/cards/?ref=RRBQBG1&source=applet_invite" },
     status: "live",
-    facts: {
-      cashback: "首月最高 10%（走邀请链接解锁）",
-      annualFee: null,
-      fxFee: null,
-      topUpFee: null,
-      kyc: "full", // 教程目录含「证件上传与地址填写」
-      regions: null,
-      chains: null,
-      stablecoins: null,
-      applePay: true,
-      googlePay: null,
-      physicalCard: null,
-      limits: null,
-      custody: null,
-      notes: {
-        applePay: "能否绑微信 / 支付宝 / Apple Pay 取决于申请时的国家选择，且不可逆——完整版教程有说明",
-        cashback: "同时可得 10 USDT 体验金",
+    traits: { physicalCard: null, applePay: true, googlePay: null },
+    detail: {
+      summary: "Bitget U 卡对大陆用户暂停后，实测下来最顺的替代，全程约 5 分钟。",
+      // 原 facts.notes.applePay 的原文。新 schema 六项事实里没有 Apple Pay 这一格，
+      // 但这句话讲的是「不可逆的前置选择」，正是 notice 的语义，故原样搬到这里，一字未改。
+      notice:
+        "能否绑微信 / 支付宝 / Apple Pay 取决于申请时的国家选择，且不可逆——完整版教程有说明",
+      facts: {
+        cashback: {
+          status: "verified",
+          value: "首月最高 10%（走邀请链接解锁）",
+          note: "同时可得 10 USDT 体验金",
+        },
+        annualFee: { status: "pending" },
+        kyc: { status: "verified", value: "完整（证件 + 地址证明）" }, // 教程目录含「证件上传与地址填写」
+        region: { status: "pending" },
+        topUp: { status: "pending" },
+        custody: { status: "pending" },
       },
-    },
-    decision: {
-      verdict: "Bitget U 卡对大陆用户暂停后，实测下来最顺的替代，全程约 5 分钟。",
-      bestFor: ["想快速开一张能用的卡", "订阅 Claude / ChatGPT 等 AI 服务"],
-      notFor: ["TODO: 补充明确不适合的人群"],
-      pros: ["开卡流程快，全程约 5 分钟", "首月消费返现比例高", "可绑 Apple Pay（取决于国家选择）"],
-      cons: ["申请时的国家选择不可逆，选错后面全白做", "部分地区 IP 受限"],
-      risks: ["TODO: 风控/冻结/跑路风险未实测核实——发布前必须补真实来源，不要凭印象写"],
-      updatedAt: "2026-07",
-    },
-    tutorial: {
-      prerequisites: ["一个 Bybit 账户", "护照或身份证件", "TODO: 其余前置条件待补"],
-      steps: [
+      decision: {
+        suitableFor: ["想快速开一张能用的卡", "订阅 Claude / ChatGPT 等 AI 服务"],
+        notSuitableFor: ["TODO: 补充明确不适合的人群"],
+        pros: ["开卡流程快，全程约 5 分钟", "首月消费返现比例高", "可绑 Apple Pay（取决于国家选择）"],
+        cons: ["申请时的国家选择不可逆，选错后面全白做", "部分地区 IP 受限"],
+      },
+      tutorial: [
         {
           title: "登录 Bybit 并进入开卡入口",
           body: "Bybit 会限制部分国家的 IP（比如美国 IP）。如果代理节点被拒，可以直接关闭 VPN 操作——能正常登录就可以继续。",
@@ -281,7 +327,15 @@ export const cards: CryptoCard[] = [
         { title: "证件上传与地址填写", body: "TODO: 免费层未公开该步骤细节，完整版教程里有。" },
         { title: "首月返现怎么吃满", body: "TODO: 免费层未公开该步骤细节，完整版教程里有。" },
       ],
+      faq: null,
+      risk: ["TODO: 风控/冻结/跑路风险未实测核实——发布前必须补真实来源，不要凭印象写"],
+      cta: {
+        label: "立即领取",
+        url: "https://bybit.com/cards/?ref=RRBQBG1&source=applet_invite",
+        inviteCode: "RRBQBG1",
+      },
       guide: { href: "/decider/guide/bybit-card", free: false },
+      lastVerified: "2026-07",
     },
   },
 
@@ -292,37 +346,30 @@ export const cards: CryptoCard[] = [
     issuer: "Visa",
     faceStyle: linear("#292524", "#0c0a09", 135),
     badges: ["欧洲 IBAN 账户", "实体卡 + 虚拟卡", "USDT 充值"],
-    invite: null,
-    signupNote: "需要邀请码才能注册且数量有限——可关注 X @zynqorw 蹲邀请码",
     status: "invite-only",
-    facts: {
-      cashback: null,
-      annualFee: null,
-      fxFee: null,
-      topUpFee: null,
-      kyc: "full", // 需护照 + 香港地址 + 银行流水类地址证明
-      regions: ["注册地区选香港（教程实测路径）"],
-      chains: null,
-      stablecoins: ["USDT"], // 教程原文：我用 USDT 测试，快速且丝滑
-      applePay: null,
-      googlePay: null,
-      physicalCard: true, // 教程原文：提供实体卡 + 虚拟卡
-      limits: null,
-      custody: null,
-      notes: { regions: "已知的是教程实测走香港注册路径，不代表完整支持地区列表" },
-    },
-    decision: {
-      verdict: "Visa 借记卡 + 欧洲 IBAN 账户，但邀请码和地址证明是两道真门槛。",
-      bestFor: ["拿得到邀请码，且有真实可取得的香港银行流水"],
-      notFor: ["拿不到合规地址证明的人——建议先开不需要地址证明的卡（KAST / Bybit / SAVO）"],
-      pros: ["实体卡 + 虚拟卡都有", "绑定欧洲 IBAN 账户", "USDT 入金实测快速"],
-      cons: ["邀请码数量有限，难拿", "地址证明要求银行流水类文件，是最难的一步", "地区可用性会变"],
-      risks: ["TODO: 风控/冻结/跑路风险未实测核实——发布前必须补真实来源，不要凭印象写"],
-      updatedAt: "2026-07",
-    },
-    tutorial: {
-      prerequisites: ["邀请码（数量有限）", "护照", "真实可取得的香港银行流水类地址证明"],
-      steps: [
+    traits: { physicalCard: true, applePay: null, googlePay: null },
+    detail: {
+      summary: "Visa 借记卡 + 欧洲 IBAN 账户，但邀请码和地址证明是两道真门槛。",
+      notice: "需要邀请码才能注册且数量有限——可关注 X @zynqorw 蹲邀请码",
+      facts: {
+        cashback: { status: "pending" },
+        annualFee: { status: "pending" },
+        kyc: { status: "verified", value: "完整（证件 + 地址证明）" }, // 需护照 + 香港地址 + 银行流水类地址证明
+        region: {
+          status: "partial",
+          value: "注册地区选香港（教程实测路径）",
+          note: "已知的是教程实测走香港注册路径，不代表完整支持地区列表",
+        },
+        topUp: { status: "verified", value: "USDT" }, // 教程原文：我用 USDT 测试，快速且丝滑
+        custody: { status: "pending" },
+      },
+      decision: {
+        suitableFor: ["拿得到邀请码，且有真实可取得的香港银行流水"],
+        notSuitableFor: ["拿不到合规地址证明的人——建议先开不需要地址证明的卡（KAST / Bybit / SAVO）"],
+        pros: ["实体卡 + 虚拟卡都有", "绑定欧洲 IBAN 账户", "USDT 入金实测快速"],
+        cons: ["邀请码数量有限，难拿", "地址证明要求银行流水类文件，是最难的一步", "地区可用性会变"],
+      },
+      tutorial: [
         {
           title: "拿到邀请码",
           body: "注册必须有邀请码，且数量有限。可以直接向 Grok 要邀请码——AI 检索比你快得多，每次给的几个码可能都无效，多试几次就行。",
@@ -342,7 +389,10 @@ export const cards: CryptoCard[] = [
         },
         { title: "入金", body: "开卡成功后入金很快，作者用 USDT 实测，快速且丝滑，日常使用没问题。" },
       ],
+      faq: null,
+      risk: ["TODO: 风控/冻结/跑路风险未实测核实——发布前必须补真实来源，不要凭印象写"],
       guide: { href: "/decider/guide/plasma-one", free: true },
+      lastVerified: "2026-07",
     },
   },
 
@@ -351,7 +401,7 @@ export const cards: CryptoCard[] = [
    *
    * 每一条的 issuer / tier / badges 都来自卡面图片的肉眼读取，未经核实；
    * 渐变色是按卡面主色**自行设计的装饰**，不是品牌资产、不是官方配色规范。
-   * 详情三块一律 null（faceOnly 钉死），详见文件头 TODO 区。
+   * detail 一律是 faceOnly 钉死的骨架（facts 六项全 pending），详见文件头 TODO 区。
    * ══════════════════════════════════════════════════════════════ */
 
   faceOnly({ slug: "krak", name: "Krak", issuer: "Mastercard", badges: ["VIRTUAL", "world elite debit"], faceStyle: radial("#FF3B24", "#A8180A", 28, 74) }),
@@ -410,10 +460,10 @@ export const cards: CryptoCard[] = [
   faceOnly({ slug: "moto", name: "Moto", issuer: "Visa", faceStyle: radial("#2A2726", "#070606", 34, 26) }),
 ];
 
-/** 区块头用：全部卡片里最新的核对时间。只有卡面的条目没有核对时间，跳过 */
+/** 区块头用：全部卡片里最新的人工核对时间。骨架卡的 lastVerified 是 null，跳过 */
 export function maxUpdatedAt(list: CryptoCard[] = cards): string {
   return list.reduce((max, c) => {
-    const at = c.decision?.updatedAt;
+    const at = c.detail.lastVerified;
     return at && at > max ? at : max;
   }, "");
 }
