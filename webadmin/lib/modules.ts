@@ -53,6 +53,14 @@ export const MODULES: SiteModule[] = [
     status: "active",
   },
   {
+    id: "packager",
+    name: "教程装配台",
+    tagline: "正文 + 截图 → 封面/目录/购买者水印的成品，导出 PDF 或单文件 HTML——教程的变现出口",
+    href: "/packager",
+    emoji: "📦",
+    status: "active",
+  },
+  {
     id: "cards",
     name: "加密卡片",
     tagline: "加密支付卡陈列：卡面 → 开户决策（该不该办、适合谁）→ 申请教程，邀请码一键复制",
