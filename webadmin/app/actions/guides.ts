@@ -3,11 +3,36 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/adminAuth";
+import {
+  getReferral,
+  isActive,
+  REFERRAL_CATEGORIES,
+  type ReferralCategory,
+} from "@/data/referrals";
+import { referencedReferralIds } from "@/lib/guideBlocks";
 import { getGuideById, normalizeSlug, type Guide } from "@/lib/guides";
 import { removeGuideImages, uploadGuideImage } from "@/lib/guideImages";
 import { db } from "@/lib/supabase";
 import { countUnfilledSlots, parseThread, toMarkdown } from "@/lib/xthread";
 import type { ActionResult } from "./runs";
+
+const CATEGORY_IDS = new Set<string>(REFERRAL_CATEGORIES.map((c) => c.id));
+
+/** 表单来的品类：非法值一律当"未归类"，不写脏数据进库 */
+function parseCategory(v: FormDataEntryValue | null): ReferralCategory | null {
+  const s = String(v ?? "").trim();
+  return CATEGORY_IDS.has(s) ? (s as ReferralCategory) : null;
+}
+
+/** 表单来的返佣 id 多选：只留注册表里真实存在的，顺带去重保序 */
+function parseReferralIds(values: FormDataEntryValue[]): string[] {
+  const out: string[] = [];
+  for (const v of values) {
+    const id = String(v).trim();
+    if (id && getReferral(id) && !out.includes(id)) out.push(id);
+  }
+  return out;
+}
 
 /** 摘要：正文首个非标题、非图片段落 */
 function summarize(md: string, limit = 120): string {
@@ -74,6 +99,8 @@ export async function saveGuide(id: string, formData: FormData): Promise<ActionR
     const summary = String(formData.get("summary") ?? "").trim();
     const verified = String(formData.get("verified_at") ?? "").trim();
     const cover = String(formData.get("cover_url") ?? "").trim();
+    const category = parseCategory(formData.get("category"));
+    const referral_ids = parseReferralIds(formData.getAll("referral_ids"));
     if (!title) return { error: "标题不能为空" };
     if (!content_md.trim()) return { error: "正文不能为空" };
 
@@ -85,6 +112,8 @@ export async function saveGuide(id: string, formData: FormData): Promise<ActionR
         summary: summary || summarize(content_md),
         verified_at: verified || null,
         cover_url: cover || null,
+        category,
+        referral_ids,
         updated_at: new Date().toISOString(),
       })
       .eq("id", id);
@@ -147,8 +176,12 @@ export async function uploadImage(
 }
 
 /**
- * 发布到公开层。闸门：残留的配图占位一律拦住——
- * 占位在页面上会渲染成裂图，比没有图更难看，而且发出去才发现就晚了。
+ * 发布到公开层。三道闸门，都是"发出去才发现就晚了"的那类问题：
+ * 1. 残留的配图占位 —— 页面上会渲染成裂图，比没有图更难看。
+ * 2. 写错的返佣 id —— 渲染层是静默跳过的（对访客报错没意义），
+ *    所以拼错一个字母的后果是那个位悄无声息地消失，只有这里能抓到。
+ * 3. 引用了还没填链接的占位条目（如注册表里 url 为空的 RackNerd）——
+ *    上站了也不会渲染，等于白挂一个位，不如现在就告诉你去填链接。
  */
 export async function publishGuide(id: string): Promise<ActionResult> {
   await requireAdmin();
@@ -158,6 +191,23 @@ export async function publishGuide(id: string): Promise<ActionResult> {
     const unfilled = countUnfilledSlots(guide.content_md);
     if (unfilled > 0) {
       return { error: `还有 ${unfilled} 个配图位没填——上传图片，或把那几行 ![配图 N](IMG_N) 删掉` };
+    }
+
+    const referenced = [...new Set([...referencedReferralIds(guide.content_md), ...guide.referral_ids])];
+    const unknown = referenced.filter((rid) => !getReferral(rid));
+    if (unknown.length > 0) {
+      return {
+        error: `返佣 id 不存在：${unknown.join("、")}——检查拼写，或先去 data/referrals.ts 加这个产品`,
+      };
+    }
+    const empty = referenced.filter((rid) => {
+      const r = getReferral(rid);
+      return r !== undefined && !isActive(r);
+    });
+    if (empty.length > 0) {
+      return {
+        error: `${empty.join("、")} 还没填返佣链接/邀请码，上站也不会渲染——去 data/referrals.ts 补上 url 再发`,
+      };
     }
 
     const { error } = await db()

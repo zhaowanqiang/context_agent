@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import GuideGrid, { type GuideCard } from "@/components/guides/GuideGrid";
 import { formatVerified, listGuides, type Guide } from "@/lib/guides";
 
 // ISR：与 /posts 同策略（公网门面 60s 再验证，本机因 layout 读 cookie 退回逐请求）
@@ -42,46 +43,30 @@ export default async function GuidesPage() {
       {guides.length === 0 ? (
         <p className="mt-16 text-center text-[13.5px] text-neutral-400">教程正在整理中。</p>
       ) : (
-        <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {guides.map((g) => (
-            <li key={g.id} className="flex">
-              <Link
-                href={`/guides/${g.slug}`}
-                className="group flex flex-1 flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white transition hover:border-amber-300 hover:shadow-[0_1px_16px_rgba(180,83,9,0.07)]"
-              >
-                {g.cover_url && (
-                  // 封面走 <img>：图片托在 Supabase 公开桶，域名随项目变，
-                  // 用 next/image 还要在 next.config 里维护 remotePatterns 白名单
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={g.cover_url}
-                    alt=""
-                    className="h-36 w-full border-b border-neutral-200 object-cover"
-                  />
-                )}
-                <div className="flex flex-1 flex-col p-5">
-                  <h2 className="text-[16px] font-semibold leading-snug text-neutral-900 transition group-hover:text-amber-700">
-                    {g.title}
-                  </h2>
-                  {g.summary && (
-                    <p className="mt-2 line-clamp-3 flex-1 text-[13px] leading-relaxed text-neutral-500">
-                      {g.summary}
-                    </p>
-                  )}
-                  <p className="mt-4 flex items-baseline justify-between text-[12.5px]">
-                    <span className="font-medium text-amber-700">
-                      看教程 <span className="inline-block transition group-hover:translate-x-0.5">→</span>
-                    </span>
-                    {g.verified_at && (
-                      <span className="text-neutral-400">{formatVerified(g.verified_at)}</span>
-                    )}
-                  </p>
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <>
+          <GuideGrid guides={guides.map(toCard)} />
+          {/* 教程读完想直接开通的走这里；返佣披露挂在 /deals 页上 */}
+          <p className="mt-10 text-center text-[12.5px] text-neutral-400">
+            只想拿开通链接和邀请码？
+            <Link href="/deals" className="ml-1 font-medium text-amber-700 hover:underline">
+              看全部推荐 →
+            </Link>
+          </p>
+        </>
       )}
     </div>
   );
+}
+
+/** Guide → 列表卡片：content_md 这类大字段不下发到客户端 */
+function toCard(g: Guide): GuideCard {
+  return {
+    id: g.id,
+    slug: g.slug,
+    title: g.title,
+    summary: g.summary,
+    coverUrl: g.cover_url,
+    verifiedLabel: g.verified_at ? formatVerified(g.verified_at) : null,
+    category: g.category,
+  };
 }

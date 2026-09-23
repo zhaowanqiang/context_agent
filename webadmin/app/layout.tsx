@@ -30,6 +30,8 @@ const PUBLIC_NAV = [
   { label: "文章", href: "/posts" },
   { label: "教程", href: "/guides" },
   { label: "加密卡片", href: "/cards" },
+  // 返佣汇总：已经被教程说服、只想拿链接的人此前得回教程里翻，给个直达入口
+  { label: "我在用的", href: "/deals" },
   { label: "此刻", href: "/now" },
   // decider 是站内公开路由（不是外链，不加 external），排在「关于」前：
   // 访客从任何一页都能回到产品，此前只有首页卡片一个入口

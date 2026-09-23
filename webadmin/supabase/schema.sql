@@ -252,3 +252,48 @@ create table events (
 create index on events (type, created_at desc);
 create index on events (created_at desc);
 alter table events enable row level security;
+
+-- ============================================================
+-- 增量（2026-08-04）：教程库补建 + 品类 + 返佣位。
+--
+-- ⚠️ 这一段是幂等的，直接整段贴进 SQL Editor 跑一次即可，跑过也不会报错。
+--
+-- 背景：上面 2026-07-28 那段「公开层教程库」在生产库里**从来没执行过**
+-- （2026-08-04 查库发现 guides 表不存在，而更晚的 events 段反倒跑过了）。
+-- 后果是 /guides 一直是空页、/import 一存就报错，X 上发过的教程一篇没上站。
+-- 所以这里用 if not exists 重新建一遍，顺带把新字段一起加上——
+-- 已建库和没建库的都跑这一段就行，不用去分辨自己漏了哪一段。
+-- ============================================================
+
+create table if not exists guides (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique,
+  title text not null,
+  summary text,
+  content_md text not null,
+  source_url text,
+  cover_url text,
+  verified_at date,
+  status text not null default 'draft',
+  published_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists guides_status_published_idx on guides (status, published_at desc);
+alter table guides enable row level security;
+
+-- 品类：account / server / esim / ai，与 data/referrals.ts 的 REFERRAL_CATEGORIES 对应。
+-- 不加 check 约束：品类是产品决策，加一个品类不该还要来跑一次 DDL；
+-- 值域由 TS 侧 ReferralCategory 把关，非法值在列表页只表现为"筛不出来"。
+alter table guides add column if not exists category text;
+
+-- 文末主推的返佣产品 id 数组（对应 data/referrals.ts 的 REFERRALS[].id）。
+-- 为什么不建外键表：返佣产品是代码里的静态数据（要被客户端 import），
+-- 不在库里，建不了外键；引用有效性由发布闸门在上站前校验。
+alter table guides add column if not exists referral_ids text[] not null default '{}';
+
+-- 教程配图的公开存储桶。X 图片必须转存：pbs.twimg.com 是 X 的 CDN，
+-- 删推或防盗链一开，站上的图就全空了。
+insert into storage.buckets (id, name, public)
+values ('guide-images', 'guide-images', true)
+on conflict (id) do nothing;

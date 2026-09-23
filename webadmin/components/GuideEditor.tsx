@@ -9,6 +9,8 @@ import {
   unpublishGuide,
   uploadImage,
 } from "@/app/actions/guides";
+import { isActive, REFERRAL_CATEGORIES, REFERRALS } from "@/data/referrals";
+import { referencedReferralIds } from "@/lib/guideBlocks";
 import type { Guide } from "@/lib/guides";
 import { IMAGE_SLOT_PREFIX } from "@/lib/xthread";
 
@@ -29,8 +31,24 @@ export default function GuideEditor({ guide }: { guide: Guide }) {
   const [pending, setPending] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const [slot, setSlot] = useState("");
+  const mdRef = useRef<HTMLTextAreaElement>(null);
 
   const slots = unfilledSlots(md);
+  // 正文里已内嵌的返佣位：拿来给出"文末别再挂一遍"的提示，和详情页去重逻辑对齐
+  const inlined = referencedReferralIds(md);
+
+  /** 在光标处插入返佣标记。手打 ::referral{id=x} 很容易把大括号或 id 打错，
+   *  而打错的后果是那个位在页面上静默消失——所以给按钮，不让人手打。 */
+  function insertReferral(id: string) {
+    const ta = mdRef.current;
+    const marker = `\n\n::referral{id=${id}}\n\n`;
+    if (!ta) {
+      setMd((cur) => `${cur}${marker}`);
+      return;
+    }
+    const at = ta.selectionStart ?? md.length;
+    setMd((cur) => `${cur.slice(0, at)}${marker}${cur.slice(at)}`);
+  }
 
   async function run(fn: () => Promise<{ error?: string; message?: string }>) {
     setPending(true);
@@ -111,9 +129,71 @@ export default function GuideEditor({ guide }: { guide: Guide }) {
           <input name="cover_url" defaultValue={guide.cover_url ?? ""} className={`mt-1 ${input}`} />
         </label>
 
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block">
+            <span className="text-[12px] font-medium text-neutral-600">
+              品类 <span className="font-normal text-neutral-400">· /guides 列表按它筛选</span>
+            </span>
+            <select
+              name="category"
+              defaultValue={guide.category ?? ""}
+              className={`mt-1 ${input}`}
+            >
+              <option value="">未归类</option>
+              {REFERRAL_CATEGORIES.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <fieldset>
+          <legend className="text-[12px] font-medium text-neutral-600">
+            文末主推的返佣位{" "}
+            <span className="font-normal text-neutral-400">· 整篇读完该开哪个，可多选</span>
+          </legend>
+          <div className="mt-1.5 grid gap-1.5 sm:grid-cols-2">
+            {REFERRALS.map((r) => {
+              const live = isActive(r);
+              const dupe = inlined.includes(r.id);
+              return (
+                <label
+                  key={r.id}
+                  className={`flex items-start gap-2 rounded-md border px-2.5 py-1.5 text-[12.5px] ${
+                    live ? "border-neutral-200" : "border-neutral-200 bg-neutral-50 opacity-60"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    name="referral_ids"
+                    value={r.id}
+                    defaultChecked={guide.referral_ids.includes(r.id)}
+                    className="mt-0.5 accent-amber-700"
+                  />
+                  <span className="min-w-0">
+                    <span className="text-neutral-800">
+                      {r.emoji} {r.name}
+                    </span>
+                    {!live && (
+                      // 注册表里 url/code 都空的占位条目：勾了也不会渲染，发布闸门会拦
+                      <span className="ml-1 text-[11px] text-red-700">链接未填</span>
+                    )}
+                    {dupe && (
+                      <span className="ml-1 text-[11px] text-neutral-400">正文已内嵌</span>
+                    )}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
+
         <label className="block">
           <span className="text-[12px] font-medium text-neutral-600">正文 markdown</span>
           <textarea
+            ref={mdRef}
             name="content_md"
             required
             rows={20}
@@ -122,6 +202,29 @@ export default function GuideEditor({ guide }: { guide: Guide }) {
             className={`mt-1 ${input} font-mono leading-relaxed`}
           />
         </label>
+
+        <div className="rounded-md border border-amber-200/70 bg-amber-50/50 px-3 py-2.5">
+          <p className="text-[12px] text-neutral-600">
+            在正文光标处插入返佣卡片（渲染成
+            <code className="mx-1 rounded bg-white px-1">::referral&#123;id=…&#125;</code>
+            标记，读到关键那一步时正好看见）：
+          </p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {REFERRALS.map((r) => (
+              <button
+                key={r.id}
+                type="button"
+                onClick={() => insertReferral(r.id)}
+                className="rounded-md border border-neutral-300 bg-white px-2 py-1 text-[12px] text-neutral-700 transition hover:border-amber-300 hover:bg-amber-50"
+              >
+                {r.emoji} {r.name}
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-[11.5px] text-neutral-400">
+            插入只改了本地正文框，记得点「保存」。
+          </p>
+        </div>
 
         <button
           type="submit"

@@ -1,8 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { formatVerified, getGuideBySlug } from "@/lib/guides";
-import { renderMarkdown } from "@/lib/markdown";
+import GuideBody from "@/components/referral/GuideBody";
+import ReferralCard from "@/components/referral/ReferralCard";
+import {
+  getReferral,
+  isActive,
+  REFERRAL_DISCLOSURE,
+  withLiveGuide,
+  type Referral,
+} from "@/data/referrals";
+import { referencedReferralIds } from "@/lib/guideBlocks";
+import { formatVerified, getGuideBySlug, publishedGuideSlugs } from "@/lib/guides";
 import { SITE, siteUrl } from "@/lib/site";
 
 export const revalidate = 60;
@@ -36,6 +45,21 @@ export default async function GuidePage({ params }: Props) {
   const guide = await getGuideBySlug(slug).catch(() => null);
   if (!guide || guide.status !== "published") notFound();
 
+  // 文末主推位。去掉正文里已经内嵌过的——同一张卡上下出现两遍，
+  // 观感像模板出了 bug，转化也不会因为重复而变高。
+  const inlined = new Set(referencedReferralIds(guide.content_md));
+  const footer = guide.referral_ids
+    .filter((id) => !inlined.has(id))
+    .map(getReferral)
+    .filter((r): r is Referral => r !== undefined && isActive(r));
+  const live = footer.length > 0 ? await publishedGuideSlugs() : new Set<string>();
+
+  // 披露只在真有返佣位时出——没有返佣的教程挂一句"本页含返佣链接"是假的
+  const hasReferral = footer.length > 0 || [...inlined].some((id) => {
+    const r = getReferral(id);
+    return r !== undefined && isActive(r);
+  });
+
   return (
     <article className="mx-auto max-w-2xl py-10">
       <Link href="/guides" className="text-[12.5px] text-neutral-400 transition hover:text-amber-700">
@@ -57,10 +81,30 @@ export default async function GuidePage({ params }: Props) {
         )}
       </div>
 
-      <div
-        className="md-body md-article mt-9 border-t border-neutral-200 pt-9"
-        dangerouslySetInnerHTML={{ __html: renderMarkdown(guide.content_md) }}
-      />
+      {/* 正文里的 ::referral{} 标记会渲染成返佣卡，所以不能走
+          dangerouslySetInnerHTML 一把梭——卡片带 onClick 埋点，是组件不是 HTML */}
+      <div className="mt-9 border-t border-neutral-200 pt-9">
+        <GuideBody markdown={guide.content_md} />
+      </div>
+
+      {footer.length > 0 && (
+        <section className="mt-12">
+          <h2 className="text-[13px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
+            照着这篇开通
+          </h2>
+          <div className="mt-2">
+            {footer.map((r) => (
+              <ReferralCard key={r.id} referral={withLiveGuide(r, live)} from="guide_footer" />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {hasReferral && (
+        <p className="mt-6 rounded-lg bg-neutral-100/70 px-4 py-3 text-[12px] leading-relaxed text-neutral-500">
+          {REFERRAL_DISCLOSURE}
+        </p>
+      )}
 
       {/* 文末转化：免费教程的去处是 decider 的付费深度版 */}
       <Link

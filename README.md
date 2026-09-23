@@ -4,13 +4,20 @@
 
 ## 个人网站公开层
 
-webadmin 同时是对外的个人网站：首页名片、`/posts` 文章存档、`/about` 关于页、
-`/rss.xml` `/sitemap.xml` `/robots.txt` 对访客开放（无需登录）；
-`/agent` `/monitor` 等工作台路由照旧访问码上锁（`webadmin/proxy.ts` 白名单分层）。
+webadmin 同时是对外的个人网站：首页名片、`/posts` 文章存档、`/guides` 教程库、
+`/deals` 返佣汇总、`/about` 关于页、`/rss.xml` `/sitemap.xml` `/robots.txt`
+对访客开放（无需登录）；`/agent` `/monitor` `/import` 等工作台路由照旧访问码上锁
+（`webadmin/proxy.ts` 白名单分层）。
 
 - **内容回流**：run 标记发布后，详情页点「回流到个人站」→ 终稿上架 `/posts/<slug>`（可下架）
+- **教程库**：X 上发过的教程线程 → `/import` 拆条成分步 markdown → 补图 → 上架 `/guides/<slug>`。
+  存量批量导入：`node webadmin/scripts/import-x-threads.mjs --apply`（先不带参数预览）
+- **返佣位**：产品定义在 `webadmin/data/referrals.ts`（单一事实来源）。教程正文里写
+  `::referral{id=xxx}` 插内嵌卡，后台勾选挂文末卡，`/deals` 自动汇总。
+  链接为空的条目不会公开渲染，发布闸门也会拦住引用它的教程。
+  所有返佣位都带 `rel="sponsored"` 和 `referral_click` 埋点（按位置区分来源）
 - **建表**：已建库的在 Supabase SQL Editor 执行 `webadmin/supabase/schema.sql` 末尾
-  「个人网站公开层」增量段（`posts` 表）
+  「增量（2026-08-04）」整段（幂等，含 `posts` 之外的 `guides` 表、品类与返佣字段、配图桶）
 - **部署公网后**：`.env.local` 设 `SITE_URL=https://你的域名`（canonical/OG/RSS/sitemap 引用它）
 
 - **X 轨道**：跨境金融 / 加密支付卡实测 → @zynqorw 风格干货帖
