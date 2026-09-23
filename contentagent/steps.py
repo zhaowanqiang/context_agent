@@ -61,11 +61,11 @@ def _parse_json(step: str, text: str):
     try:
         return json.loads(text)
     except json.JSONDecodeError:
-        stripped = text.strip()
-        if stripped.startswith("```"):
-            stripped = stripped.split("\n", 1)[-1].rsplit("```", 1)[0]
+        # 围栏前后常夹一句「以下是结果：」之类的话，按围栏位置取，不要求顶格
+        m = re.search(r"```[a-zA-Z]*\n(.*?)```", text, re.S)
+        if m:
             try:
-                return json.loads(stripped)
+                return json.loads(m.group(1))
             except json.JSONDecodeError:
                 pass
         raise LLMAPIError(f"[{step}] 模型输出不是合法 JSON：{text[:200]}")
@@ -88,7 +88,11 @@ def review_draft(track_id: str, draft: str) -> tuple[dict, llm.LLMCall]:
         raise LLMAPIError(f"[review_draft] 输出缺少 score 字段：{c.response[:200]}")
     review.setdefault("problems", [])
     review.setdefault("better_title", None)
-    review["score"] = float(review["score"])
+    try:
+        review["score"] = float(review["score"])
+    except (TypeError, ValueError):
+        # 裸 ValueError 不是 ContentAgentError，会绕过 server 的异常映射变成无信息的 500
+        raise LLMAPIError(f"[review_draft] score 不是数字：{review['score']!r}")
     return review, c
 
 
@@ -108,7 +112,11 @@ def score_topics(track_id: str, items: list[dict],
     )
     # 英文候选（Reddit/HN）标题摘要长、angle/reason 要中文，输出预算给足
     c = llm.call("score_topics", prompt, config.GATE_MODEL, 5000)
-    return _parse_json(("score_topics"), c.response), c
+    scores = _parse_json("score_topics", c.response)
+    if not isinstance(scores, list):
+        from .errors import LLMAPIError
+        raise LLMAPIError(f"[score_topics] 输出应为数组：{c.response[:200]}")
+    return scores, c
 
 
 def generate_briefing(

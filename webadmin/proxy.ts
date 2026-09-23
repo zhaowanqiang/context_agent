@@ -86,7 +86,8 @@ export const config = {
   // 排除：公开层路由（含根路径，用 $ 精确匹配避免误放行 /agent 等）、
   // 监控推送 API（token 鉴权）、Next 静态资源、favicon。
   // /login 不排除——由 proxy 代码处理（门面模式要能把它 404 掉）
+  // 公开段必须带 (?:/|$) 边界：裸前缀会把 /nowhere、/postsadmin 这类将来的私有路由一起放行
   matcher: [
-    "/((?!$|posts|about|now|decider|guides|cards|opengraph-image|rss\\.xml|sitemap\\.xml|robots\\.txt|api/monitor|api/track|api/checkout|api/webhooks|_next/static|_next/image|favicon\\.ico).*)",
+    "/((?!$|(?:posts|about|now|decider|guides|cards)(?:/|$)|opengraph-image|rss\\.xml|sitemap\\.xml|robots\\.txt|api/monitor|api/track|api/checkout|api/webhooks|_next/static|_next/image|favicon\\.ico).*)",
   ],
 };
