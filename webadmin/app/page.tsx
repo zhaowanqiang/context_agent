@@ -194,7 +194,7 @@ async function pendingTotal(): Promise<number | null> {
 /** 区块小标题：等宽大写字母 + 字距，全站统一 */
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="font-mono text-[11.5px] font-semibold uppercase tracking-[0.18em] text-amber-700/80">
+    <p className="font-mono text-[11.5px] font-semibold uppercase tracking-[0.18em] text-amber-700">
       {children}
     </p>
   );
@@ -285,8 +285,8 @@ export default async function Home() {
               <span className="size-2 rounded-full bg-neutral-300" />
               <span className="size-2 rounded-full bg-neutral-300" />
             </span>
-            <span className="font-mono text-[11.5px] text-neutral-400">~/{SITE.name}</span>
-            <span className="ml-auto flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-wider text-neutral-400">
+            <span className="font-mono text-[11.5px] text-neutral-500">~/{SITE.name}</span>
+            <span className="ml-auto flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-wider text-neutral-500">
               <span className="size-1.5 rounded-full bg-amber-500 motion-safe:animate-pulse" aria-hidden />
               live
             </span>
@@ -302,7 +302,7 @@ export default async function Home() {
               ["channel", "X + Telegram 交流群"],
             ].map(([k, v]) => (
               <div key={k} className="flex gap-3 bg-white px-4 py-2.5">
-                <dt className="w-[54px] shrink-0 font-mono text-[11px] text-neutral-400">{k}</dt>
+                <dt className="w-[54px] shrink-0 font-mono text-[11px] text-neutral-500">{k}</dt>
                 <dd className="min-w-0 text-neutral-700">{v}</dd>
               </div>
             ))}
