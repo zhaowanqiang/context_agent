@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 /**
  * 访问码鉴权（分层）：cookie 里存 SHA-256(ADMIN_ACCESS_CODE)，比对不上就去 /login。
- * - 公开层（个人网站门面）：首页、/posts、/now、/about、/decider、/guides、/cards、/deals、RSS/sitemap/robots
+ * - 公开层（个人网站门面）：首页、/posts、/about、/decider、/guides、/cards、/deals、RSS/sitemap/robots
  *   —— matcher 直接放行，首页的工作台区块由 lib/adminAuth.ts 在渲染时按登录态增减
  * - 私有层（工作台）：/agent、/monitor、/import 及其余一切照旧拦截。
  *   注意 /guides 是公开阅读层，写它的导入器在 /import——两者分开路由，
@@ -88,6 +88,6 @@ export const config = {
   // /login 不排除——由 proxy 代码处理（门面模式要能把它 404 掉）
   // 公开段必须带 (?:/|$) 边界：裸前缀会把 /nowhere、/postsadmin 这类将来的私有路由一起放行
   matcher: [
-    "/((?!$|(?:posts|about|now|decider|guides|cards|deals)(?:/|$)|opengraph-image|rss\\.xml|sitemap\\.xml|robots\\.txt|api/monitor|api/track|api/checkout|api/webhooks|_next/static|_next/image|favicon\\.ico).*)",
+    "/((?!$|(?:posts|about|decider|guides|cards|deals)(?:/|$)|opengraph-image|rss\\.xml|sitemap\\.xml|robots\\.txt|api/monitor|api/track|api/checkout|api/webhooks|_next/static|_next/image|favicon\\.ico).*)",
   ],
 };

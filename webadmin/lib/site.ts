@@ -1,12 +1,18 @@
-/** 个人网站公开层的站点常量：metadata / RSS / sitemap 共用一份。 */
+/** 个人网站公开层的站点常量：metadata / sitemap / 首页 / 页脚共用一份。 */
+
+/** 两个阵地：教程与实测发在 X，交流群里发关键词由机器人回教程链接 */
+export const X_URL = "https://x.com/zynqorw";
+export const TG_GROUP_URL = "https://t.me/x_zynqorw";
+export const TG_BOT = "@zynqorw_bot";
 
 export const SITE = {
   name: "zynqorw",
   author: "zynqorw",
-  description: "全栈开发者 zynqorw：跨境金融与加密支付卡实测、AI 工具与效率实测——AI 起草，事实闸门把关，人工核对后发布。",
+  description:
+    "zynqorw：跨境金融、加密支付卡、海外手机号的实测教程，发在 X @zynqorw；加入 Telegram 交流群，发关键词直接拿教程。",
   links: [
     { label: "GitHub", href: "https://github.com/zhaowanqiang" },
-    { label: "X @zynqorw", href: "https://x.com/zynqorw" },
+    { label: "X @zynqorw", href: X_URL },
   ],
 } as const;
 

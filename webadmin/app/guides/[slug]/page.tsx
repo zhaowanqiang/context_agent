@@ -62,7 +62,7 @@ export default async function GuidePage({ params }: Props) {
 
   return (
     <article className="mx-auto max-w-2xl py-10">
-      <Link href="/guides" className="text-[12.5px] text-neutral-400 transition hover:text-amber-700">
+      <Link href="/decider" className="text-[12.5px] text-neutral-500 transition hover:text-amber-700">
         ← 全部教程
       </Link>
       <h1 className="mt-5 text-[27px] font-bold leading-[1.45] tracking-tight text-neutral-900 sm:text-[30px]">

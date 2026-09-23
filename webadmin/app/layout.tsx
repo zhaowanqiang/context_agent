@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Analytics } from "@vercel/analytics/next";
 import { isAdminAuthed } from "@/lib/adminAuth";
 import { MODULES } from "@/lib/modules";
-import { SITE, siteUrl } from "@/lib/site";
+import { SITE, siteUrl, TG_GROUP_URL, X_URL } from "@/lib/site";
 import NavLinks from "@/components/NavLinks";
 import "./globals.css";
 
@@ -25,18 +24,22 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image", creator: "@zynqorw" },
 };
 
-/** 公开访客永远可见的导航 */
+/** 公开访客永远可见的导航。/deals（我在用的）不进主导航，入口在页脚 */
 const PUBLIC_NAV = [
-  { label: "文章", href: "/posts" },
-  { label: "教程", href: "/guides" },
+  { label: "X 文章", href: "/on-x" },
   { label: "加密卡片", href: "/cards" },
-  // 返佣汇总：已经被教程说服、只想拿链接的人此前得回教程里翻，给个直达入口
-  { label: "我在用的", href: "/deals" },
-  { label: "此刻", href: "/now" },
+  { label: "海外手机号", href: "/numbers" },
   // decider 是站内公开路由（不是外链，不加 external），排在「关于」前：
   // 访客从任何一页都能回到产品，此前只有首页卡片一个入口
   { label: "开户决策", href: "/decider" },
   { label: "关于", href: "/about" },
+];
+
+/** 页脚外链：两个阵地 + GitHub */
+const FOOTER_LINKS = [
+  { label: "X @zynqorw", href: X_URL },
+  { label: "TG 交流群", href: TG_GROUP_URL },
+  { label: "GitHub", href: "https://github.com/zhaowanqiang" },
 ];
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -51,7 +54,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="zh-CN">
       <body className="flex min-h-screen flex-col bg-neutral-50 text-neutral-800 antialiased">
         <header className="sticky top-0 z-40 border-b border-neutral-200/70 bg-neutral-50/90 backdrop-blur">
-          <nav className={`mx-auto flex ${container} items-center gap-7 px-4 py-3.5`}>
+          {/* 窄屏允许换行：链接 + 入群按钮在手机上一行放不下，body 的 overflow-x: clip 会直接裁掉 */}
+          <nav className={`mx-auto flex ${container} flex-wrap items-center gap-x-7 gap-y-2 px-4 py-3.5`}>
             <Link
               href="/"
               className="font-display flex items-baseline gap-0.5 text-[17px] font-bold tracking-tight hover:text-neutral-600"
@@ -60,8 +64,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <span className="text-amber-500" aria-hidden>.</span>
             </Link>
             {/* 左组=公开导航；右组=工作台导航（登录后），语义分区不混排 */}
-            <div className="flex flex-1 items-center gap-6 text-sm">
+            {/* 手机上链接组单独占满一行排在最后（logo 与登录入口留在第一行），sm 起回到行内 */}
+            <div className="order-last flex basis-full flex-wrap items-center gap-x-5 gap-y-1.5 text-sm sm:order-none sm:flex-1 sm:basis-auto sm:gap-x-6">
               <NavLinks items={PUBLIC_NAV} />
+              <a
+                href={TG_GROUP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-md bg-amber-700 px-3 py-1 text-[13px] font-medium text-white transition hover:bg-amber-800"
+              >
+                加入交流群 ↗
+              </a>
             </div>
             {authed ? (
               <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
@@ -80,7 +93,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             ) : process.env.PUBLIC_FACADE === "1" ? null : (
               <Link
                 href="/login"
-                className="text-[12px] text-neutral-400 transition-colors hover:text-neutral-700"
+                className="ml-auto text-[12px] text-neutral-500 transition-colors hover:text-neutral-800"
               >
                 工作台登录
               </Link>
@@ -95,25 +108,29 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 <span className="font-display text-[15px] font-bold tracking-tight text-neutral-700">
                   {SITE.name}<span className="text-amber-500">.</span>
                 </span>
-                <p className="mt-1.5 text-[12px] leading-relaxed text-neutral-400">
-                  实测为本，AI 起草，人工把关 · © {new Date().getFullYear()}
+                <p className="mt-1.5 text-[12px] leading-relaxed text-neutral-500">
+                  跨境金融 · 加密卡 · 海外手机号实测 · © {new Date().getFullYear()}
                 </p>
               </div>
-              <div className="flex gap-5 text-[13px] text-neutral-500">
-                {SITE.links.map((l) => (
-                  <a key={l.href} href={l.href} target="_blank" rel="noreferrer" className="transition-colors hover:text-neutral-900">
-                    {l.label}
+              <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-[13px] text-neutral-500">
+                <Link href="/deals" className="transition-colors hover:text-neutral-900">
+                  我在用的
+                </Link>
+                {FOOTER_LINKS.map((l) => (
+                  <a
+                    key={l.href}
+                    href={l.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="transition-colors hover:text-neutral-900"
+                  >
+                    {l.label} ↗
                   </a>
                 ))}
-                <a href="/rss.xml" className="transition-colors hover:text-neutral-900">
-                  RSS
-                </a>
               </div>
             </div>
           </div>
         </footer>
-        {/* Vercel Web Analytics：只在 Vercel 部署实例生效，本机是空操作 */}
-        <Analytics />
       </body>
     </html>
   );

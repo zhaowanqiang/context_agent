@@ -1,8 +1,10 @@
 import Link from "next/link";
+import TgGroupSection from "@/components/TgGroupSection";
+import { cards } from "@/data/crypto-cards";
+import { latestXArticle, shortDate } from "@/data/x-articles";
 import { isAdminAuthed } from "@/lib/adminAuth";
 import { MODULES } from "@/lib/modules";
-import { listPosts, type Post } from "@/lib/posts";
-import { SITE } from "@/lib/site";
+import { SITE, TG_GROUP_URL, X_URL } from "@/lib/site";
 import { db } from "@/lib/supabase";
 
 // ISR：公网门面实例 60s 再验证（isAdminAuthed 在门面模式下不碰 cookie，可静态化）；
@@ -14,12 +16,13 @@ export const revalidate = 60;
    对外门面和对内工具在页面级分离，互不挡路。
 
    版式：门面从「一条 42rem 窄栏」改成「Hero/长文收窄 + 卡片区撑满 5xl 网格」，
-   访客动线 = 我是谁 → 我能帮你什么 → 我在做什么 → 我写了什么 → 怎么找我。 */
+   访客动线 = 我是谁（关注 X / 入群）→ 入群能拿到什么 → 我能帮你什么 → 我在做什么 → 怎么找我。 */
 
 const CONTACT_EMAIL = "zynqorw@gmail.com";
 
-/** 「我能帮你什么」三张卡：痛点 → 交付 → 证据 → 去处，四段式固定结构 */
-interface Service {
+/** 「我能帮你什么」三张卡：痛点 → 交付 → 证据 → 去处，四段式固定结构。
+ *  去处二选一：cta + href 整卡跳转；或 links 卡内并列多个文字链接（一张卡对应多个去处时） */
+type Service = {
   index: string;
   kicker: string;
   title: string;
@@ -27,9 +30,86 @@ interface Service {
   delivery: string;
   proofLabel: string;
   proof: string;
-  cta: string;
-  /** http(s) 外链新窗口打开，站内路由/mailto 同窗口——渲染时按前缀判定 */
-  href: string;
+} & (
+  | {
+      cta: string;
+      /** http(s) 外链新窗口打开，站内路由/mailto 同窗口——渲染时按前缀判定 */
+      href: string;
+      links?: never;
+    }
+  | { links: { label: string; href: string }[]; cta?: never; href?: never }
+);
+
+const EXTERNAL = { target: "_blank", rel: "noopener noreferrer" } as const;
+
+const CARD_CLASS =
+  "group flex flex-col rounded-xl border border-neutral-200 bg-white p-5 transition hover:border-amber-300 hover:shadow-[0_1px_16px_rgba(180,83,9,0.07)]";
+
+function ServiceCard({ s }: { s: Service }) {
+  const body = (
+    <>
+      <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-500">
+        {s.index} / {s.kicker}
+      </p>
+      <h3
+        className={`mt-3 text-[16.5px] font-semibold leading-snug text-neutral-900 transition ${
+          s.links ? "" : "group-hover:text-amber-800"
+        }`}
+      >
+        {s.title}
+      </h3>
+
+      <dl className="mt-4 flex-1 space-y-3 text-[13.5px] leading-relaxed">
+        <div>
+          <dt className="text-[12px] font-medium text-neutral-500">你可能正在</dt>
+          <dd className="mt-0.5 text-neutral-600">{s.problem}</dd>
+        </div>
+        <div>
+          <dt className="text-[12px] font-medium text-neutral-500">我可以帮你</dt>
+          <dd className="mt-0.5 text-neutral-600">{s.delivery}</dd>
+        </div>
+      </dl>
+    </>
+  );
+  const proof = (
+    <p className="text-[12px] text-neutral-500">
+      {s.proofLabel} · <span className="text-neutral-600">{s.proof}</span>
+    </p>
+  );
+
+  if (s.links) {
+    return (
+      <div className={CARD_CLASS.replace("group ", "")}>
+        {body}
+        <div className="mt-4 border-t border-neutral-200/80 pt-3">
+          {proof}
+          <p className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-[13.5px] font-medium">
+            {s.links.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="text-amber-700 underline-offset-4 transition hover:text-amber-800 hover:underline"
+              >
+                {l.label} →
+              </Link>
+            ))}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <a href={s.href} {...(s.href.startsWith("http") ? EXTERNAL : {})} className={CARD_CLASS}>
+      {body}
+      <div className="mt-4 border-t border-neutral-200/80 pt-3">
+        {proof}
+        <p className="mt-2 text-[13.5px] font-medium text-amber-700">
+          {s.cta} <span className="inline-block transition group-hover:translate-x-0.5">→</span>
+        </p>
+      </div>
+    </a>
+  );
 }
 
 const SERVICES: Service[] = [
@@ -46,15 +126,17 @@ const SERVICES: Service[] = [
   },
   {
     index: "02",
-    kicker: "WORKFLOW",
-    title: "把内容生产变成一条产线",
-    problem: "选题、起草、核对、发布全靠手动推，内容更新永远排不进日程。",
+    kicker: "TOOLKIT",
+    title: "拿到一张能用的加密卡 / 海外手机号",
+    problem: "想订阅海外服务、注册海外平台，却卡在没有能用的卡、收不到验证码这一步。",
     delivery:
-      "RSS 选题 + 情报监控 → AI 两跳成稿 → 事实闸门 → 人工把关发布，整套已开源，可以直接拿去改，也可以按你的场景定制。",
-    proofLabel: "运行中",
-    proof: "contentagent · 驱动本站每一篇文章",
-    cta: "看源码",
-    href: "https://github.com/zhaowanqiang/context_agent",
+      "加密卡片按门槛、充值方式、托管方式逐张整理；海外手机号按获取方式、保号规则、能否接码整理——没核实过的一律标「待核实」。",
+    proofLabel: "收录中",
+    proof: `加密卡片 ${cards.length} 张 · 海外手机号整理中`,
+    links: [
+      { label: "看加密卡片", href: "/cards" },
+      { label: "看海外手机号", href: "/numbers" },
+    ],
   },
   {
     index: "03",
@@ -94,16 +176,6 @@ const PRODUCTS: Product[] = [
     cta: "打开",
     href: DECIDER.href,
   },
-  {
-    emoji: "⚙️",
-    name: "contentagent · AI 内容产线",
-    slogan: "机器起草，事实闸门把关，人只做判断。",
-    status:
-      "驱动这个网站的系统：RSS 选题 + 每日情报监控 → AI 两跳成稿 → 事实闸门 → 人工把关发布，公众号 / X 双轨产线 + 工作台。",
-    badges: ["开源", "Next.js + Supabase", "持续开发"],
-    cta: "GitHub",
-    href: "https://github.com/zhaowanqiang/context_agent",
-  },
 ];
 
 /** 登录后细栏上的待办合计（查不到时静默降级为纯入口） */
@@ -130,12 +202,10 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 export default async function Home() {
   const authed = await isAdminAuthed();
-  const [latestPosts, pending] = await Promise.all([
-    listPosts(3).catch(() => [] as Post[]),
-    authed ? pendingTotal() : Promise.resolve(null),
-  ]);
+  const pending = authed ? await pendingTotal() : null;
 
-  const lastShip = latestPosts[0];
+  // 最近一次发布：取 X 文章索引里日期最新的一条，不硬编码
+  const lastShip = latestXArticle();
 
   return (
     /* 首页不自设宽度，撑满 layout 给的容器（访客 1024 / 登录 1480），
@@ -167,36 +237,44 @@ export default async function Home() {
       <section className="grid gap-10 pb-14 pt-10 sm:pt-16 lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:items-center lg:gap-14">
         <div>
           <p className="font-mono text-[11.5px] font-semibold uppercase tracking-[0.18em] text-amber-700">
-            Full-stack Developer
+            Cross-border Fintech · On X
           </p>
           <h1 className="font-display mt-2 text-5xl font-bold tracking-tight text-neutral-900 sm:text-6xl">
             {SITE.name}
             <span className="text-amber-500">.</span>
           </h1>
           <p className="mt-5 text-[16px] leading-[1.9] text-neutral-600">
-            写跨境金融与加密支付卡实测、AI 工具与效率实测。
-            所有内容出自我自己搭的 AI 产线——机器起草，事实闸门把关，
-            每一篇都经人工核对后发布。
+            写跨境金融、加密支付卡、海外手机号的实测教程，都发在 X 上。
+            加入 Telegram 交流群，发一个关键词，机器人直接回你对应的教程。
           </p>
-          <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-[13.5px]">
-            {SITE.links.map((l) => (
-              <a
-                key={l.href}
-                href={l.href}
-                target="_blank"
-                rel="noreferrer"
-                className="text-neutral-500 underline decoration-neutral-300 underline-offset-4 transition hover:text-amber-700 hover:decoration-amber-400"
-              >
-                {l.label} ↗
-              </a>
-            ))}
+          <div className="mt-7 flex flex-wrap items-center gap-3 text-[14px]">
             <a
-              href="/rss.xml"
-              className="text-neutral-500 underline decoration-neutral-300 underline-offset-4 transition hover:text-amber-700 hover:decoration-amber-400"
+              href={X_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-lg bg-amber-700 px-5 py-2.5 font-medium text-white transition hover:bg-amber-800"
             >
-              RSS
+              关注 X @zynqorw ↗
+            </a>
+            <a
+              href={TG_GROUP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-lg border border-amber-300 bg-white px-5 py-2.5 font-medium text-amber-800 transition hover:border-amber-400 hover:bg-amber-50"
+            >
+              加入 TG 交流群 ↗
             </a>
           </div>
+          <p className="mt-4 text-[13.5px]">
+            <a
+              href="https://github.com/zhaowanqiang"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-neutral-500 underline decoration-neutral-300 underline-offset-4 transition hover:text-amber-700 hover:decoration-amber-400"
+            >
+              GitHub ↗
+            </a>
+          </p>
         </div>
 
         {/* 终端名片：等宽排版的事实表，内容全部可在站内验证，不写自我评价 */}
@@ -209,7 +287,7 @@ export default async function Home() {
             </span>
             <span className="font-mono text-[11.5px] text-neutral-400">~/{SITE.name}</span>
             <span className="ml-auto flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-wider text-neutral-400">
-              <span className="size-1.5 animate-pulse rounded-full bg-amber-500" aria-hidden />
+              <span className="size-1.5 rounded-full bg-amber-500 motion-safe:animate-pulse" aria-hidden />
               live
             </span>
           </div>
@@ -218,10 +296,10 @@ export default async function Home() {
               宽容器 2×2——同一张卡在 1024 和 1480 两种版心里都不留空 */}
           <dl className="grid gap-px bg-neutral-200/70 text-[12.5px] leading-relaxed @md:grid-cols-2">
             {[
-              ["product", "出海开户决策 · contentagent"],
-              ["writing", "跨境金融实测 · AI 工具实测"],
-              ["stack", "Next.js · Supabase · DeepSeek"],
-              ["channel", "公众号 + X 双轨"],
+              ["product", "出海开户决策"],
+              ["writing", "跨境金融实测 · 加密卡 · 海外手机号"],
+              ["stack", "Next.js · Supabase"],
+              ["channel", "X + Telegram 交流群"],
             ].map(([k, v]) => (
               <div key={k} className="flex gap-3 bg-white px-4 py-2.5">
                 <dt className="w-[54px] shrink-0 font-mono text-[11px] text-neutral-400">{k}</dt>
@@ -230,29 +308,36 @@ export default async function Home() {
             ))}
           </dl>
 
-          {/* 最近一次发布：真实数据，产线还在跑的活证据 */}
+          {/* 最近一次发布：data/x-articles.ts 里日期最新的一条，外链到 X 原帖 */}
           {lastShip && (
-            <Link
-              href={`/posts/${lastShip.slug}`}
+            <a
+              href={lastShip.url}
+              target="_blank"
+              rel="noopener noreferrer"
               className="group block border-t border-neutral-200 bg-amber-50/40 px-4 py-3 transition hover:bg-amber-50"
             >
-              <p className="font-mono text-[10.5px] uppercase tracking-wider text-neutral-400">
+              <p className="font-mono text-[10.5px] uppercase tracking-wider text-neutral-500">
                 last ship ·{" "}
-                <time className="tabular-nums">
-                  {new Date(lastShip.published_at).toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" })}
+                <time dateTime={lastShip.date} className="tabular-nums">
+                  {shortDate(lastShip.date)}
                 </time>
+                {" · on X ↗"}
               </p>
               <p className="mt-1 line-clamp-2 text-[12.5px] leading-snug text-neutral-700 transition group-hover:text-amber-800">
                 {lastShip.title}
               </p>
-            </Link>
+            </a>
           )}
         </aside>
       </section>
 
+      {/* 交流群：网站的第二个转化目标（第一个是 Hero 里的关注 X）。
+          紧跟 Hero，让「入群能拿到什么」在第一屏之后立刻出现 */}
+      <TgGroupSection />
+
       {/* P0-1 我能帮你什么：访客动线的第一个转化环节。
           每张卡固定四段式——痛点说访客的话，交付说清给什么，证据指向真实产品，最后给去处 */}
-      <section className="border-t border-neutral-200 pt-10">
+      <section className="mt-16 border-t border-neutral-200 pt-10">
         <SectionLabel>How I can help</SectionLabel>
         <h2 className="font-display mt-2 max-w-2xl text-[26px] font-bold leading-snug tracking-tight text-neutral-900 sm:text-3xl">
           有具体问题，我帮你推进到能用的结果。
@@ -263,39 +348,7 @@ export default async function Home() {
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {SERVICES.map((s) => (
-            <a
-              key={s.index}
-              href={s.href}
-              {...(s.href.startsWith("http") ? { target: "_blank", rel: "noreferrer" } : {})}
-              className="group flex flex-col rounded-xl border border-neutral-200 bg-white p-5 transition hover:border-amber-300 hover:shadow-[0_1px_16px_rgba(180,83,9,0.07)]"
-            >
-              <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
-                {s.index} / {s.kicker}
-              </p>
-              <h3 className="mt-3 text-[16.5px] font-semibold leading-snug text-neutral-900 transition group-hover:text-amber-800">
-                {s.title}
-              </h3>
-
-              <dl className="mt-4 flex-1 space-y-3 text-[13.5px] leading-relaxed">
-                <div>
-                  <dt className="text-[12px] font-medium text-neutral-400">你可能正在</dt>
-                  <dd className="mt-0.5 text-neutral-600">{s.problem}</dd>
-                </div>
-                <div>
-                  <dt className="text-[12px] font-medium text-neutral-400">我可以帮你</dt>
-                  <dd className="mt-0.5 text-neutral-600">{s.delivery}</dd>
-                </div>
-              </dl>
-
-              <div className="mt-4 border-t border-neutral-200/80 pt-3">
-                <p className="text-[12px] text-neutral-400">
-                  {s.proofLabel} · <span className="text-neutral-500">{s.proof}</span>
-                </p>
-                <p className="mt-2 text-[13.5px] font-medium text-amber-700">
-                  {s.cta} <span className="inline-block transition group-hover:translate-x-0.5">→</span>
-                </p>
-              </div>
-            </a>
+            <ServiceCard key={s.index} s={s} />
           ))}
         </div>
       </section>
@@ -315,7 +368,7 @@ export default async function Home() {
             <a
               key={p.name}
               href={p.href}
-              {...(p.href.startsWith("http") ? { target: "_blank", rel: "noreferrer" } : {})}
+              {...(p.href.startsWith("http") ? EXTERNAL : {})}
               className="group flex flex-col rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-amber-300 hover:shadow-[0_1px_16px_rgba(180,83,9,0.07)]"
             >
               <div className="flex flex-wrap items-center gap-1.5">
@@ -355,53 +408,6 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* 最新文章（公开）：三栏卡片网格。原先是日期左栏的扁平列表，
-          正文限宽 42rem，容器一宽右半边就空——改成网格后跟上面两个区块同宽同节奏 */}
-      <section className="mt-16 border-t border-neutral-200 pt-10">
-        <div className="flex items-baseline justify-between">
-          <SectionLabel>Public notes</SectionLabel>
-          <Link href="/posts" className="text-[12.5px] text-neutral-400 transition hover:text-amber-700">
-            全部文章 →
-          </Link>
-        </div>
-        <h2 className="font-display mt-2 text-[26px] font-bold leading-snug tracking-tight text-neutral-900 sm:text-3xl">
-          把真实过程写下来。
-        </h2>
-
-        {latestPosts.length === 0 ? (
-          <p className="py-8 text-[13px] text-neutral-400">第一篇文章正在产线上。</p>
-        ) : (
-          <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {latestPosts.map((p, i) => (
-              <li key={p.id} className="flex">
-                <Link
-                  href={`/posts/${p.slug}`}
-                  className="group flex flex-1 flex-col rounded-xl border border-neutral-200 bg-white p-5 transition hover:border-amber-300 hover:shadow-[0_1px_16px_rgba(180,83,9,0.07)]"
-                >
-                  <div className="flex items-baseline justify-between gap-3">
-                    <span className="font-mono text-[11px] font-semibold text-neutral-300">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                    <time className="text-[12px] tabular-nums text-neutral-400">
-                      {new Date(p.published_at).toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" })}
-                    </time>
-                  </div>
-                  <h3 className="mt-3 text-[16px] font-semibold leading-snug text-neutral-900 transition group-hover:text-amber-700">
-                    {p.title}
-                  </h3>
-                  {p.summary && (
-                    <p className="mt-2 line-clamp-3 flex-1 text-[13px] leading-relaxed text-neutral-500">{p.summary}</p>
-                  )}
-                  <p className="mt-4 text-[13px] font-medium text-amber-700">
-                    读全文 <span className="inline-block transition group-hover:translate-x-0.5">→</span>
-                  </p>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
       {/* P0-3 合作区：动线终点。邮箱从 /about 末行提到首页，给一个明确的下一步 */}
       <section className="mt-16">
         {/* 左文右动作两栏：容器变宽时右栏承接留白，不让 CTA 吊在左下角 */}
@@ -428,7 +434,7 @@ export default async function Home() {
               <a
                 href="https://x.com/zynqorw"
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="text-[13.5px] text-neutral-500 underline decoration-neutral-300 underline-offset-4 transition hover:text-amber-700 hover:decoration-amber-400"
               >
                 或在 X 上找我 ↗

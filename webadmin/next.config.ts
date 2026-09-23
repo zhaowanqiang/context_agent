@@ -8,6 +8,10 @@ const nextConfig: NextConfig = {
       { source: "/wechat/:path*", destination: "/agent/wechat/:path*", permanent: true },
       { source: "/x", destination: "/agent/x", permanent: true },
       { source: "/x/:path*", destination: "/agent/x/:path*", permanent: true },
+      // 2026-09 改版：「教程」「此刻」下线。/guides 的基础设施（表、编辑器、详情页）保留，
+      // 只把列表页入口指回真正有内容的 /decider 教程库
+      { source: "/guides", destination: "/decider", statusCode: 301 },
+      { source: "/now", destination: "/about", statusCode: 301 },
     ];
   },
   experimental: {
