@@ -39,7 +39,7 @@ function BuyElsewhere({ guideId }: { guideId: string }) {
       <a
         href={`https://decider.zynqorw.com/guide/${guideId}`}
         target="_blank"
-        rel="noreferrer"
+        rel="noopener noreferrer"
         // 迁移期这条是唯一真能付钱的路，点击照样算购买意向
         onClick={() => track("buy_click", { target: guideId, meta: { via: "elsewhere" } })}
         className="rounded-lg bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-slate-700"

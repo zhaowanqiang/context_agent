@@ -139,7 +139,7 @@ function ResultCard({ item }: { item: ScoredProduct }) {
                 : "bg-slate-900 text-white hover:bg-slate-700",
             ].join(" ")}
           >
-            免费:去开户
+            免费:去开户 ↗
           </a>
         ) : (
           // 没有直达链接的产品(应用商店搜索/邀请码限量):给指引而不是死链

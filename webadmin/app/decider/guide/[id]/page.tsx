@@ -108,7 +108,7 @@ export default async function GuidePage({
               rel="noopener noreferrer"
               className="mt-5 inline-block rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-slate-700"
             >
-              先去开户 →
+              先去开户 ↗
             </TrackedLink>
           )}
         </section>
@@ -229,7 +229,7 @@ export default async function GuidePage({
               rel="noopener noreferrer"
               className="shrink-0 rounded-lg bg-slate-900 px-5 py-2.5 text-center text-sm font-medium text-white transition hover:bg-slate-700"
             >
-              免费:去开户 →
+              免费:去开户 ↗
             </TrackedLink>
           ) : (
             <span className="min-w-0 rounded-lg border border-dashed border-amber-300 bg-white px-4 py-2.5 text-left text-xs leading-relaxed text-slate-600 sm:max-w-md">
@@ -291,7 +291,7 @@ export default async function GuidePage({
           rel="noopener noreferrer"
           className="underline hover:text-slate-600"
         >
-          X @zynqorw
+          X @zynqorw ↗
         </a>
         。
       </div>

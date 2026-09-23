@@ -118,7 +118,7 @@ export default function Home() {
             rel="noopener noreferrer"
             className="text-slate-500 underline underline-offset-2 hover:text-amber-700"
           >
-            X @zynqorw
+            X @zynqorw ↗
           </a>
           。
         </p>

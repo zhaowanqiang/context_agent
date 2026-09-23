@@ -9,7 +9,7 @@ import type { Referral } from "@/data/referrals";
  * 返佣位卡片：教程正文内嵌 / 文末 / /deals 汇总页共用一个组件。
  *
  * 三件事必须一起做，少一件这个位就白建了：
- * 1. rel="sponsored nofollow noopener" —— 返佣链接不声明就是 Google 眼里的
+ * 1. rel="sponsored nofollow noopener noreferrer" —— 返佣链接不声明就是 Google 眼里的
  *    付费链接作弊，整站排名会被拖累。教程吃的就是长尾搜索，赌不起。
  * 2. track("referral_click") —— 带 from 区分位置（正文内嵌 / 文末 / 汇总页），
  *    这样面板上能看出到底哪个位置在转化，而不是只有一个总数。
@@ -65,11 +65,11 @@ export default function ReferralCard({
                 href={r.url}
                 target="_blank"
                 // sponsored：这是返佣链接，向搜索引擎如实声明
-                rel="sponsored nofollow noopener"
+                rel="sponsored nofollow noopener noreferrer"
                 onClick={() => track("referral_click", { target: r.id, meta: { from } })}
                 className="rounded-lg bg-amber-700 px-3.5 py-1.5 text-[12.5px] font-medium text-white transition hover:bg-amber-800"
               >
-                用我的链接开通 →
+                用我的链接开通 ↗
               </a>
             )}
             {r.code && <CopyCode code={r.code} referralId={r.id} from={from} />}
