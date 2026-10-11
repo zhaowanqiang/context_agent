@@ -35,28 +35,9 @@ export interface XArticle {
   tgKeyword?: string;
 }
 
-export const xArticles: XArticle[] = [
-  // SAMPLE — 待替换：标题、链接、日期、摘要都是占位，换成真实 X 帖子后删掉这行注释
-  {
-    id: "sample-1",
-    title: "【示例】加密卡开卡实测：替换成你的真实 X 帖子标题",
-    url: "https://x.com/zynqorw",
-    date: "2026-09-01",
-    tags: ["crypto-card"],
-    summary: "PLACEHOLDER：一句话说明这篇帖子解决什么问题。",
-    tgKeyword: "U卡",
-  },
-  // SAMPLE — 待替换
-  {
-    id: "sample-2",
-    title: "【示例】海外账户开户实测：替换成你的真实 X 帖子标题",
-    url: "https://x.com/zynqorw",
-    date: "2026-08-15",
-    tags: ["account"],
-    summary: "PLACEHOLDER：一句话说明这篇帖子解决什么问题。",
-    tgKeyword: "wise",
-  },
-];
+// 空数组 = /on-x 显示「索引整理中」、首页不渲染 LAST SHIP、导航与 sitemap 不出 /on-x。
+// 只放真实 X 帖子——示例/占位条目会被 scripts/check-placeholders.mjs 在构建期拦下
+export const xArticles: XArticle[] = [];
 
 /** 日期最新的一条（首页 LAST SHIP）。YYYY-MM-DD 可以直接按字符串比较 */
 export function latestXArticle(): XArticle | undefined {

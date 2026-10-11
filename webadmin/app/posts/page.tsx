@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { listPosts, type Post } from "@/lib/posts";
 import PostsList from "@/components/PostsList";
+import { siteUrl } from "@/lib/site";
 
 // ISR：公网实例 60s 再验证；本机因 layout 读 cookie 自动退回逐请求渲染
 export const revalidate = 60;
@@ -8,6 +9,7 @@ export const revalidate = 60;
 export const metadata: Metadata = {
   title: "文章",
   description: "跨境金融 / 加密支付卡实测、AI 工具与效率实测——产线成稿回流的公开存档。",
+  alternates: { canonical: `${siteUrl()}/posts` },
 };
 
 /** 公开层：文章列表（posts 表未建时降级为空态，不 500） */

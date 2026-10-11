@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import NumbersSection from "@/components/phone-numbers/NumbersSection";
+import { phoneNumbers } from "@/data/phone-numbers";
 import { siteUrl, TG_GROUP_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -33,7 +34,11 @@ export default function NumbersPage() {
         里问。
       </p>
 
-      <NumbersSection />
+      {phoneNumbers.length === 0 ? (
+        <p className="mt-16 text-center text-[13.5px] text-neutral-500">方案整理中。</p>
+      ) : (
+        <NumbersSection />
+      )}
     </div>
   );
 }

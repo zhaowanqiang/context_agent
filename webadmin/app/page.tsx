@@ -1,15 +1,25 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import TgGroupSection from "@/components/TgGroupSection";
 import { cards } from "@/data/crypto-cards";
+import { phoneNumbers } from "@/data/phone-numbers";
 import { latestXArticle, shortDate } from "@/data/x-articles";
 import { isAdminAuthed } from "@/lib/adminAuth";
 import { MODULES } from "@/lib/modules";
-import { SITE, TG_GROUP_URL, X_URL } from "@/lib/site";
+import { SITE, siteUrl, TG_GROUP_URL, X_URL } from "@/lib/site";
 import { db } from "@/lib/supabase";
 
 // ISR：公网门面实例 60s 再验证（isAdminAuthed 在门面模式下不碰 cookie，可静态化）；
 // 本机实例照旧逐请求渲染（cookie 判定登录态）
 export const revalidate = 60;
+
+// alternates 是整块替换（浅合并），所以根布局的 RSS 声明要在这里带上
+export const metadata: Metadata = {
+  alternates: {
+    canonical: siteUrl(),
+    types: { "application/rss+xml": [{ url: "/rss.xml", title: SITE.name }] },
+  },
+};
 
 /* 首页 = 纯公开个人名片（所见即访客所见）。
    工作台总览在 /dashboard，登录后这里只多一条细栏直达——
@@ -135,7 +145,7 @@ const SERVICES: Service[] = [
     proof: `加密卡片 ${cards.length} 张 · 海外手机号整理中`,
     links: [
       { label: "看加密卡片", href: "/cards" },
-      { label: "看海外手机号", href: "/numbers" },
+      ...(phoneNumbers.length > 0 ? [{ label: "看海外手机号", href: "/numbers" }] : []),
     ],
   },
   {

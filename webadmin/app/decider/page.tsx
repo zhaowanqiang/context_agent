@@ -1,9 +1,16 @@
 import Decider from "@/components/decider/Decider";
 import AuthBar from "@/components/decider/AuthBar";
 import ComparisonTable from "@/components/decider/ComparisonTable";
+import type { Metadata } from "next";
 import Link from "next/link";
+import { siteUrl } from "@/lib/site";
 import { guides, formatVerified } from "@/data/decider/guides";
 import { products } from "@/data/decider/products";
+
+// canonical 写在页面而不是 decider/layout：layout 的 metadata 会被教程详情页继承
+export const metadata: Metadata = {
+  alternates: { canonical: `${siteUrl()}/decider` },
+};
 
 // 唯一主页 = 教程库面板 + 右侧答题推荐(原「价值主张 hero + 答题」漏斗页已废弃,用户拍板)。
 // 教程只取元信息,付费正文(paidMd)绝不离开服务端。

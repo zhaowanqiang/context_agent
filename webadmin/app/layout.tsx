@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Analytics } from "@vercel/analytics/next";
+import { phoneNumbers } from "@/data/phone-numbers";
+import { xArticles } from "@/data/x-articles";
 import { isAdminAuthed } from "@/lib/adminAuth";
 import { MODULES } from "@/lib/modules";
 import { SITE, siteUrl, TG_GROUP_URL, X_URL } from "@/lib/site";
@@ -10,8 +13,9 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl()),
   title: { default: SITE.name, template: `%s · ${SITE.name}` },
   description: SITE.description,
+  // canonical 不写在根布局：metadata 是浅合并，写在这里会被所有没覆盖 alternates 的页面
+  // 继承成「规范地址 = 首页」。各公开页自己声明
   alternates: {
-    canonical: "/",
     types: { "application/rss+xml": [{ url: "/rss.xml", title: SITE.name }] },
   },
   openGraph: {
@@ -24,11 +28,12 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image", creator: "@zynqorw" },
 };
 
-/** 公开访客永远可见的导航。/deals（我在用的）不进主导航，入口在页脚 */
+/** 公开访客永远可见的导航。/deals（我在用的）不进主导航，入口在页脚。
+ *  /on-x、/numbers 数据为空时不进导航——不把访客领到一张空页上 */
 const PUBLIC_NAV = [
-  { label: "X 文章", href: "/on-x" },
+  ...(xArticles.length > 0 ? [{ label: "X 文章", href: "/on-x" }] : []),
   { label: "加密卡片", href: "/cards" },
-  { label: "海外手机号", href: "/numbers" },
+  ...(phoneNumbers.length > 0 ? [{ label: "海外手机号", href: "/numbers" }] : []),
   // decider 是站内公开路由（不是外链，不加 external），排在「关于」前：
   // 访客从任何一页都能回到产品，此前只有首页卡片一个入口
   { label: "开户决策", href: "/decider" },
@@ -131,6 +136,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </div>
           </div>
         </footer>
+        {/* 只在 Vercel 上挂：本机实例没有 /_vercel/insights 端点，请求只会被 proxy 拦去登录页 */}
+        {process.env.VERCEL && <Analytics />}
       </body>
     </html>
   );

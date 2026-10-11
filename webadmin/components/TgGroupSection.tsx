@@ -30,7 +30,12 @@ export default function TgGroupSection() {
       <p className="font-mono text-[11.5px] font-semibold uppercase tracking-[0.18em] text-amber-700">
         Telegram group
       </p>
-      <div className="mt-2 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,300px)] lg:items-start lg:gap-14">
+      {/* 没有二维码时不留右栏：单栏撑满，不显示占位框 */}
+      <div
+        className={`mt-2 grid gap-8 lg:items-start lg:gap-14 ${
+          TG_QR_IMAGE ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,300px)]" : ""
+        }`}
+      >
         <div>
           <h2
             id="tg-group-title"
@@ -71,7 +76,7 @@ export default function TgGroupSection() {
           </a>
         </div>
 
-        {TG_QR_IMAGE ? (
+        {TG_QR_IMAGE && (
           // 二维码走 <img>：public/ 下的静态文件，不需要 next/image 的优化链路
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -81,15 +86,6 @@ export default function TgGroupSection() {
             height={240}
             className="mx-auto rounded-xl border border-neutral-200 bg-white p-3 lg:mx-0"
           />
-        ) : (
-          <div className="mx-auto flex aspect-square w-full max-w-[240px] flex-col items-center justify-center rounded-xl border-2 border-dashed border-amber-400 bg-amber-50/60 p-4 text-center lg:mx-0">
-            <p className="font-mono text-[12px] font-bold uppercase tracking-wider text-amber-800">PLACEHOLDER</p>
-            <p className="mt-1.5 text-[12.5px] leading-relaxed text-neutral-600">
-              群二维码待提供
-              <br />
-              data/tg-keywords.ts → TG_QR_IMAGE
-            </p>
-          </div>
         )}
       </div>
     </section>

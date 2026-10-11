@@ -16,6 +16,6 @@ export const TG_KEYWORDS: string[] = [
 
 /**
  * 群二维码图片路径（放在 public/ 下，如 "/tg-qr.png"）。
- * null = 还没提供，页面显示 PLACEHOLDER 占位框。
+ * null = 还没提供，首页交流群区块不渲染二维码栏。
  */
-export const TG_QR_IMAGE: string | null = null; // PLACEHOLDER：群二维码待提供
+export const TG_QR_IMAGE: string | null = null;

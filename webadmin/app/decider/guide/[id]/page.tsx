@@ -1,4 +1,6 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { SITE, siteUrl } from "@/lib/site";
 import { getGuide, formatVerified } from "@/data/decider/guides";
 import { products } from "@/data/decider/products";
 import { renderMarkdown } from "@/lib/decider/markdown";
@@ -11,6 +13,29 @@ import { canView, type Tier } from "@/lib/decider/entitlements";
 
 // 解锁状态因人而异(要读 cookie 里的登录态),必须每次请求动态渲染
 export const dynamic = "force-dynamic";
+
+// 元数据只用免费层公开信息(标题/产品卖点/核对时间),付费正文不进 head。
+// 还没写的教程是「即将上线」占位页,不让搜索引擎收录
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const guide = getGuide(id);
+  if (!guide) return { robots: { index: false } };
+  const pitch = products.find((p) => p.id === id)?.pitch;
+  const description = [pitch, `本人实测教程,${formatVerified(guide.verified_at)}。`]
+    .filter(Boolean)
+    .join(" ");
+  const url = `${siteUrl()}/decider/guide/${guide.id}`;
+  return {
+    title: guide.title,
+    description,
+    alternates: { canonical: url },
+    openGraph: { type: "article", title: guide.title, description, url, authors: [SITE.author] },
+  };
+}
 
 // 教程正文:与 zynqorw 工作台成稿阅读视图同款(.md-body)。
 // 只在服务端判定解锁后才渲染付费 markdown——未解锁用户的 HTML 里没有付费内容。

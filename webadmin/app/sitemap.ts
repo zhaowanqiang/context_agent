@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
 import { guides as deciderGuides } from "@/data/decider/guides";
+import { phoneNumbers } from "@/data/phone-numbers";
+import { xArticles } from "@/data/x-articles";
 import { listGuides } from "@/lib/guides";
 import { listPosts } from "@/lib/posts";
 import { siteUrl } from "@/lib/site";
@@ -18,10 +20,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     { url: base, changeFrequency: "weekly", priority: 1 },
     { url: `${base}/posts`, changeFrequency: "daily", priority: 0.9 },
-    { url: `${base}/on-x`, changeFrequency: "weekly", priority: 0.9 },
+    ...(xArticles.length > 0
+      ? [{ url: `${base}/on-x`, changeFrequency: "weekly" as const, priority: 0.9 }]
+      : []),
     { url: `${base}/decider`, changeFrequency: "weekly", priority: 0.9 },
     { url: `${base}/cards`, changeFrequency: "weekly", priority: 0.9 },
-    { url: `${base}/numbers`, changeFrequency: "weekly", priority: 0.9 },
+    ...(phoneNumbers.length > 0
+      ? [{ url: `${base}/numbers`, changeFrequency: "weekly" as const, priority: 0.9 }]
+      : []),
     { url: `${base}/deals`, changeFrequency: "weekly", priority: 0.7 },
     { url: `${base}/about`, changeFrequency: "monthly", priority: 0.5 },
     ...posts.map((p) => ({

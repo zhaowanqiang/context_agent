@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SITE, TG_BOT, TG_GROUP_URL, X_URL } from "@/lib/site";
+import { phoneNumbers } from "@/data/phone-numbers";
+import { xArticles } from "@/data/x-articles";
+import { SITE, siteUrl, TG_BOT, TG_GROUP_URL, X_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "关于",
   description: SITE.description,
+  alternates: { canonical: `${siteUrl()}/about` },
 };
 
 const CONTACT_EMAIL = "zynqorw@gmail.com";
@@ -65,16 +68,21 @@ export default function AboutPage() {
 
           <h2>这个站点有什么</h2>
           <ul>
-            <li>
-              <strong>X 文章</strong>——我在 X 上发过的教程索引，按标签找。<Link href="/on-x">进入 →</Link>
-            </li>
+            {/* 与导航同一条规则：数据为空的模块不列出来 */}
+            {xArticles.length > 0 && (
+              <li>
+                <strong>X 文章</strong>——我在 X 上发过的教程索引，按标签找。<Link href="/on-x">进入 →</Link>
+              </li>
+            )}
             <li>
               <strong>加密卡片</strong>——逐张整理门槛、充值方式、托管方式和开卡流程。<Link href="/cards">进入 →</Link>
             </li>
-            <li>
-              <strong>海外手机号</strong>——获取方式、保号规则、能否接收海外平台验证码。
-              <Link href="/numbers">进入 →</Link>
-            </li>
+            {phoneNumbers.length > 0 && (
+              <li>
+                <strong>海外手机号</strong>——获取方式、保号规则、能否接收海外平台验证码。
+                <Link href="/numbers">进入 →</Link>
+              </li>
+            )}
             <li>
               <strong>出海开户决策</strong>——答几个问题，当场给出你能开哪些账户/卡、推荐顺序与坑点，
               付费解锁保姆级实操教程。<Link href="/decider">进入 →</Link>

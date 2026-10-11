@@ -12,8 +12,7 @@
  *
  * 2. **本文件会被客户端组件 import**，只放公开信息。
  *
- * 当前只有 2 条 SAMPLE 条目演示结构，运营商、地区都是占位，
- * 所有事实字段均为 pending——由 @zynqorw 手动填写后删除 SAMPLE 标记。
+ * 当前为空：由 @zynqorw 手动填写真实方案后，/numbers 自动回到导航与 sitemap。
  */
 
 import type { FactValue } from "@/data/crypto-cards";
@@ -64,31 +63,6 @@ export interface PhoneNumberEntry {
   lastVerified: string | null;
 }
 
-const PENDING: FactValue = { status: "pending" };
-
-export const phoneNumbers: PhoneNumberEntry[] = [
-  // SAMPLE — 待替换：运营商、地区为占位，所有事实字段待填写
-  {
-    slug: "sample-a",
-    carrier: "【示例】运营商 A",
-    region: "PLACEHOLDER 地区",
-    numberType: "physical-sim",
-    status: "pending",
-    facts: { acquisition: PENDING, keepAlive: PENDING, minCost: PENDING, overseasSms: PENDING },
-    usage: {},
-    tutorialUrl: null,
-    lastVerified: null,
-  },
-  // SAMPLE — 待替换
-  {
-    slug: "sample-b",
-    carrier: "【示例】运营商 B",
-    region: "PLACEHOLDER 地区",
-    numberType: "esim",
-    status: "pending",
-    facts: { acquisition: PENDING, keepAlive: PENDING, minCost: PENDING, overseasSms: PENDING },
-    usage: {},
-    tutorialUrl: null,
-    lastVerified: null,
-  },
-];
+// 空数组 = /numbers 显示「整理中」空态，导航与 sitemap 不出 /numbers。
+// 只放真实方案——示例/占位条目会被 scripts/check-placeholders.mjs 在构建期拦下
+export const phoneNumbers: PhoneNumberEntry[] = [];

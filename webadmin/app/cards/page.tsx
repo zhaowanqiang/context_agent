@@ -3,11 +3,13 @@ import Link from "next/link";
 import CryptoCardsSection from "@/components/crypto-cards/CryptoCardsSection";
 import ComparisonTable from "@/components/decider/ComparisonTable";
 import { cards } from "@/data/crypto-cards";
+import { siteUrl } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "加密卡片",
   description:
     "加密支付卡实测：KAST、Bybit Card、Plasma One 的开户决策与申请教程，附邀请码。个人实测记录，不构成投资建议。",
+  alternates: { canonical: `${siteUrl()}/cards` },
 };
 
 // 纯静态数据（crypto-cards.ts），没有 DB 往返，交给默认的静态渲染即可
