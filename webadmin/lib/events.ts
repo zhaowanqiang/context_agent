@@ -15,9 +15,7 @@ import { db } from "@/lib/supabase";
 
 export const EVENT_TYPES = {
   referral_click: "返佣链接点击",
-  decider_submit: "答题提交",
-  paywall_view: "付费墙曝光",
-  buy_click: "购买按钮点击",
+  decider_submit: "卡片 3 问推荐提交",
 } as const;
 
 export type EventType = keyof typeof EVENT_TYPES;
@@ -89,8 +87,6 @@ export interface ConversionStats {
   counts: Record<EventType, number>;
   /** 返佣点击 top，按次数降序 */
   referrals: { target: string; count: number }[];
-  /** 付费墙曝光 → 购买点击 的转化率（0-1）；曝光为 0 时 null */
-  paywallRate: number | null;
   /** 答题提交里各目标的选择次数（decider_submit 的 meta.goals） */
   goals: { goal: string; count: number }[];
   /** 数据是否被 STATS_ROW_CAP 截断（截断时数字是低估值，面板要标出来） */
@@ -147,8 +143,6 @@ export async function conversionStats(days = 30): Promise<ConversionStats | null
     days,
     counts,
     referrals: [...referrals].map(([target, count]) => ({ target, count })).sort(byCount),
-    paywallRate:
-      counts.paywall_view > 0 ? counts.buy_click / counts.paywall_view : null,
     goals: [...goals].map(([goal, count]) => ({ goal, count })).sort(byCount),
     truncated: rows.length >= STATS_ROW_CAP,
   };

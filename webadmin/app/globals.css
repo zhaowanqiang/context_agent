@@ -6,7 +6,7 @@
 
 /* 语义色工具类（bg-surface / text-ink / border-line …）：值指向下方 :root 的语义变量，
  * 随主题切换。inline = 工具类里直接写 var(--xxx)，不在构建期固化成具体色值。
- * 新代码一律用这一套；历史代码的 neutral-* / slate-* / amber-* 靠夜间色阶重映射兜住。 */
+ * 新代码一律用这一套；历史代码的 neutral-* / amber-* 靠夜间色阶重映射兜住。 */
 @theme inline {
   --color-page: var(--page);
   --color-surface: var(--surface);
@@ -61,33 +61,6 @@
    * 也不用 SimSun 合成粗体（大字号发虚）。 */
   --font-display: Georgia, "Times New Roman", -apple-system, "Microsoft YaHei UI",
     "PingFang SC", serif;
-
-  /* decider（出海开户决策）并入主站后带来的色板：它的历史代码通篇写 slate-*，
-   * 这里同样整体重映射为 stone 暖灰值——与上面 neutral 的手法一致，
-   * 两套别名指向同一暖灰体系，主站自身不使用 slate-*，互不干扰。 */
-  --color-slate-50: #fafaf9;
-  --color-slate-100: #f5f5f4;
-  --color-slate-200: #e7e5e4;
-  --color-slate-300: #d6d3d1;
-  --color-slate-400: #a8a29e;
-  --color-slate-500: #78716c;
-  --color-slate-600: #57534e;
-  --color-slate-700: #44403c;
-  --color-slate-800: #292524;
-  --color-slate-900: #1c1917;
-  --color-slate-950: #0c0a09;
-}
-
-/* decider 子树的字体作用域。
- * decider 的版式是无衬线的，而主站 --font-display 是 Georgia 衬线，直接继承会走样；
- * @theme 是全局的，不能在那里覆盖，故用普通选择器重定义——CSS 变量向下继承，
- * 只影响 decider 页面。
- * 原先这里指向 next/font 注入的 IBM Plex，现改为纯系统字体栈：
- * 与主站「不引外部 webfont（本地优先 + 大陆网络）」一致，构建期也不再依赖外网。 */
-.decider-scope {
-  --font-display: system-ui, -apple-system, "Segoe UI", "PingFang SC",
-    "Hiragino Sans GB", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Consolas, "Courier New", monospace;
 }
 
 /* ── 语义变量 ─────────────────────────────────────────────────
@@ -162,7 +135,7 @@
   --selection-bg: #6e4a14;
   --selection-ink: #fef3c7;
 
-  /* 色阶重映射：历史代码通篇写 neutral-* / slate-* / amber-*，这里把每一级在夜间
+  /* 色阶重映射：历史代码通篇写 neutral-* / amber-*，这里把每一级在夜间
    * 指到校对过的值（不是简单镜像——500 级直接镜像对比度不够），
    * 于是几百处既有用法不用逐个改写。浅色下这一段不生效。 */
   --color-neutral-50: var(--page);
@@ -176,17 +149,6 @@
   --color-neutral-800: var(--ink);
   --color-neutral-900: var(--ink-strong);
   --color-neutral-950: #fafaf9;
-  --color-slate-50: var(--page);
-  --color-slate-100: var(--surface-muted);
-  --color-slate-200: var(--line);
-  --color-slate-300: var(--line-strong);
-  --color-slate-400: var(--ink-faint);
-  --color-slate-500: var(--ink-subtle);
-  --color-slate-600: var(--ink-muted);
-  --color-slate-700: var(--ink-body);
-  --color-slate-800: var(--ink);
-  --color-slate-900: var(--ink-strong);
-  --color-slate-950: #fafaf9;
 
   /* amber：50–400 是底色与边框（压暗），600–900 是文字与按钮底（提亮） */
   --color-amber-50: var(--accent-soft);
@@ -388,7 +350,7 @@ body {
 }
 
 
-/* decider 教程正文首个标题不留上边距（主站文章页不需要，故只补这一条） */
+/* 正文首个标题不留上边距 */
 .md-body h1:first-child,
 .md-body h2:first-child {
   margin-top: 0.2em;

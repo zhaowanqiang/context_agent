@@ -9,7 +9,7 @@ Supabase 存数据，Python 服务（127.0.0.1:8600）跑 LLM 步骤，本应用
 |---|---|
 | `/agent/wechat`、`/agent/x` | 双轨内容产线：选题池 → 生成 → 审稿 → 发布，范例库管理 |
 | `/monitor` | 监控简报：每天检索监控话题出一期；`/api/monitor/*` 供外部（Cowork）推送，`x-monitor-token` 鉴权 |
-| `/decider` | 跳转独立应用（3100） |
+| `/tutorials` | 教程导航，公开层。唯一数据源 `data/tutorials.json`；暂不上线的分类在 `lib/tutorials.ts` 的 `HIDDEN_CATEGORIES` |
 | `/cards` | 加密卡片：卡片网格 → 详情（开户决策 / 申请教程 / 常见问题），公开层。数据在 `data/crypto-cards.ts` |
 
 ## 鉴权
@@ -60,16 +60,15 @@ node scripts/dump-supabase.mjs out/ # 全表导出（备份用，backup.ps1 会�
 三条规矩，加卡前先看：
 
 1. **不确定的事实一律写 `null`**，页面会渲染成「待核实」。
-   不要猜返现比例、年费、限额、地区政策——这跟 `ComparisonTable` 是同一条原则：
+   不要猜返现比例、年费、限额、地区政策——这跟对比表是同一条原则：
    没有结构化来源就不出现，宁可空着。叙述性字段缺内容用 `TODO:` 前缀标出。
-2. **绝不把付费教程正文写进这个文件。** 它被客户端组件 import，内容会进浏览器
-   JS bundle。付费正文只能待在 `data/decider/guides.ts`（那个文件是 `server-only`），
-   这里用 `tutorial.guide.href` 链过去，由 `/decider/guide/[id]` 的付费墙判定。
-3. **`slug` 要和 `data/decider/products.ts` 里的 `id` 对上**，筛选（大陆可用）和
-   决策器打分都靠这个 join。products.ts 里没有对应条目的卡不会进决策器推荐。
+2. **邀请码和注册链接不写进这个文件。** 给卡片加一个 `tutorial: { slug, item? }` 指向
+   教程导航里的教程，详情面板会从 `data/tutorials.json` 带出码和链接并互相链接。
+3. **要进筛选（大陆可用）、KYC 排序、3 问推荐和对比表，得在 `data/card-eligibility.ts`
+   里加一条，`id` 与卡片 `slug` 对上。** 没有实测来源的开卡条件不写，对应的卡自然不会进推荐。
 
 决策器的权重不在这个模块里：`lib/cryptoCards.ts` 只做「3 个问题 → Answers」的翻译，
-真正的打分在 `lib/decider/match.ts` 的 `scoreProduct`，改那一处 `/cards` 和 `/decider` 同时生效。
+真正的打分在 `lib/cardEligibility.ts` 的 `scoreCard`。
 
 动效（3D 倾斜 / 高光 / 扫光 / 悬停浮起）写在 `app/globals.css` 的 `.cc-*` 规则里，
 组件只用 `requestAnimationFrame` 写 CSS 变量，不在 `mousemove` 里 `setState`。

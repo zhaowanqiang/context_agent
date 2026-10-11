@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 /**
  * 访问码鉴权（分层）：cookie 里存 SHA-256(ADMIN_ACCESS_CODE)，比对不上就去 /login。
- * - 公开层（个人网站门面）：首页、/posts、/about、/decider、/guides、/cards、/deals、/on-x、/tutorials、RSS/sitemap/robots
+ * - 公开层（个人网站门面）：首页、/posts、/about、/guides、/cards、/deals、/on-x、/tutorials、RSS/sitemap/robots
  *   —— matcher 直接放行，首页的工作台区块由 lib/adminAuth.ts 在渲染时按登录态增减
  * - 私有层（工作台）：/agent、/monitor、/import 及其余一切照旧拦截。
  *   注意 /guides 是公开阅读层，写它的导入器在 /import——两者分开路由，
@@ -13,9 +13,6 @@ import { NextResponse, type NextRequest } from "next/server";
  * - /api/track 是公开层的埋点收集端点，必须放行：它服务的就是未登录访客，
  *   而且流量真正发生在公网门面实例上——被拦下就是「埋了但一条数据都没有」，
  *   且不会有任何报错。自身防护靠白名单 + 限流（见 app/api/track/route.ts）
- * - /api/checkout、/api/webhooks/* 是 decider 的支付链路，必须放行：
- *   前者自己查 Supabase 登录态，后者验 Creem HMAC 签名，各有各的鉴权；
- *   一旦被这里拦下，门面模式会把它们 404 掉 —— 支付会静默失效，没有任何报错
  *
  * PUBLIC_FACADE=1（公网部署实例用，如 Vercel）：纯门面模式——
  * 工作台路由和登录页一律 404，公网上不暴露"这里有后台"这个事实本身；
@@ -89,6 +86,6 @@ export const config = {
   // 公开段必须带 (?:/|$) 边界：裸前缀会把 /nowhere、/postsadmin 这类将来的私有路由一起放行
   // 新增公开路由时同步改 lib/theme.ts 的 THEMED_PATH——那边漏了，新页面就不参与夜间模式
   matcher: [
-    "/((?!$|(?:posts|about|decider|guides|cards|deals|on-x|tutorials)(?:/|$)|opengraph-image|rss\\.xml|sitemap\\.xml|robots\\.txt|api/monitor|api/track|api/checkout|api/webhooks|_next/static|_next/image|favicon\\.ico).*)",
+    "/((?!$|(?:posts|about|guides|cards|deals|on-x|tutorials)(?:/|$)|opengraph-image|rss\\.xml|sitemap\\.xml|robots\\.txt|api/monitor|api/track|_next/static|_next/image|favicon\\.ico).*)",
   ],
 };

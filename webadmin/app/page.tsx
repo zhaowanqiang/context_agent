@@ -5,10 +5,9 @@ import { cards } from "@/data/crypto-cards";
 import { TG_KEYWORDS, TG_QR_IMAGE } from "@/data/tg-keywords";
 import { latestXArticle, shortDate } from "@/data/x-articles";
 import { isAdminAuthed } from "@/lib/adminAuth";
-import { MODULES } from "@/lib/modules";
 import { SITE, siteUrl, TG_GROUP_URL, X_URL } from "@/lib/site";
 import { db } from "@/lib/supabase";
-import { tutorialCount } from "@/lib/tutorials";
+import { tutorialCount, visibleCategories } from "@/lib/tutorials";
 
 // ISR：公网门面实例 60s 再验证（isAdminAuthed 在门面模式下不碰 cookie，可静态化）；
 // 本机实例照旧逐请求渲染（cookie 判定登录态）
@@ -27,7 +26,7 @@ export const metadata: Metadata = {
    对外门面和对内工具在页面级分离，互不挡路。
 
    版式：门面从「一条 42rem 窄栏」改成「Hero/长文收窄 + 卡片区撑满 5xl 网格」，
-   访客动线 = 我是谁（关注 X / 入群）→ 入群能拿到什么 → 我能帮你什么 → 我在做什么 → 怎么找我。 */
+   访客动线 = 我是谁（关注 X / 入群）→ 入群能拿到什么 → 我能帮你什么 → 怎么找我。 */
 
 const CONTACT_EMAIL = "zynqorw@gmail.com";
 
@@ -123,17 +122,20 @@ function ServiceCard({ s }: { s: Service }) {
   );
 }
 
+/** 教程导航里已上线的教程总数（首页两处用到） */
+const TUTORIAL_TOTAL = visibleCategories().reduce((n, c) => n + c.tutorials.length, 0);
+
 const SERVICES: Service[] = [
   {
     index: "01",
-    kicker: "PRODUCT",
-    title: "搞清楚自己能开哪些海外账户",
-    problem: "想开海外账户或 U 卡，但不知道自己这个身份能开哪些、该先开哪个、哪一步会被拒。",
-    delivery: "答几个问题，当场给出可开清单、推荐顺序和坑点；教程库里是我逐张卡实测出来的保姆级流程。",
-    proofLabel: "已有实践",
-    proof: "出海开户决策 · 2 篇教程全文免费",
-    cta: "开始测一测",
-    href: "/decider",
+    kicker: "TUTORIALS",
+    title: "找到对应的开户 / 开卡教程",
+    problem: "想开海外账户、交易所或 U 卡，但不知道从哪一步开始、注册时该填哪个邀请码。",
+    delivery: "教程导航按银行与账户、交易所、U 卡、手机号分类，每篇附邀请码、注册链接和 X 上的完整教程。",
+    proofLabel: "已整理",
+    proof: `教程 ${TUTORIAL_TOTAL} 篇`,
+    cta: "看教程导航",
+    href: "/tutorials",
   },
   {
     index: "02",
@@ -156,36 +158,9 @@ const SERVICES: Service[] = [
     problem: "有明确场景和目标，但缺一个能从头把它做出来、并且真的上线的人。",
     delivery: "全栈开发（Next.js + Supabase + LLM），偏跨境支付、AI 工作流和内容系统方向；也接实测向的咨询。",
     proofLabel: "自证",
-    proof: "本站与出海开户决策均为独立开发上线",
+    proof: "本站为独立开发上线",
     cta: "说说你的问题",
     href: `mailto:${CONTACT_EMAIL}`,
-  },
-];
-
-/** 产品矩阵：不包装成成熟商业项目，公开真实状态 */
-interface Product {
-  emoji: string;
-  name: string;
-  slogan: string;
-  status: string;
-  /** 状态徽章：第一枚用琥珀实心表示「已上线/运行中」 */
-  badges: string[];
-  cta: string;
-  href: string;
-}
-
-/** decider 的 href 走门户跳转路由，从注册表取，别在两处各写一份 */
-const DECIDER = MODULES.find((m) => m.id === "decider")!;
-
-const PRODUCTS: Product[] = [
-  {
-    emoji: DECIDER.emoji,
-    name: DECIDER.name,
-    slogan: "不确定能开哪个？先测，再动手。",
-    status: "教程库已上线，2 篇全文免费；决策器按身份与需求给个性化开户顺序。刚完成首发定价与教程面板改版。",
-    badges: ["已上线", "Web", "付费解锁"],
-    cta: "打开",
-    href: DECIDER.href,
   },
 ];
 
@@ -307,7 +282,7 @@ export default async function Home() {
               宽容器 2×2——同一张卡在 1024 和 1480 两种版心里都不留空 */}
           <dl className="grid gap-px bg-neutral-200/70 text-[12.5px] leading-relaxed @md:grid-cols-2">
             {[
-              ["product", "出海开户决策"],
+              ["guides", `教程导航 · ${TUTORIAL_TOTAL} 篇`],
               ["writing", "跨境金融实测 · 加密卡 · 海外手机号"],
               ["stack", "Next.js · Supabase"],
               ["channel", "X + Telegram 交流群"],
@@ -360,61 +335,6 @@ export default async function Home() {
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {SERVICES.map((s) => (
             <ServiceCard key={s.index} s={s} />
-          ))}
-        </div>
-      </section>
-
-      {/* P0-2 产品矩阵：状态徽章 + 一句主张 + 一句真实现状，取代原先只有一行 tagline 的作品列表 */}
-      <section className="mt-16 border-t border-neutral-200 pt-10">
-        <SectionLabel>Current products</SectionLabel>
-        <h2 className="font-display mt-2 text-[26px] font-bold leading-snug tracking-tight text-neutral-900 sm:text-3xl">
-          正在推进的产品。
-        </h2>
-        <p className="mt-3 max-w-2xl text-[14.5px] leading-relaxed text-neutral-500">
-          不包装成已经成熟的商业项目，公开真实状态。
-        </p>
-
-        <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          {PRODUCTS.map((p) => (
-            <a
-              key={p.name}
-              href={p.href}
-              {...(p.href.startsWith("http") ? EXTERNAL : {})}
-              className="group flex flex-col rounded-xl border border-neutral-200 bg-surface p-6 transition hover:border-amber-300 hover:shadow-[0_1px_16px_rgba(180,83,9,0.07)]"
-            >
-              <div className="flex flex-wrap items-center gap-1.5">
-                {p.badges.map((b, i) => (
-                  <span
-                    key={b}
-                    className={
-                      i === 0
-                        ? "rounded-full bg-amber-100 px-2.5 py-0.5 text-[11.5px] font-medium text-amber-800"
-                        : "rounded-full border border-neutral-200 px-2.5 py-0.5 text-[11.5px] text-neutral-500"
-                    }
-                  >
-                    {b}
-                  </span>
-                ))}
-              </div>
-
-              <div className="mt-4 flex items-start gap-3">
-                <span className="text-[26px] leading-none" aria-hidden>
-                  {p.emoji}
-                </span>
-                <div className="min-w-0">
-                  <h3 className="text-[17px] font-semibold leading-snug text-neutral-900 transition group-hover:text-amber-800">
-                    {p.name}
-                  </h3>
-                  <p className="mt-1 text-[13.5px] text-neutral-500">{p.slogan}</p>
-                </div>
-              </div>
-
-              <p className="mt-4 flex-1 text-[13.5px] leading-relaxed text-neutral-600">{p.status}</p>
-
-              <p className="mt-4 text-[13.5px] font-medium text-amber-700">
-                {p.cta} <span className="inline-block transition group-hover:translate-x-0.5">↗</span>
-              </p>
-            </a>
           ))}
         </div>
       </section>

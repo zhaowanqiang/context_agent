@@ -106,7 +106,7 @@ const QUICK_ACTIONS = [
   { href: "/posts", label: "个人站文章", desc: "已回流的公开存档" },
 ];
 
-/** 答题目标的枚举值 → 面板文案（对齐 Decider.tsx 的 goalOptions） */
+/** 答题目标的枚举值 → 面板文案（/cards 3 问推荐提交的 meta.goals） */
 const GOAL_LABEL: Record<string, string> = {
   broker: "美股券商",
   crypto: "加密出入金",
@@ -273,7 +273,7 @@ export default async function DashboardPage() {
         </Card>
 
         {/* 转化：公开层访客行为。生产端的数字（产出几篇、烧多少 token）在上面，
-            这一格是价值环的另一端——有没有人真的点、真的买 */}
+            这一格是价值环的另一端——有没有人真的点 */}
         <div className="lg:col-span-2">
           <Card
             title="转化 · 近 30 天"
@@ -295,16 +295,6 @@ export default async function DashboardPage() {
                         </dd>
                       </div>
                     ))}
-                    <div className="flex items-baseline justify-between border-t border-neutral-100 pt-2">
-                      <dt className="text-neutral-500">付费墙 → 购买</dt>
-                      <dd className="font-bold text-amber-600">
-                        {conv.paywallRate === null ? (
-                          <span className="text-neutral-300">—</span>
-                        ) : (
-                          `${(conv.paywallRate * 100).toFixed(1)}%`
-                        )}
-                      </dd>
-                    </div>
                   </dl>
                   {conv.truncated && (
                     <p className="mt-2 text-[11px] text-amber-600">

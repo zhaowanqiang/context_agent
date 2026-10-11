@@ -67,15 +67,6 @@ export const MODULES: SiteModule[] = [
     href: "/cards",
     emoji: "💳",
     status: "active",
-    external: true, // 公开层路由，和 decider 一样走整页跳转
-  },
-  {
-    id: "decider",
-    name: "出海开户决策",
-    tagline: "海外账户/U 卡实测教程库（2 篇全文免费），也可以答几个问题拿个性化开户推荐",
-    href: "/decider", // 已并入本应用，是站内真实路由（原先是跳向独立部署的门户路由）
-    emoji: "🧭",
-    status: "active",
-    external: true,
+    external: true, // 公开层路由，走整页跳转
   },
 ];

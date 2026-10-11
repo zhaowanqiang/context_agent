@@ -35,9 +35,6 @@ const PUBLIC_NAV = [
   { label: "教程", href: "/tutorials" },
   ...(xArticles.length > 0 ? [{ label: "X 文章", href: "/on-x" }] : []),
   { label: "加密卡片", href: "/cards" },
-  // decider 是站内公开路由（不是外链，不加 external），排在「关于」前：
-  // 访客从任何一页都能回到产品，此前只有首页卡片一个入口
-  { label: "开户决策", href: "/decider" },
   { label: "关于", href: "/about" },
 ];
 

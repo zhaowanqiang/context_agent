@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import CryptoCardsSection from "@/components/crypto-cards/CryptoCardsSection";
-import ComparisonTable from "@/components/decider/ComparisonTable";
-import { cards } from "@/data/crypto-cards";
+import ComparisonTable from "@/components/crypto-cards/ComparisonTable";
 import { siteUrl } from "@/lib/site";
 import { cardTutorialLinks } from "@/lib/tutorials";
 
@@ -19,17 +18,16 @@ export default function CardsPage() {
     <div className="px-4 py-10 sm:px-6">
       <CryptoCardsSection tutorialLinks={cardTutorialLinks()} />
 
-      {/* 对比表复用 /decider 那张，不另建一套：口径、字段和「不编造」的原则都一致 */}
-      <div className="decider-scope mx-auto max-w-[1200px]">
-        <ComparisonTable only={cards.map((c) => c.slug)} />
+      <div className="mx-auto max-w-[1200px]">
+        <ComparisonTable />
       </div>
 
       <div className="mx-auto mt-10 max-w-[1200px]">
         <Link
-          href="/decider"
+          href="/tutorials"
           className="inline-block rounded-lg border border-neutral-300 px-4 py-2.5 text-[13px] font-medium text-neutral-700 transition hover:border-amber-400 hover:text-amber-800"
         >
-          还要开券商或多币种账户？去出海开户决策 →
+          还要开券商、交易所或多币种账户？去教程导航 →
         </Link>
       </div>
     </div>

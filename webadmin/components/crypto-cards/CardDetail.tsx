@@ -364,8 +364,7 @@ export default function CardDetail({
                       </span>
                       <p className="text-[13.5px] font-semibold text-neutral-900">{s.title}</p>
                       <p className="mt-1 whitespace-pre-line text-[13px] leading-relaxed text-neutral-600">{s.body}</p>
-                      {/* tip 用 emerald：全站是 Stone 暖灰 + amber，没有冷色；
-                          emerald 在 decider 里已经在用，语义区分照旧成立 */}
+                      {/* tip 用 emerald：全站是 Stone 暖灰 + amber，没有冷色；emerald 表示「提示 / 成功」 */}
                       {s.tip && (
                         <p className="mt-2 border-l-2 border-emerald-400 bg-emerald-50/60 px-3 py-2 text-[12.5px] leading-relaxed text-emerald-900">
                           {s.tip}
@@ -380,22 +379,6 @@ export default function CardDetail({
                   ))}
                 </ol>
 
-                {/* 完整教程入口。付费正文不在本模块的数据里，点过去由 /decider 的付费墙判定 */}
-                {d.guide && (
-                  <Link
-                    href={d.guide.href}
-                    className="block rounded-xl border border-neutral-200 bg-neutral-50 p-4 transition hover:border-amber-300 hover:bg-amber-50/40"
-                  >
-                    <p className="text-[13.5px] font-semibold text-neutral-900">
-                      {d.guide.free ? "阅读完整教程（全文免费）→" : "解锁完整实操 + 避坑清单 →"}
-                    </p>
-                    <p className="mt-1 text-[12.5px] leading-relaxed text-neutral-600">
-                      {d.guide.free
-                        ? "站内教程页有全部步骤，无付费墙。"
-                        : "上面是免费部分；逐步实操与避坑清单在教程页，含最后核对时间。"}
-                    </p>
-                  </Link>
-                )}
               </div>
             )}
 

@@ -73,14 +73,14 @@ export default async function PostPage({ params }: Props) {
       {/* 文末转化区：流量的终点是转化的起点——按轨道切换推广位 */}
       {post.track === "x" ? (
         <Link
-          href="/decider"
+          href="/tutorials"
           className="group mt-10 block rounded-xl border border-amber-200/80 bg-amber-50/60 px-5 py-4 transition hover:border-amber-300 hover:bg-amber-50"
         >
           <p className="text-[14.5px] font-bold text-neutral-900">
             🧭 想开海外账户 / U 卡？我把实测教程都整理好了
           </p>
           <p className="mt-1 text-[13px] leading-relaxed text-neutral-500">
-            Wise / KAST / Bybit Card 等 5 篇保姆级实操，2 篇全文免费——答 4 个问题还能拿个性化开户推荐。
+            教程导航按银行与账户、交易所、U 卡、手机号分类，每篇附邀请码、注册链接和 X 上的完整教程。
             <span className="ml-1 font-medium text-amber-700 opacity-0 transition group-hover:opacity-100">去看看 →</span>
           </p>
         </Link>

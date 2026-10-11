@@ -14,7 +14,7 @@ const CONTACT_EMAIL = "zynqorw@gmail.com";
 /** 右栏速览：都是本页正文里已有的事实，压成一屏可扫的表 */
 const FACTS: [string, string][] = [
   ["身份", "全栈开发者"],
-  ["在做", "出海开户决策"],
+  ["在做", "教程导航 · 加密卡片"],
   ["在写", "跨境金融 · 加密卡 · 海外手机号"],
   ["发布", "X + Telegram 交流群"],
 ];
@@ -79,10 +79,6 @@ export default function AboutPage() {
             </li>
             <li>
               <strong>加密卡片</strong>——逐张整理门槛、充值方式、托管方式和开卡流程。<Link href="/cards">进入 →</Link>
-            </li>
-            <li>
-              <strong>出海开户决策</strong>——答几个问题，当场给出你能开哪些账户/卡、推荐顺序与坑点，
-              付费解锁保姆级实操教程。<Link href="/decider">进入 →</Link>
             </li>
           </ul>
 

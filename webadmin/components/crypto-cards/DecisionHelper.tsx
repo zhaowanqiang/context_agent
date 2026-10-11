@@ -3,13 +3,13 @@
 import { useState } from "react";
 import { recommendCards, type HelperAnswers, type Usage } from "@/lib/cryptoCards";
 import { track } from "@/lib/track";
-import type { PassportType } from "@/lib/decider/types";
+import type { PassportType } from "@/data/card-eligibility";
 
 /**
  * 3 问决策器（可折叠，默认收起）。
  *
- * 打分不在这儿：recommendCards → lib/decider/match.ts 的 scoreProduct。
- * 全站只有一套权重，要调参去改那个文件，改完这里和 /decider 一起生效。
+ * 打分不在这儿：recommendCards → lib/cardEligibility.ts 的 scoreCard。
+ * 全站只有一套权重，要调参去改那个文件。
  */
 
 const REGIONS: { value: PassportType; label: string }[] = [
@@ -140,10 +140,10 @@ export default function DecisionHelper({ onOpenCard }: { onOpenCard: (slug: stri
               {result.top.length === 0 ? (
                 <p className="text-[13px] text-neutral-500">
                   按你的条件，这 3 张卡都不合适。可以去
-                  <a href="/decider" className="mx-1 text-amber-700 underline underline-offset-2">
-                    出海开户决策
+                  <a href="/tutorials" className="mx-1 text-amber-700 underline underline-offset-2">
+                    教程导航
                   </a>
-                  看看券商类产品。
+                  看看其他账户和卡的教程。
                 </p>
               ) : (
                 <ul className="space-y-2">

@@ -9,8 +9,12 @@ const nextConfig: NextConfig = {
       { source: "/x", destination: "/agent/x", permanent: true },
       { source: "/x/:path*", destination: "/agent/x/:path*", permanent: true },
       // 2026-09 改版：「教程」「此刻」下线。/guides 的基础设施（表、编辑器、详情页）保留，
-      // 只把列表页入口指回真正有内容的 /decider 教程库
-      { source: "/guides", destination: "/decider", statusCode: 301 },
+      // 列表页入口指到教程导航
+      { source: "/guides", destination: "/tutorials", statusCode: 301 },
+      // 2026-10：「出海开户决策」模块下线（答题推荐 + 教程库 + 付费墙）。
+      // 旧链接在 X 和搜索结果里还活着，统一接到教程导航，不留 404
+      { source: "/decider", destination: "/tutorials", statusCode: 301 },
+      { source: "/decider/:path*", destination: "/tutorials", statusCode: 301 },
       { source: "/now", destination: "/about", statusCode: 301 },
       // 2026-10：海外手机号并入教程导航（数据只在 data/tutorials.json 维护一份）
       { source: "/numbers", destination: "/tutorials#phone-number", statusCode: 301 },

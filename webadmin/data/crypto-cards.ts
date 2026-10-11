@@ -4,18 +4,16 @@
  *
  * ⚠️ 两条硬约束，改这个文件前必读：
  *
- * 1. **本文件会被客户端组件 import，绝不能放付费内容。**
- *    data/decider/guides.ts 顶上那行 `import "server-only"` 是特意加的：
- *    paidMd / pitfallsMd 是 ¥19/¥29 在卖的商品，进了客户端 bundle 就等于白送。
- *    这里的 tutorial.steps 只放各篇教程 freeMd 里已经公开的内容，
- *    付费部分靠 guide.href 链去 /decider/guide/[id]，由服务端付费墙守着。
+ * 1. **本文件会被客户端组件 import，只放公开信息。**
+ *    邀请码与注册链接不在这里维护：卡片用 tutorial 字段指向教程导航，
+ *    由 data/tutorials.json 提供（见 lib/tutorials.ts 的 cardTutorialLinks）。
  *
  * 2. **不编造费率、限额、地区政策。**
  *    没有可靠来源的事实字段一律 null，UI 渲染成「待核实」而不是猜一个数。
- *    这跟 ComparisonTable 定下的原则一致（返现/年费不是结构化字段就不入表）。
+ *    这跟对比表的原则一致（返现/年费不是结构化字段就不入表）。
  *    需要人来写的叙述性字段用 `TODO:` 前缀标出，一眼能扫出来还欠什么。
  *
- * 现有 3 张卡的内容全部迁移自 data/decider/products.ts 与 guides.ts 的免费层
+ * 现有 3 张卡的内容全部迁移自已下线的「出海开户决策」模块的教程免费层
  * （即 @zynqorw 本人实测教程），观点原样保留，未重写。
  *
  * ────────────────────────────────────────────────────────────────
@@ -127,16 +125,13 @@ export interface CardDetail {
     url: string;
     inviteCode?: string;
   };
-  /** 站内完整教程入口。付费正文不在本文件，点过去由 /decider 的付费墙判定。
-   *  schema 里额外保留这一项：它是付费漏斗入口，砍掉等于把三张卡的转化路径断了 */
-  guide?: { href: string; free: boolean };
   /** 'YYYY-MM'，人工核对时间，由人提供，**不允许自动填当前日期**。
    *  null = 从没人工核对过（只收录了卡面的骨架卡），UI 显示「未核对」 */
   lastVerified: string | null;
 }
 
 export interface CryptoCard {
-  /** 唯一标识，用于 URL hash（#card-{slug}）。与 products.ts 的 id 对齐以便复用决策逻辑 */
+  /** 唯一标识，用于 URL hash（#card-{slug}）。与 data/card-eligibility.ts 的 id 对齐（筛选与推荐靠它关联） */
   slug: string;
   name: string;
   issuer: Unknown<"Visa" | "Mastercard" | "Other">;
@@ -270,9 +265,9 @@ export const cards: CryptoCard[] = [
         },
         {
           title: "开虚拟卡并绑定 Apple Pay / Google Pay",
-          body: "TODO: 免费层未公开该步骤细节，完整版教程里有。",
+          body: "TODO: 该步骤细节待补充",
         },
-        { title: "首次充值与消费", body: "TODO: 免费层未公开该步骤细节，完整版教程里有。" },
+        { title: "首次充值与消费", body: "TODO: 该步骤细节待补充" },
       ],
       faq: null,
       risk: ["TODO: 风控/冻结/跑路风险未实测核实——发布前必须补真实来源，不要凭印象写"],
@@ -281,7 +276,6 @@ export const cards: CryptoCard[] = [
         url: "https://app.kast.xyz/referral/O0J1Z2AL",
         inviteCode: "O0J1Z2AL",
       },
-      guide: { href: "/decider/guide/kast", free: false },
       lastVerified: "2026-07",
     },
   },
@@ -331,8 +325,8 @@ export const cards: CryptoCard[] = [
           body: "申请时有一个不可逆的选择，直接决定这张卡能不能绑微信、支付宝、Apple Pay。",
           warning: "选错了后面全白做。具体该选哪个国家见完整版教程。",
         },
-        { title: "证件上传与地址填写", body: "TODO: 免费层未公开该步骤细节，完整版教程里有。" },
-        { title: "首月返现怎么吃满", body: "TODO: 免费层未公开该步骤细节，完整版教程里有。" },
+        { title: "证件上传与地址填写", body: "TODO: 该步骤细节待补充" },
+        { title: "首月返现怎么吃满", body: "TODO: 该步骤细节待补充" },
       ],
       faq: null,
       risk: ["TODO: 风控/冻结/跑路风险未实测核实——发布前必须补真实来源，不要凭印象写"],
@@ -341,7 +335,6 @@ export const cards: CryptoCard[] = [
         url: "https://www.bybitglobal.com/cards/?ref=RRBQBG1&source=applet_invite",
         inviteCode: "RRBQBG1",
       },
-      guide: { href: "/decider/guide/bybit-card", free: false },
       lastVerified: "2026-07",
     },
   },
@@ -399,7 +392,6 @@ export const cards: CryptoCard[] = [
       ],
       faq: null,
       risk: ["TODO: 风控/冻结/跑路风险未实测核实——发布前必须补真实来源，不要凭印象写"],
-      guide: { href: "/decider/guide/plasma-one", free: true },
       lastVerified: "2026-07",
     },
   },

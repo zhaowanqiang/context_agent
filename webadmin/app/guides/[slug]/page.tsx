@@ -62,7 +62,7 @@ export default async function GuidePage({ params }: Props) {
 
   return (
     <article className="mx-auto max-w-2xl py-10">
-      <Link href="/decider" className="text-[12.5px] text-neutral-500 transition hover:text-amber-700">
+      <Link href="/tutorials" className="text-[12.5px] text-neutral-500 transition hover:text-amber-700">
         ← 全部教程
       </Link>
       <h1 className="mt-5 text-[27px] font-bold leading-[1.45] tracking-tight text-neutral-900 sm:text-[30px]">
@@ -106,18 +106,18 @@ export default async function GuidePage({ params }: Props) {
         </p>
       )}
 
-      {/* 文末转化：免费教程的去处是 decider 的付费深度版 */}
+      {/* 文末去处：教程导航里的同类教程 */}
       <Link
-        href="/decider"
+        href="/tutorials"
         className="group mt-12 block rounded-xl border border-amber-200/80 bg-amber-50/60 px-5 py-4 transition hover:border-amber-300 hover:bg-amber-50"
       >
         <p className="text-[14.5px] font-bold text-neutral-900">
-          🧭 不确定自己该开哪个？
+          🧭 还想开别的账户或卡？
         </p>
         <p className="mt-1 text-[13px] leading-relaxed text-neutral-500">
-          答 4 个问题，按你的身份和需求给出可开清单与推荐顺序；教程库里还有逐张卡的实测流程。
+          教程导航按银行与账户、交易所、U 卡、手机号分类，每篇附邀请码、注册链接和 X 上的完整教程。
           <span className="ml-1 font-medium text-amber-700 opacity-0 transition group-hover:opacity-100">
-            去测一测 →
+            去看看 →
           </span>
         </p>
       </Link>

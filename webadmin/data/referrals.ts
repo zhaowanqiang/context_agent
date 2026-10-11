@@ -1,7 +1,7 @@
 /**
  * 返佣链接注册表 —— 全站返佣位的唯一事实来源。
  *
- * 在此之前返佣链接散在三个地方：data/decider/products.ts（金融产品）、
+ * 在此之前返佣链接散在三个地方：已下线的开户决策模块的产品表（金融产品）、
  * data/crypto-cards.ts（卡面邀请码）、以及教程正文里手写的裸链。
  * 结果是同一个链接改一次要翻三个文件，而且教程正文里的裸链既不带
  * rel="sponsored" 也不落埋点——点了多少次根本不知道。
@@ -62,7 +62,7 @@ export interface Referral {
 }
 
 /**
- * 全部返佣产品。链接与 data/decider/products.ts、data/crypto-cards.ts 保持一致，
+ * 全部返佣产品。链接与 data/tutorials.json 保持一致，
  * 改链接改这里（那两处的 referral_url 后续会逐步指回本表）。
  */
 export const REFERRALS: Referral[] = [

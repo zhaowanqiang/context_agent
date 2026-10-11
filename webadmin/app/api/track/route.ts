@@ -11,7 +11,7 @@ import { isEventType, recordEvent } from "@/lib/events";
  * 都不是强安全边界，只是让「随手灌垃圾」变得不划算——真要防得靠 WAF。
  */
 
-// POST handler 本就永远动态，不需要 dynamic 配置（对齐 api/checkout 的写法）
+// POST handler 本就永远动态，不需要 dynamic 配置
 export const runtime = "nodejs";
 
 /** 请求体上限：一条事件正常几百字节 */

@@ -1,22 +1,21 @@
 import { cards, type CryptoCard } from "@/data/crypto-cards";
-import { products } from "@/data/decider/products";
-import { exclusionReason, getRecommendations } from "@/lib/decider/match";
-import type { Answers, Goal, KycTolerance, PassportType, Product } from "@/lib/decider/types";
+import { cardEligibility, type CardEligibility, type Goal, type PassportType } from "@/data/card-eligibility";
+import { exclusionReason, getRecommendations, type Answers, type KycTolerance } from "@/lib/cardEligibility";
 
 /**
  * /cards 模块的筛选、排序与推荐。
  *
- * 打分**不在这里重写**：直接调 lib/decider/match.ts 的 getRecommendations，
- * 站里只有一套权重，要调参就去改那一个文件。这里只做两件 match.ts 管不到的事：
- *   ① 把 3 个问题的答案翻译成 match.ts 认的 Answers
+ * 打分**不在这里重写**：直接调 lib/cardEligibility.ts 的 getRecommendations，
+ * 站里只有一套权重，要调参就去改那一个文件。这里只做两件它管不到的事：
+ *   ① 把 3 个问题的答案翻译成它认的 Answers
  *   ② 把打分结果 join 回加密卡数据，并解释被排除的原因
  *
  * 客户端可 import（不含 server-only，不含付费内容）。
  */
 
-/** slug ↔ products.ts 的 id 一一对应，join 靠它 */
-export function productOf(card: CryptoCard): Product | undefined {
-  return products.find((p) => p.id === card.slug);
+/** slug ↔ data/card-eligibility.ts 的 id 一一对应，join 靠它 */
+export function productOf(card: CryptoCard): CardEligibility | undefined {
+  return cardEligibility.find((p) => p.id === card.slug);
 }
 
 /* ───────────────────────── 筛选 ───────────────────────── */
@@ -93,7 +92,7 @@ export interface HelperAnswers {
   usage: Usage;
 }
 
-/** 3 个问题 → match.ts 认的 Answers。用途都落在「卡」上，大额提现额外带上出入金 */
+/** 3 个问题 → 打分函数认的 Answers。用途都落在「卡」上，大额提现额外带上出入金 */
 function toDeciderAnswers(a: HelperAnswers): Answers {
   const goals: Goal[] = a.usage === "withdraw" ? ["card", "crypto"] : ["card"];
   const kyc: KycTolerance = a.fullKyc ? "willing" : "easy_only";
@@ -105,7 +104,7 @@ function toDeciderAnswers(a: HelperAnswers): Answers {
 export interface CardRecommendation {
   card: CryptoCard;
   score: number;
-  /** 一句话理由，取 match.ts 累积的第一条；没有就退回卡片自己的结论 */
+  /** 一句话理由，取打分时累积的第一条；没有就退回卡片自己的结论 */
   reason: string;
 }
 
@@ -116,7 +115,7 @@ export interface HelperResult {
 
 /**
  * 按答案给 Top 2 推荐 + 被排除原因。
- * 权重在 lib/decider/match.ts 的 scoreProduct 里，要调去那儿改。
+ * 权重在 lib/cardEligibility.ts 的 scoreCard 里，要调去那儿改。
  */
 export function recommendCards(answers: HelperAnswers, list: CryptoCard[] = cards): HelperResult {
   const deciderAnswers = toDeciderAnswers(answers);

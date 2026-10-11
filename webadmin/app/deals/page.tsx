@@ -67,9 +67,9 @@ export default async function DealsPage() {
       </p>
 
       <p className="mt-6 text-center text-[12.5px] text-neutral-400">
-        不确定自己该开哪个？
-        <Link href="/decider" className="ml-1 font-medium text-amber-700 hover:underline">
-          答 4 个问题拿推荐 →
+        想看每一个怎么开？
+        <Link href="/tutorials" className="ml-1 font-medium text-amber-700 hover:underline">
+          去教程导航 →
         </Link>
       </p>
     </div>
