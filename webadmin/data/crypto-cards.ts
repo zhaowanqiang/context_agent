@@ -20,7 +20,8 @@
  * TODO 区（2026-07 批量新增 40 张「只有卡面」的条目，见文件下半部分 faceOnly 段）
  *
  * 这 40 条的 issuer / tier / badges **全部来自卡面图片的肉眼读取，未经核实**，
- * 只用于渲染卡面，不代表这张卡真的属于该卡组织或等级。除此之外一个字段都没填：
+ * 只用于渲染卡面，不代表这张卡真的属于该卡组织或等级。除此之外一个字段都没填
+ * （2026-10 起有一个例外：@zynqorw 提供了返现数据的几张卡填了 cashback，见 baseCashback）：
  * 费率、返现、开卡费、月费、手续费、汇率加点、KYC、地区、额度、链与币种、
  * 邀请码、上线状态 —— 一律 null，UI 渲染成「内容整理中」。
  *
@@ -192,6 +193,14 @@ const mesh = (...stops: Array<[string, number, number]>): CardFace =>
   ({ kind: "mesh", stops: stops.map(([color, x, y]) => ({ color, at: [x, y] as [number, number] })) });
 
 /**
+ * 基础返现。**数据来源：@zynqorw 2026-10 提供的自制卡面合集图**（每张卡下方标着
+ * 「基础返现 N%」和一行发放说明），比例和说明都按图上原文录入，没有补充或换算。
+ * 返现规则是各家随时会调的活动条款，这里记的是那张图制作时的口径。
+ */
+const baseCashback = (rate: string, note?: string): FactValue =>
+  note ? { status: "verified", value: `基础返现 ${rate}`, note } : { status: "verified", value: `基础返现 ${rate}` };
+
+/**
  * 「只有卡面」的占位条目工厂。
  *
  * 存在的意义不是省字数，是**结构性地堵死编造**：调用方只能传卡面相关的字段，
@@ -202,10 +211,14 @@ const mesh = (...stops: Array<[string, number, number]>): CardFace =>
  * decision 四个数组为空，tutorial / faq 为 null，risk 一条 TODO，
  * lastVerified 为 null（从没人工核对过，不允许拿当前日期充数）。
  */
-function faceOnly(
-  card: Pick<CryptoCard, "slug" | "name" | "issuer" | "faceStyle"> &
-    Partial<Pick<CryptoCard, "tier" | "variant" | "badges" | "tutorial">>
-): CryptoCard {
+function faceOnly({
+  cashback,
+  ...card
+}: Pick<CryptoCard, "slug" | "name" | "issuer" | "faceStyle"> &
+  Partial<Pick<CryptoCard, "tier" | "variant" | "badges" | "tutorial">> & {
+    /** 唯一放开的事实字段：返现。只在有来源时传（见下面的 baseCashback），不传 = 待核实 */
+    cashback?: FactValue;
+  }): CryptoCard {
   const pending: FactValue = { status: "pending" };
   return {
     badges: [],
@@ -217,7 +230,7 @@ function faceOnly(
       // 像是内容没加载出来；TODO 至少说清楚缺的是什么。
       summary: "TODO: 待补充一句话概述",
       facts: {
-        cashback: pending,
+        cashback: cashback ?? pending,
         annualFee: pending,
         kyc: pending,
         region: pending,
@@ -363,7 +376,7 @@ export const cards: CryptoCard[] = [
       summary: "Visa 借记卡 + 欧洲 IBAN 账户，但邀请码和地址证明是两道真门槛。",
       notice: "注册需要邀请码——可以直接用我的，邀请码和注册链接在本页底部",
       facts: {
-        cashback: { status: "pending" },
+        cashback: baseCashback("2%", "XPL 发放"), // 来源同 baseCashback 的说明
         annualFee: { status: "pending" },
         kyc: { status: "verified", value: "完整（证件 + 地址证明）" }, // 需护照 + 香港地址 + 银行流水类地址证明
         region: {
@@ -419,8 +432,8 @@ export const cards: CryptoCard[] = [
    * 教程里 U 卡汇总的最后一行「BiyaPay U卡等...」没有收：它是一句「还有更多」，不是一张具体的卡。
    * ══════════════════════════════════════════════════════════════ */
 
-  faceOnly({ slug: "solid", name: "Solid", tutorial: { slug: "solid" }, issuer: "Visa", tier: "Platinum", faceStyle: image("/cards/solid.webp", "#2c3c26") }),
-  faceOnly({ slug: "ether-fi", name: "Ether.fi", tutorial: { slug: "ether" }, issuer: "Visa", tier: "Signature", faceStyle: image("/cards/ether-fi.webp", "#6f77b3") }),
+  faceOnly({ slug: "solid", name: "Solid", tutorial: { slug: "solid" }, issuer: "Visa", tier: "Platinum", faceStyle: image("/cards/solid.webp", "#2c3c26"), cashback: baseCashback("3%", "USDC 发放，月封顶 $50") }),
+  faceOnly({ slug: "ether-fi", name: "Ether.fi", tutorial: { slug: "ether" }, issuer: "Visa", tier: "Signature", faceStyle: image("/cards/ether-fi.webp", "#6f77b3"), cashback: baseCashback("3%", "ETHFI 发放，每月前 $2,000") }),
   faceOnly({ slug: "musewallet", name: "MuseWallet", tutorial: { slug: "muse" }, issuer: null, faceStyle: mesh(["#0F766E", 22, 28], ["#134E4A", 78, 70], ["#115E59", 50, 100]) }),
   faceOnly({ slug: "gate", name: "Gate", tutorial: { slug: "gate", section: "Gate U卡" }, issuer: null, faceStyle: radial("#2563EB", "#0B1F5C", 30, 30) }),
   faceOnly({ slug: "bybit-eu-card", name: "Bybit EU", tutorial: { slug: "bybit", item: "Bybit EU U卡" }, issuer: null, faceStyle: pattern("#1C1917", "grid", 0.14) }),
@@ -472,10 +485,10 @@ export const cards: CryptoCard[] = [
   faceOnly({ slug: "hyperbeat", name: "Hyperbeat", issuer: "Visa", tier: "Platinum", faceStyle: wordmark("#6E6763", "#565049", 1.5) }),
   faceOnly({ slug: "xplace-blue", name: "XPlace", issuer: "Visa", tier: "Platinum", variant: "蓝色卡面", faceStyle: mesh(["#16308F", 76, 74], ["#5B8DEF", 24, 30], ["#3B82F6", 48, 48]) }),
   faceOnly({ slug: "unknown-28", name: "待确认", issuer: "Visa", tier: "Platinum", variant: "编号 28", faceStyle: solid("#FCFCFB") }),
-  faceOnly({ slug: "jupiter", name: "Jupiter", tutorial: { slug: "ucard", item: "Jupiter" }, issuer: "Visa", tier: "Platinum", faceStyle: image("/cards/jupiter.webp", "#2a5f64") }),
+  faceOnly({ slug: "jupiter", name: "Jupiter", tutorial: { slug: "ucard", item: "Jupiter" }, issuer: "Visa", tier: "Platinum", faceStyle: image("/cards/jupiter.webp", "#2a5f64"), cashback: baseCashback("2%", "USDC 发放，月封顶 $100") }),
   faceOnly({ slug: "tuyo", name: "Tuyo", issuer: "Visa", tier: "Platinum", faceStyle: wordmark("#14532D", "#0C3A1F", 1.8) }),
   faceOnly({ slug: "unknown-31", name: "待确认", issuer: "Visa", tier: "Platinum", variant: "编号 31", faceStyle: solid("#232020") }),
-  faceOnly({ slug: "bitget-wallet", name: "Bitget Wallet", tutorial: { slug: "bitget" }, issuer: "Visa", faceStyle: image("/cards/bitget-wallet.webp", "#0d212c") }),
+  faceOnly({ slug: "bitget-wallet", name: "Bitget Wallet", tutorial: { slug: "bitget" }, issuer: "Visa", faceStyle: image("/cards/bitget-wallet.webp", "#0d212c"), cashback: baseCashback("2%", "USDC、BTC 等资产可选") }),
 
   // 与 xplace-blue 同品牌不同卡面：刻意不合并，权益是否相同没有来源
   faceOnly({ slug: "xplace-silver", name: "XPlace", issuer: "Visa", tier: "Platinum", variant: "银白卡面", faceStyle: metallic("#F2F1EF", 100) }),
@@ -483,8 +496,8 @@ export const cards: CryptoCard[] = [
   faceOnly({ slug: "solflare", name: "Solflare", issuer: "Mastercard", badges: ["debit"], faceStyle: pattern("#211E1C", "grid", 0.12) }),
   faceOnly({ slug: "unknown-35", name: "待确认", issuer: "Visa", tier: "Platinum", variant: "编号 35", faceStyle: pattern("#1F1C1B", "topo", 0.3, "screen") }),
   // 2026-10：来自 @zynqorw 的卡面合集图，教程导航里暂时没有它的教程
-  faceOnly({ slug: "ethena", name: "Ethena", issuer: "Visa", tier: "Platinum", faceStyle: image("/cards/ethena.webp", "#3c4555") }),
-  faceOnly({ slug: "mexc", name: "MEXC", issuer: "Visa", tier: "Platinum", faceStyle: image("/cards/mexc.webp", "#1d1a19") }),
+  faceOnly({ slug: "ethena", name: "Ethena", issuer: "Visa", tier: "Platinum", faceStyle: image("/cards/ethena.webp", "#3c4555"), cashback: baseCashback("4%", "AVAX 发放，每月前 $2,500") }),
+  faceOnly({ slug: "mexc", name: "MEXC", issuer: "Visa", tier: "Platinum", faceStyle: image("/cards/mexc.webp", "#1d1a19"), cashback: baseCashback("4%", "USDT 发放，月封顶 100U") }),
 
   // ⚠️ 疑似与上面的 bybit-card 是同一产品的不同卡面——待人工确认，见文件头 TODO ②
   faceOnly({ slug: "bybit-mastercard-virtual", name: "Bybit", issuer: "Mastercard", variant: "白色虚拟卡面", badges: ["Virtual", "prepaid"], faceStyle: solid("#FBFBFA") }),
