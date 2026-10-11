@@ -66,7 +66,7 @@ function navigate(mutate: () => void) {
 export default function CryptoCardsSection({
   tutorialLinks,
 }: {
-  /** 卡片 slug → 教程导航里的邀请码与注册链接（/cards 页面在服务端从 tutorials.json 算好） */
+  /** 卡片 slug → 教程导航里的说明、邀请码、注册链接与完整教程（/cards 页面在服务端从 tutorials.json 算好） */
   tutorialLinks: Record<string, CardTutorialLink>;
 }) {
   const [filter, setFilter] = useState<FilterId>("all");
@@ -157,7 +157,7 @@ export default function CryptoCardsSection({
           style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}
         >
           {visible.map((card) => (
-            <CardTile key={card.slug} card={card} onOpen={() => open(card.slug)} />
+            <CardTile key={card.slug} card={card} tutorialLink={tutorialLinks[card.slug]} onOpen={() => open(card.slug)} />
           ))}
         </div>
       )}

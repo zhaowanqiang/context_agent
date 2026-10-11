@@ -90,9 +90,27 @@ export interface CategoryView {
   sharedIds: string[];
 }
 
-/** /cards 详情面板里展示的「来自教程导航的邀请码与注册链接」 */
+/** 教程里与某张卡对应的一段（一篇教程可能有多张卡，如 Bitget Wallet 新旧两张） */
+export interface CardTutorialOffer {
+  title: string;
+  /** 教程里对这张卡的说明文字，原样带出 */
+  notes: string[];
+  codes: string[];
+  /** 注册 / 开卡链接（邀请链接） */
+  registerUrl: string | null;
+  registerLabel: string | null;
+  /** X 上的完整教程 */
+  guides: { label: string; url: string }[];
+}
+
+/** /cards 上一张卡从教程导航带出的全部信息：卡片格子上的标记 + 详情面板的教程区块 */
 export interface CardTutorialLink {
   tutorialSlug: string;
   tutorialName: string;
-  offers: { title: string; code: string | null; url: string | null; label: string | null }[];
+  /** 教程的一句话概述；指向汇总教程里的某一行时为 null（那句概述说的是整篇汇总，不是这张卡） */
+  summary: string | null;
+  /** 群内触发词 */
+  keyword: string;
+  telegramDeepLink: string;
+  offers: CardTutorialOffer[];
 }

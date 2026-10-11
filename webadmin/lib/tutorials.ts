@@ -95,7 +95,7 @@ export function tutorialCount(categoryId: string): number {
 }
 
 /**
- * /cards 用：卡片 slug → 它在教程导航里的邀请码与注册链接。
+ * /cards 用：卡片 slug → 它在教程导航里的说明、邀请码、注册链接与完整教程。
  * 卡片数据里只写「指向哪篇教程（的哪一行）」，码和链接一律从 JSON 现取——
  * 不在 crypto-cards.ts 里再抄一份，否则改一次要翻两个文件。
  */
@@ -115,16 +115,42 @@ export function cardTutorialLinks(): Record<string, CardTutorialLink> {
       if (!item) {
         throw new Error(`[tutorials] 卡片 ${c.slug} 指向教程 ${t.slug} 里不存在的条目「${c.tutorial.item}」`);
       }
-      offers = [{ title: item.name, code: item.code, url: item.url, label: null }];
+      // 条目的 text 多数只是「名称 邀请码 XXX」的重复，带了别的信息才当说明带出
+      const plain = (v: string) => v.replace(/\s+/g, "");
+      const redundant =
+        plain(item.text) === plain(item.name) ||
+        (item.code !== null && plain(item.text) === plain(`${item.name}邀请码${item.code}`));
+      offers = [
+        {
+          title: item.name,
+          notes: redundant ? [] : [item.text],
+          codes: item.code ? [item.code] : [],
+          registerUrl: item.url,
+          registerLabel: null,
+          guides: [],
+        },
+      ];
     } else {
-      offers = own
-        .map((s) => {
-          const reg = s.links.find((l) => l.kind === "register");
-          return { title: s.title, code: s.codes[0] ?? null, url: reg?.url ?? null, label: reg?.label ?? null };
-        })
-        .filter((o) => o.code !== null || o.url !== null);
+      offers = own.map((s) => {
+        const reg = s.links.find((l) => l.kind === "register");
+        return {
+          title: s.title,
+          notes: s.notes,
+          codes: s.codes,
+          registerUrl: reg?.url ?? null,
+          registerLabel: reg?.label ?? null,
+          guides: s.links.filter((l) => l.kind === "tutorial").map((l) => ({ label: l.label, url: l.url })),
+        };
+      });
     }
-    out[c.slug] = { tutorialSlug: t.slug, tutorialName: t.name, offers };
+    out[c.slug] = {
+      tutorialSlug: t.slug,
+      tutorialName: t.name,
+      summary: c.tutorial.item ? null : t.summary,
+      keyword: t.keyword,
+      telegramDeepLink: t.telegramDeepLink,
+      offers,
+    };
   }
   return out;
 }

@@ -20,11 +20,12 @@ export function productOf(card: CryptoCard): CardEligibility | undefined {
 
 /* ───────────────────────── 筛选 ───────────────────────── */
 
-export type FilterId = "all" | "mainland" | "physical" | "applepay";
+export type FilterId = "all" | "tutorial" | "mainland" | "physical" | "applepay";
 
 /** 只列有数据支撑的筛选项：仓库里没有费率来源，「高返现」这类 chip 会永远筛出空 */
 export const FILTERS: { id: FilterId; label: string }[] = [
   { id: "all", label: "全部" },
+  { id: "tutorial", label: "有教程" },
   { id: "mainland", label: "支持中国大陆" },
   { id: "physical", label: "有实体卡" },
   { id: "applepay", label: "支持 Apple Pay" },
@@ -32,6 +33,9 @@ export const FILTERS: { id: FilterId; label: string }[] = [
 
 export function matchesFilter(card: CryptoCard, filter: FilterId): boolean {
   switch (filter) {
+    // 「有教程」= 在教程导航里有对应教程（tutorial 字段），或卡片自己带实测的申请步骤
+    case "tutorial":
+      return card.tutorial !== undefined || card.detail.tutorial !== null;
     case "mainland":
       return productOf(card)?.passport_ok.includes("mainland") ?? false;
     // 筛选走 traits 而不是 detail.facts：后者是给人看的字符串（FactValue），
@@ -57,11 +61,12 @@ export const SORTS: { id: SortId; label: string }[] = [
   { id: "kyc", label: "KYC 门槛（低→高）" },
 ];
 
-/** 资料完整度：人工核对过的排前面。43 张卡里只有 3 张有内容，
- *  不显式排一次的话，能用的卡会被淹在 40 张空壳中间。
- *  判据用 lastVerified 而不是「数组非空」：核对过才算有内容。 */
+/** 资料完整度：人工核对过的排最前，其次是在教程导航里有教程的，只有卡面的垫底。
+ *  不显式排一次的话，能用的卡会被淹在几十张空壳中间。
+ *  第一档的判据用 lastVerified 而不是「数组非空」：核对过才算有内容。 */
 function completeness(c: CryptoCard): number {
-  return c.detail.lastVerified ? 0 : 1;
+  if (c.detail.lastVerified) return 0;
+  return c.tutorial ? 1 : 2;
 }
 
 export function sortCards(list: CryptoCard[], sort: SortId): CryptoCard[] {
@@ -70,7 +75,7 @@ export function sortCards(list: CryptoCard[], sort: SortId): CryptoCard[] {
       (a, b) => (productOf(a)?.kyc_difficulty ?? 99) - (productOf(b)?.kyc_difficulty ?? 99)
     );
   }
-  // 「推荐顺序」= 资料完整的在前，组内保持数组原序（stable sort）
+  // 「推荐顺序」= 资料完整的在前、有教程的其次，组内保持数组原序（stable sort）
   return [...list].sort((a, b) => completeness(a) - completeness(b));
 }
 

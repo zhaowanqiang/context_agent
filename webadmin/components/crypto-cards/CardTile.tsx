@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import type { CryptoCard } from "@/data/crypto-cards";
+import type { CardTutorialLink } from "@/lib/tutorialTypes";
 import { glowOf } from "@/lib/cardFace";
 import CardFace from "./CardFace";
 
@@ -14,7 +15,16 @@ const MAX_TILT = 7; // deg。再大就不像卡片倾斜，像页面翻了
  * 标签本身成了噪音，反而把真正能用的 3 张卡淹了。
  * 改成视觉权重：资料完整的全饱和，只有卡面的降饱和 + 降透明 + 右上一个 6px 小点。
  */
-export default function CardTile({ card, onOpen }: { card: CryptoCard; onOpen: () => void }) {
+export default function CardTile({
+  card,
+  tutorialLink,
+  onOpen,
+}: {
+  card: CryptoCard;
+  /** 这张卡在教程导航里的教程（有才传）。有它，只收录了卡面的卡也不再按「空壳」降权显示 */
+  tutorialLink?: CardTutorialLink;
+  onOpen: () => void;
+}) {
   const tileRef = useRef<HTMLElement | null>(null);
   const frame = useRef<number | null>(null);
   const pending = useRef<{ x: number; y: number } | null>(null);
@@ -90,11 +100,19 @@ export default function CardTile({ card, onOpen }: { card: CryptoCard; onOpen: (
     el.style.setProperty("--cc-glare", "0");
   }, []);
 
-  const isPending = card.status === "pending";
+  // 「空壳」= 只收录了卡面、教程导航里也没有它。有教程的卡虽然事实字段还没核实，
+  // 但点进去有说明、邀请码和教程，不该再降饱和。
+  const isPending = card.status === "pending" && !tutorialLink;
   const fullName = card.variant ? `${card.name} · ${card.variant}` : card.name;
+  // 教程带来的标记。只收录了卡面的卡把它排在前面：那些卡的 badges 是从卡面上读来的装饰文案，
+  // 「有教程 / 含邀请码」才是访客用得上的信息；有实测内容的卡保持自己的卖点在前。
+  const tutorialChips = tutorialLink
+    ? ["有教程", ...(tutorialLink.offers.some((o) => o.codes.length > 0) ? ["含邀请码"] : [])]
+    : [];
+  const allChips = card.status === "pending" ? [...tutorialChips, ...card.badges] : [...card.badges, ...tutorialChips];
   // 网格态最多两个标签，其余进详情面板——信息密度优先
-  const chips = card.badges.slice(0, 2);
-  const hiddenChips = card.badges.length - chips.length;
+  const chips = allChips.slice(0, 2);
+  const hiddenChips = allChips.length - chips.length;
 
   return (
     <article

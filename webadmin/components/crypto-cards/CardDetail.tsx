@@ -225,8 +225,104 @@ export default function CardDetail({
   const titleId = `cc-detail-title-${card.slug}`;
   const fullName = card.variant ? `${card.name} · ${card.variant}` : card.name;
   const statusLabel = STATUS_LABEL[card.status];
+  // 只收录了卡面的卡没有自己的概述（占位是 TODO）；教程导航里有它的教程时，用教程的那句
+  // （指向汇总教程里某一行的卡没有专属概述，这时不显示 TODO 占位，留空）
+  const summary = d.summary.startsWith("TODO:") && tutorialLink ? tutorialLink.summary : d.summary;
   // URL 里带了个内容为空的 tab（如直链 ?tab=faq 但这张卡没有 faq）时回落到默认页
   const activeTab = enabled[tab] ? tab : "decision";
+
+  /* 教程区块：教程导航里这张卡的说明、邀请码、注册链接与 X 上的完整教程，
+     全部来自 data/tutorials.json。一篇教程有几张卡就列几段
+     （Bitget Wallet 新旧两张卡各有各的码），不替访客挑。
+     卡片自己有 cta 的（KAST / Bybit）不重复列邀请码和注册按钮——底部已经有了。 */
+  const tutorialBlock = tutorialLink ? (
+    <section aria-labelledby={`cc-tutorial-${card.slug}`} className="rounded-xl border border-neutral-200 p-4">
+      <h3
+        id={`cc-tutorial-${card.slug}`}
+        className="text-[11px] font-semibold uppercase tracking-wider text-neutral-600"
+      >
+        教程与邀请码
+      </h3>
+      <ul className="mt-3 space-y-4">
+        {tutorialLink.offers.map((o) => (
+          <li key={o.title} className="border-t border-neutral-100 pt-4 first:border-t-0 first:pt-0">
+            <p className="text-[13.5px] font-semibold text-neutral-900">{o.title}</p>
+            {o.notes.length > 0 && (
+              <ul className="mt-1.5 space-y-1">
+                {o.notes.map((n) => (
+                  <li key={n} className="text-[13px] leading-relaxed text-neutral-600">
+                    {n}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {((!d.cta && (o.codes.length > 0 || o.registerUrl)) || o.guides.length > 0) && (
+              <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                {!d.cta &&
+                  o.codes.map((c) => (
+                    <InviteCode
+                      key={c}
+                      code={c}
+                      cardSlug={card.slug}
+                      from="cards_tutorial_code"
+                      className="max-w-[200px] basis-[160px]"
+                    />
+                  ))}
+                {!d.cta && o.registerUrl && (
+                  <a
+                    href={o.registerUrl}
+                    target="_blank"
+                    rel="sponsored nofollow noopener noreferrer"
+                    onClick={() =>
+                      track("referral_click", { target: card.slug, meta: { from: "cards_tutorial_register" } })
+                    }
+                    className="shrink-0 rounded-lg bg-neutral-900 px-3.5 py-2 text-[13px] font-medium text-on-solid transition hover:bg-neutral-700"
+                  >
+                    {o.registerLabel ?? "注册"} ↗
+                  </a>
+                )}
+                {o.guides.map((g) => (
+                  <a
+                    key={g.url}
+                    href={g.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 rounded-lg border border-neutral-300 px-3.5 py-2 text-[13px] font-medium text-neutral-700 transition hover:border-amber-400 hover:text-amber-800"
+                  >
+                    {g.label} ↗
+                  </a>
+                ))}
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+
+      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-neutral-100 pt-3 text-[13px]">
+        <a
+          href={tutorialLink.telegramDeepLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-medium text-amber-700 underline-offset-4 transition hover:text-amber-800 hover:underline"
+        >
+          在 Telegram 获取 ↗
+        </a>
+        <Link
+          href={`/tutorials#${tutorialLink.tutorialSlug}`}
+          className="font-medium text-amber-700 underline-offset-4 transition hover:text-amber-800 hover:underline"
+        >
+          在教程导航看「{tutorialLink.tutorialName}」→
+        </Link>
+        <span className="text-neutral-600">
+          群内发送 <span className="font-mono">{tutorialLink.keyword}</span>
+        </span>
+      </div>
+    </section>
+
+  ) : null;
+  // 只收录了卡面的卡，六项事实和开户决策全是「待核实 / 待整理」——教程是它唯一有内容的部分，
+  // 放最上面；有实测内容的卡照旧排在风险区块之后
+  const tutorialFirst = card.status === "pending";
 
   return (
     <div
@@ -269,7 +365,7 @@ export default function CardDetail({
                   </span>
                 )}
               </div>
-              <p className="mt-1 text-[13px] leading-relaxed text-neutral-600">{d.summary}</p>
+              {summary && <p className="mt-1 text-[13px] leading-relaxed text-neutral-600">{summary}</p>}
             </div>
 
             <button
@@ -292,6 +388,8 @@ export default function CardDetail({
 
         {/* ── 内容区：只有这里滚 ────────────────────────────── */}
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+          {tutorialFirst && tutorialBlock && <div className="mb-6">{tutorialBlock}</div>}
+
           {/* 2. facts 网格：3 列 → 900px 以下 2 列 → 600px 以下 1 列 */}
           <div className="grid grid-cols-1 gap-2.5 min-[600px]:grid-cols-2 min-[900px]:grid-cols-3">
             {FACT_LABELS.map(([key, label]) => (
@@ -406,50 +504,7 @@ export default function CardDetail({
             </ul>
           </div>
 
-          {/* 5.5 教程导航互链。卡片自己有 cta 的（KAST / Bybit）只给教程入口，不把同一个码再列一遍；
-                 没有 cta 的（骨架卡、Plasma One）在这里带出教程里的邀请码与注册链接——
-                 一篇教程有几张卡就列几行（Bitget Wallet 新旧两张卡各有各的码），不替访客挑 */}
-          {tutorialLink && (
-            <div className="mt-6 rounded-xl border border-neutral-200 p-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-600">邀请码与注册</p>
-              {!d.cta && tutorialLink.offers.length > 0 && (
-                <ul className="mt-2 divide-y divide-neutral-100">
-                  {tutorialLink.offers.map((o) => (
-                    <li key={o.title} className="flex flex-wrap items-center gap-x-3 gap-y-2 py-2.5 first:pt-0">
-                      <span className="min-w-0 flex-1 basis-[160px] text-[13px] font-medium text-neutral-900">{o.title}</span>
-                      {o.code && (
-                        <InviteCode
-                          code={o.code}
-                          cardSlug={card.slug}
-                          from="cards_tutorial_code"
-                          className="max-w-[190px] basis-[150px]"
-                        />
-                      )}
-                      {o.url && (
-                        <a
-                          href={o.url}
-                          target="_blank"
-                          rel="sponsored nofollow noopener noreferrer"
-                          onClick={() =>
-                            track("referral_click", { target: card.slug, meta: { from: "cards_tutorial_register" } })
-                          }
-                          className="shrink-0 rounded-lg bg-neutral-900 px-3.5 py-2 text-[13px] font-medium text-on-solid transition hover:bg-neutral-700"
-                        >
-                          注册 ↗
-                        </a>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <Link
-                href={`/tutorials#${tutorialLink.tutorialSlug}`}
-                className="mt-2 inline-block text-[13px] font-medium text-amber-700 underline-offset-4 transition hover:text-amber-800 hover:underline"
-              >
-                在教程导航看「{tutorialLink.tutorialName}」→
-              </Link>
-            </div>
-          )}
+          {!tutorialFirst && tutorialBlock && <div className="mt-6">{tutorialBlock}</div>}
 
           {/* 6. 底部：核对时间 + CTA（外跳只发生在这里） */}
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-4">
