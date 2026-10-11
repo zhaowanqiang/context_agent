@@ -55,7 +55,7 @@ export default function TgGroupSection() {
                   type="button"
                   onClick={() => copy(k)}
                   aria-label={`复制关键词 ${k}`}
-                  className="rounded-full border border-neutral-300 bg-white px-3.5 py-1.5 font-mono text-[13px] text-neutral-700 transition hover:border-amber-400 hover:bg-amber-50 hover:text-amber-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+                  className="rounded-full border border-neutral-300 bg-surface px-3.5 py-1.5 font-mono text-[13px] text-neutral-700 transition hover:border-amber-400 hover:bg-amber-50 hover:text-amber-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
                 >
                   {copied === k ? "已复制 ✓" : k}
                 </button>
@@ -70,7 +70,7 @@ export default function TgGroupSection() {
             href={TG_GROUP_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-7 inline-block rounded-lg bg-amber-700 px-5 py-2.5 text-[14px] font-medium text-white transition hover:bg-amber-800"
+            className="mt-7 inline-block rounded-lg bg-amber-700 px-5 py-2.5 text-[14px] font-medium text-on-solid transition hover:bg-amber-800"
           >
             加入 TG 交流群 ↗
           </a>
@@ -84,7 +84,7 @@ export default function TgGroupSection() {
             alt="Telegram 交流群二维码"
             width={240}
             height={240}
-            className="mx-auto rounded-xl border border-neutral-200 bg-white p-3 lg:mx-0"
+            className="mx-auto rounded-xl border border-neutral-200 bg-surface p-3 lg:mx-0"
           />
         )}
       </div>

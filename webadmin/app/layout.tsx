@@ -7,6 +7,8 @@ import { isAdminAuthed } from "@/lib/adminAuth";
 import { MODULES } from "@/lib/modules";
 import { SITE, siteUrl, TG_GROUP_URL, X_URL } from "@/lib/site";
 import NavLinks from "@/components/NavLinks";
+import ThemeToggle from "@/components/ThemeToggle";
+import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -56,7 +58,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const container = authed ? "max-w-5xl xl:max-w-[1480px]" : "max-w-5xl";
 
   return (
-    <html lang="zh-CN">
+    // data-theme 由下面的内联脚本在首屏绘制前按访客的选择改写，所以服务端输出（light）
+    // 与水合时的 DOM 可能不一致——suppressHydrationWarning 让 React 以 DOM 为准（只作用于 <html> 这一层）
+    <html lang="zh-CN" data-theme="light" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="flex min-h-screen flex-col bg-neutral-50 text-neutral-800 antialiased">
         <header className="sticky top-0 z-40 border-b border-neutral-200/70 bg-neutral-50/90 backdrop-blur">
           {/* 窄屏允许换行：链接 + 入群按钮在手机上一行放不下，body 的 overflow-x: clip 会直接裁掉 */}
@@ -76,7 +83,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 href={TG_GROUP_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-md bg-amber-700 px-3 py-1 text-[13px] font-medium text-white transition hover:bg-amber-800"
+                className="rounded-md bg-amber-700 px-3 py-1 text-[13px] font-medium text-on-solid transition hover:bg-amber-800"
               >
                 加入交流群 ↗
               </a>
@@ -94,14 +101,21 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     })),
                   ]}
                 />
+                <ThemeToggle />
               </div>
-            ) : process.env.PUBLIC_FACADE === "1" ? null : (
-              <Link
-                href="/login"
-                className="ml-auto text-[12px] text-neutral-500 transition-colors hover:text-neutral-800"
-              >
-                工作台登录
-              </Link>
+            ) : (
+              // 右端：主题切换 + 登录入口。ThemeToggle 在工作台页面自己不渲染（工作台永久浅色）
+              <div className="ml-auto flex items-center gap-3">
+                <ThemeToggle />
+                {process.env.PUBLIC_FACADE === "1" ? null : (
+                  <Link
+                    href="/login"
+                    className="text-[12px] text-neutral-500 transition-colors hover:text-neutral-800"
+                  >
+                    工作台登录
+                  </Link>
+                )}
+              </div>
             )}
           </nav>
         </header>

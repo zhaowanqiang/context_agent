@@ -49,7 +49,7 @@ function GuidesPanel() {
           <Link
             key={c.id}
             href={`/decider/guide/${c.id}`}
-            className="group flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-amber-300 hover:shadow-md"
+            className="group flex flex-col rounded-2xl border border-slate-200 bg-surface p-5 shadow-sm transition hover:border-amber-300 hover:shadow-md"
           >
             <div className="flex items-start justify-between gap-3">
               <p className="text-[13px] font-semibold text-slate-500">{c.productName}</p>

@@ -57,7 +57,7 @@ export default function XArticleList({ articles }: { articles: XArticle[] }) {
                 {a.date}
               </time>
               {a.tags.map((t) => (
-                <span key={t} className="rounded-full border border-neutral-200 bg-white px-2 py-px text-[11.5px]">
+                <span key={t} className="rounded-full border border-neutral-200 bg-surface px-2 py-px text-[11.5px]">
                   {TAG_LABEL[t]}
                 </span>
               ))}
@@ -77,7 +77,7 @@ export default function XArticleList({ articles }: { articles: XArticle[] }) {
             {a.tgKeyword && (
               <p className="mt-2.5 inline-flex items-center gap-1.5 rounded-md bg-amber-50 px-2 py-1 text-[12px] text-amber-900">
                 群里发
-                <code className="rounded bg-white px-1.5 font-mono text-[12px] text-amber-800">{a.tgKeyword}</code>
+                <code className="rounded bg-surface px-1.5 font-mono text-[12px] text-amber-800">{a.tgKeyword}</code>
                 获取
               </p>
             )}
@@ -111,7 +111,7 @@ function Chip({
       className={`rounded-full border px-3 py-1 text-[12.5px] transition ${
         on
           ? "border-amber-300 bg-amber-50 font-medium text-amber-800"
-          : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300 hover:text-neutral-900"
+          : "border-neutral-200 bg-surface text-neutral-600 hover:border-neutral-300 hover:text-neutral-900"
       }`}
     >
       {label} <span className="font-mono text-[11px] opacity-70">{count}</span>

@@ -51,7 +51,7 @@ export default function ComparisonTable({ only }: { only?: string[] } = {}) {
               const hasGuide = Boolean(guides[p.id]);
               const mainlandOk = p.passport_ok.includes("mainland");
               return (
-                <tr key={p.id} className="bg-white transition hover:bg-amber-50/40">
+                <tr key={p.id} className="bg-surface transition hover:bg-amber-50/40">
                   <td className="px-4 py-3">
                     {hasGuide ? (
                       <Link href={`/decider/guide/${p.id}`} className="font-semibold text-slate-900 underline-offset-2 hover:text-amber-700 hover:underline">

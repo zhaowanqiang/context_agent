@@ -105,7 +105,7 @@ export default async function PostPage({ params }: Props) {
       {(prev || next) && (
         <nav className="mt-6 grid gap-3 sm:grid-cols-2">
           {prev ? (
-            <Link href={`/posts/${prev.slug}`} className="group rounded-xl border border-neutral-200 bg-white px-4 py-3 transition hover:border-amber-300">
+            <Link href={`/posts/${prev.slug}`} className="group rounded-xl border border-neutral-200 bg-surface px-4 py-3 transition hover:border-amber-300">
               <span className="text-[11px] text-neutral-400">← 上一篇</span>
               <span className="mt-0.5 block truncate text-[13.5px] font-medium text-neutral-700 group-hover:text-amber-700">
                 {prev.title}
@@ -115,7 +115,7 @@ export default async function PostPage({ params }: Props) {
             <span />
           )}
           {next && (
-            <Link href={`/posts/${next.slug}`} className="group rounded-xl border border-neutral-200 bg-white px-4 py-3 text-right transition hover:border-amber-300">
+            <Link href={`/posts/${next.slug}`} className="group rounded-xl border border-neutral-200 bg-surface px-4 py-3 text-right transition hover:border-amber-300">
               <span className="text-[11px] text-neutral-400">下一篇 →</span>
               <span className="mt-0.5 block truncate text-[13.5px] font-medium text-neutral-700 group-hover:text-amber-700">
                 {next.title}

@@ -42,7 +42,7 @@ function BuyElsewhere({ guideId }: { guideId: string }) {
         rel="noopener noreferrer"
         // 迁移期这条是唯一真能付钱的路，点击照样算购买意向
         onClick={() => track("buy_click", { target: guideId, meta: { via: "elsewhere" } })}
-        className="rounded-lg bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-slate-700"
+        className="rounded-lg bg-slate-900 px-6 py-3 text-sm font-semibold text-on-solid shadow-lg transition hover:bg-slate-700"
       >
         前往购买解锁 ↗
       </a>
@@ -88,7 +88,7 @@ export default function UnlockPanel({ guideId, offers, paymentsEnabled }: Props)
           onClick={() => setShowLogin(true)}
           className={
             paymentsEnabled
-              ? "rounded-lg bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-slate-700"
+              ? "rounded-lg bg-slate-900 px-6 py-3 text-sm font-semibold text-on-solid shadow-lg transition hover:bg-slate-700"
               : "rounded-lg border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400"
           }
         >
@@ -104,7 +104,7 @@ export default function UnlockPanel({ guideId, offers, paymentsEnabled }: Props)
             onClick={() => setShowLogin(false)}
           >
             <div
-              className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl"
+              className="w-full max-w-sm rounded-2xl bg-surface p-6 shadow-xl"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="mb-4 flex items-center justify-between">
@@ -189,7 +189,7 @@ export default function UnlockPanel({ guideId, offers, paymentsEnabled }: Props)
           type="button"
           disabled={buying !== null}
           onClick={() => buy(offer.tier)}
-          className="rounded-lg bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-slate-700 disabled:opacity-60"
+          className="rounded-lg bg-slate-900 px-6 py-3 text-sm font-semibold text-on-solid shadow-lg transition hover:bg-slate-700 disabled:opacity-60"
         >
           {buying === offer.tier ? (
             "正在跳转支付…"
@@ -197,7 +197,7 @@ export default function UnlockPanel({ guideId, offers, paymentsEnabled }: Props)
             <>
               ¥{offer.price_cny} {offer.label}
               {offer.list_price_cny && (
-                <del className="ml-1.5 text-xs font-normal text-white/60">¥{offer.list_price_cny}</del>
+                <del className="ml-1.5 text-xs font-normal text-on-solid/60">¥{offer.list_price_cny}</del>
               )}
             </>
           )}

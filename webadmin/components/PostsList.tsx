@@ -47,7 +47,7 @@ export default function PostsList({ posts }: { posts: PostCard[] }) {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="搜索标题 / 摘要…"
-          className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-[14px] text-neutral-900 outline-none transition placeholder:text-neutral-400 focus:border-amber-300 sm:max-w-xs"
+          className="w-full rounded-lg border border-neutral-200 bg-surface px-3 py-2 text-[14px] text-neutral-900 outline-none transition placeholder:text-neutral-400 focus:border-amber-300 sm:max-w-xs"
         />
         <div className="flex shrink-0 items-center gap-3">
           {/* 筛选中才报计数：没筛时标题行已经给过总数 */}
@@ -89,7 +89,7 @@ export default function PostsList({ posts }: { posts: PostCard[] }) {
             <li key={p.id} className="flex">
               <Link
                 href={`/posts/${p.slug}`}
-                className="group flex flex-1 flex-col rounded-xl border border-neutral-200 bg-white p-5 transition hover:border-amber-300 hover:shadow-[0_1px_16px_rgba(180,83,9,0.07)]"
+                className="group flex flex-1 flex-col rounded-xl border border-neutral-200 bg-surface p-5 transition hover:border-amber-300 hover:shadow-[0_1px_16px_rgba(180,83,9,0.07)]"
               >
                 <div className="flex items-center justify-between gap-2 text-[11.5px] text-neutral-400">
                   <time className="tabular-nums">

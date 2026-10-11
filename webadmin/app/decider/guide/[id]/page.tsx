@@ -60,7 +60,7 @@ function LockedCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-surface shadow-sm">
       <div
         aria-hidden
         className="pointer-events-none select-none space-y-3 p-4 blur-sm sm:p-6"
@@ -74,7 +74,7 @@ function LockedCard({
         ))}
       </div>
 
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gradient-to-b from-white/40 to-white/90 px-4 text-center">
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gradient-to-b -surface/40 -surface/90 px-4 text-center">
         {children}
       </div>
     </div>
@@ -116,7 +116,7 @@ export default async function GuidePage({
           </h1>
         </header>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm sm:p-10">
+        <section className="rounded-2xl border border-slate-200 bg-surface p-6 text-center shadow-sm sm:p-10">
           <p className="text-base font-medium text-slate-700">
             该产品的详细教程即将上线
           </p>
@@ -131,7 +131,7 @@ export default async function GuidePage({
               href={product.referral_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-5 inline-block rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-slate-700"
+              className="mt-5 inline-block rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-medium text-on-solid transition hover:bg-slate-700"
             >
               先去开户 ↗
             </TrackedLink>
@@ -225,7 +225,7 @@ export default async function GuidePage({
       )}
 
       {/* —— 免费部分:阅读视图,始终完整显示 —— */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
+      <section className="rounded-2xl border border-slate-200 bg-surface p-5 shadow-sm sm:p-8">
         <Reader md={guide.freeMd} />
       </section>
 
@@ -252,12 +252,12 @@ export default async function GuidePage({
               href={product.referral_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="shrink-0 rounded-lg bg-slate-900 px-5 py-2.5 text-center text-sm font-medium text-white transition hover:bg-slate-700"
+              className="shrink-0 rounded-lg bg-slate-900 px-5 py-2.5 text-center text-sm font-medium text-on-solid transition hover:bg-slate-700"
             >
               免费:去开户 ↗
             </TrackedLink>
           ) : (
-            <span className="min-w-0 rounded-lg border border-dashed border-amber-300 bg-white px-4 py-2.5 text-left text-xs leading-relaxed text-slate-600 sm:max-w-md">
+            <span className="min-w-0 rounded-lg border border-dashed border-amber-300 bg-surface px-4 py-2.5 text-left text-xs leading-relaxed text-slate-600 sm:max-w-md">
               {product.signup_note}
             </span>
           )}
@@ -272,7 +272,7 @@ export default async function GuidePage({
           </h2>
 
           {showSteps ? (
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
+            <div className="rounded-2xl border border-slate-200 bg-surface p-5 shadow-sm sm:p-8">
               <Reader md={guide.paidMd} />
             </div>
           ) : (
@@ -294,7 +294,7 @@ export default async function GuidePage({
           </h2>
 
           {showPitfalls ? (
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
+            <div className="rounded-2xl border border-slate-200 bg-surface p-5 shadow-sm sm:p-8">
               <Reader md={guide.pitfallsMd} />
             </div>
           ) : (

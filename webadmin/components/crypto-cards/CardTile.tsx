@@ -103,7 +103,7 @@ export default function CardTile({ card, onOpen }: { card: CryptoCard; onOpen: (
       onPointerEnter={onEnter}
       onPointerLeave={onLeave}
       data-pending={isPending || undefined}
-      className="cc-tile relative flex flex-col rounded-2xl border border-neutral-200 bg-white p-3.5"
+      className="cc-tile relative flex flex-col rounded-2xl border border-neutral-200 bg-surface p-3.5"
       style={
         {
           perspective: "1200px",

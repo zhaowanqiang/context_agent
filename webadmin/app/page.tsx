@@ -53,7 +53,7 @@ type Service = {
 const EXTERNAL = { target: "_blank", rel: "noopener noreferrer" } as const;
 
 const CARD_CLASS =
-  "group flex flex-col rounded-xl border border-neutral-200 bg-white p-5 transition hover:border-amber-300 hover:shadow-[0_1px_16px_rgba(180,83,9,0.07)]";
+  "group flex flex-col rounded-xl border border-neutral-200 bg-surface p-5 transition hover:border-amber-300 hover:shadow-[0_1px_16px_rgba(180,83,9,0.07)]";
 
 function ServiceCard({ s }: { s: Service }) {
   const body = (
@@ -262,7 +262,7 @@ export default async function Home() {
               href={X_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-lg bg-amber-700 px-5 py-2.5 font-medium text-white transition hover:bg-amber-800"
+              className="rounded-lg bg-amber-700 px-5 py-2.5 font-medium text-on-solid transition hover:bg-amber-800"
             >
               关注 X @zynqorw ↗
             </a>
@@ -270,7 +270,7 @@ export default async function Home() {
               href={TG_GROUP_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-lg border border-amber-300 bg-white px-5 py-2.5 font-medium text-amber-800 transition hover:border-amber-400 hover:bg-amber-50"
+              className="rounded-lg border border-amber-300 bg-surface px-5 py-2.5 font-medium text-amber-800 transition hover:border-amber-400 hover:bg-amber-50"
             >
               加入 TG 交流群 ↗
             </a>
@@ -288,7 +288,7 @@ export default async function Home() {
         </div>
 
         {/* 终端名片：等宽排版的事实表，内容全部可在站内验证，不写自我评价 */}
-        <aside className="@container overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-[0_1px_16px_rgba(28,25,23,0.04)]">
+        <aside className="@container overflow-hidden rounded-xl border border-neutral-200 bg-surface shadow-[0_1px_16px_rgba(28,25,23,0.04)]">
           <div className="flex items-center gap-2 border-b border-neutral-200 bg-neutral-100/70 px-4 py-2.5">
             <span className="flex gap-1.5" aria-hidden>
               <span className="size-2 rounded-full bg-neutral-300" />
@@ -311,7 +311,7 @@ export default async function Home() {
               ["stack", "Next.js · Supabase"],
               ["channel", "X + Telegram 交流群"],
             ].map(([k, v]) => (
-              <div key={k} className="flex gap-3 bg-white px-4 py-2.5">
+              <div key={k} className="flex gap-3 bg-surface px-4 py-2.5">
                 <dt className="w-[54px] shrink-0 font-mono text-[11px] text-neutral-500">{k}</dt>
                 <dd className="min-w-0 text-neutral-700">{v}</dd>
               </div>
@@ -379,7 +379,7 @@ export default async function Home() {
               key={p.name}
               href={p.href}
               {...(p.href.startsWith("http") ? EXTERNAL : {})}
-              className="group flex flex-col rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-amber-300 hover:shadow-[0_1px_16px_rgba(180,83,9,0.07)]"
+              className="group flex flex-col rounded-xl border border-neutral-200 bg-surface p-6 transition hover:border-amber-300 hover:shadow-[0_1px_16px_rgba(180,83,9,0.07)]"
             >
               <div className="flex flex-wrap items-center gap-1.5">
                 {p.badges.map((b, i) => (
@@ -436,7 +436,7 @@ export default async function Home() {
           <div className="lg:justify-self-end lg:text-right">
             <a
               href={`mailto:${CONTACT_EMAIL}`}
-              className="inline-block rounded-lg bg-amber-700 px-5 py-2.5 text-[14px] font-medium text-white transition hover:bg-amber-800"
+              className="inline-block rounded-lg bg-amber-700 px-5 py-2.5 text-[14px] font-medium text-on-solid transition hover:bg-amber-800"
             >
               {CONTACT_EMAIL}
             </a>

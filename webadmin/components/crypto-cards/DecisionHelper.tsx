@@ -49,8 +49,8 @@ function Pill({
       onClick={onClick}
       className={`min-h-9 rounded-full border px-3 py-1.5 text-[13px] transition ${
         active
-          ? "border-neutral-900 bg-neutral-900 text-white"
-          : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-400"
+          ? "border-neutral-900 bg-neutral-900 text-on-solid"
+          : "border-neutral-200 bg-surface text-neutral-600 hover:border-neutral-400"
       }`}
     >
       {children}
@@ -78,7 +78,7 @@ export default function DecisionHelper({ onOpenCard }: { onOpenCard: (slug: stri
   }
 
   return (
-    <section className="rounded-2xl border border-neutral-200 bg-white">
+    <section className="rounded-2xl border border-neutral-200 bg-surface">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -130,7 +130,7 @@ export default function DecisionHelper({ onOpenCard }: { onOpenCard: (slug: stri
             type="button"
             disabled={!ready}
             onClick={submit}
-            className="w-full rounded-lg bg-neutral-900 px-4 py-2.5 text-[13.5px] font-semibold text-white transition enabled:hover:bg-neutral-700 disabled:cursor-not-allowed disabled:bg-neutral-300"
+            className="w-full rounded-lg bg-neutral-900 px-4 py-2.5 text-[13.5px] font-semibold text-on-solid transition enabled:hover:bg-neutral-700 disabled:cursor-not-allowed disabled:bg-neutral-300"
           >
             {ready ? "看推荐" : "请先答完 3 个问题"}
           </button>

@@ -239,7 +239,7 @@ export default function CardDetail({
         aria-labelledby={titleId}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        className="cc-sheet sm:cc-modal flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl outline-none sm:max-h-[88vh] sm:max-w-3xl sm:rounded-2xl"
+        className="cc-sheet sm:cc-modal flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-2xl bg-surface shadow-2xl outline-none sm:max-h-[88vh] sm:max-w-3xl sm:rounded-2xl"
       >
         {/* 移动端下拉把手（桌面隐藏） */}
         <div data-sheet-handle className="flex shrink-0 cursor-grab touch-none justify-center py-2.5 sm:hidden">
@@ -355,7 +355,7 @@ export default function CardDetail({
                 <ol className="relative space-y-5 border-l border-neutral-200 pl-6">
                   {d.tutorial.map((s, i) => (
                     <li key={s.title} className="relative">
-                      <span className="absolute -left-[31px] flex h-6 w-6 items-center justify-center rounded-full border border-neutral-200 bg-white text-[11px] font-bold text-neutral-500">
+                      <span className="absolute -left-[31px] flex h-6 w-6 items-center justify-center rounded-full border border-neutral-200 bg-surface text-[11px] font-bold text-neutral-500">
                         {i + 1}
                       </span>
                       <p className="text-[13.5px] font-semibold text-neutral-900">{s.title}</p>
@@ -435,7 +435,7 @@ export default function CardDetail({
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => track("referral_click", { target: card.slug, meta: { from: "cards_detail" } })}
-                  className="shrink-0 rounded-lg bg-neutral-900 px-4 py-2 text-[13px] font-medium text-white transition hover:bg-neutral-700"
+                  className="shrink-0 rounded-lg bg-neutral-900 px-4 py-2 text-[13px] font-medium text-on-solid transition hover:bg-neutral-700"
                 >
                   {d.cta.label} ↗
                 </a>

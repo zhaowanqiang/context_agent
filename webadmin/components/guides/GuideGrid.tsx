@@ -56,7 +56,7 @@ export default function GuideGrid({ guides }: { guides: GuideCard[] }) {
           <li key={g.id} className="flex">
             <Link
               href={`/guides/${g.slug}`}
-              className="group flex flex-1 flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white transition hover:border-amber-300 hover:shadow-[0_1px_16px_rgba(180,83,9,0.07)]"
+              className="group flex flex-1 flex-col overflow-hidden rounded-xl border border-neutral-200 bg-surface transition hover:border-amber-300 hover:shadow-[0_1px_16px_rgba(180,83,9,0.07)]"
             >
               {g.coverUrl && (
                 // 封面走 <img>：图片托在 Supabase 公开桶，域名随项目变，
@@ -115,7 +115,7 @@ function Chip({
       className={`rounded-full border px-3 py-1 text-[12.5px] transition ${
         on
           ? "border-amber-300 bg-amber-50 font-medium text-amber-800"
-          : "border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 hover:text-neutral-800"
+          : "border-neutral-200 bg-surface text-neutral-500 hover:border-neutral-300 hover:text-neutral-800"
       }`}
     >
       {label} <span className="font-mono text-[11px] opacity-60">{count}</span>

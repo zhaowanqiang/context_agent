@@ -1,5 +1,40 @@
 @import "tailwindcss";
 
+/* 夜间模式绑定到 <html data-theme="dark">（手动切换，不跟随系统），不用 media 方式。
+ * 属性由 app/layout.tsx 的防闪烁内联脚本在首屏绘制前写入，之后由 ThemeToggle 维护。 */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* 语义色工具类（bg-surface / text-ink / border-line …）：值指向下方 :root 的语义变量，
+ * 随主题切换。inline = 工具类里直接写 var(--xxx)，不在构建期固化成具体色值。
+ * 新代码一律用这一套；历史代码的 neutral-* / slate-* / amber-* 靠夜间色阶重映射兜住。 */
+@theme inline {
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink-strong: var(--ink-strong);
+  --color-ink: var(--ink);
+  --color-ink-body: var(--ink-body);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-subtle: var(--ink-subtle);
+  --color-ink-faint: var(--ink-faint);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-mark: var(--accent-mark);
+  --color-accent-solid: var(--accent-solid);
+  --color-accent-solid-hover: var(--accent-solid-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-line: var(--accent-line);
+  --color-solid: var(--solid);
+  --color-solid-hover: var(--solid-hover);
+  --color-on-solid: var(--on-solid);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-bad: var(--bad);
+  --color-bad-soft: var(--bad-soft);
+}
+
 /*
  * 全站设计语言：shadcn/ui · Stone 暖灰体系
  * https://ui.shadcn.com （base color: stone）
@@ -55,20 +90,133 @@
   --font-mono: ui-monospace, SFMono-Regular, Consolas, "Courier New", monospace;
 }
 
+/* ── 语义变量 ─────────────────────────────────────────────────
+ * 浅色值 = 改造前写死的原值，一个都没动（视觉逐像素不变）。
+ * 注释里的 stone-N / amber-N 是它在色阶里的出处。 */
 :root {
-  /* shadcn 语义 token（Stone 主题） */
-  --background: #fafaf9; /* stone-50 暖白 */
-  --foreground: #292524; /* stone-800 */
-  --muted-foreground: #78716c; /* stone-500 */
-  --border: #e7e5e4; /* stone-200 */
-  --primary: #d97706; /* amber-600 琥珀强调 */
+  color-scheme: light;
+  --page: #fafaf9; /* stone-50 暖白，页面底 */
+  --surface: #ffffff; /* 卡片面 */
+  --surface-muted: #f5f5f4; /* stone-100 次级面：引用块、代码、表头 */
+  --line: #e7e5e4; /* stone-200 边框 */
+  --line-strong: #d6d3d1; /* stone-300 */
+  --ink-strong: #1c1917; /* stone-900 标题 */
+  --ink: #292524; /* stone-800 主文字 */
+  --ink-body: #44403c; /* stone-700 长文正文 */
+  --ink-muted: #57534e; /* stone-600 次文字 */
+  --ink-subtle: #78716c; /* stone-500 */
+  --ink-faint: #a8a29e; /* stone-400 装饰性：列表圆点等，不承载信息 */
+  --accent: #b45309; /* amber-700 强调文字 / 链接 */
+  --accent-strong: #92400e; /* amber-800 */
+  --accent-mark: #d97706; /* amber-600 标题边线、焦点环 */
+  --accent-solid: #b45309; /* 强调按钮底 */
+  --accent-solid-hover: #92400e;
+  --accent-soft: #fffbeb; /* amber-50 强调浅底 */
+  --accent-line: #fde68a; /* amber-200 */
+  --solid: #1c1917; /* 深色主按钮底 */
+  --solid-hover: #44403c;
+  --on-solid: #ffffff; /* 实心按钮（深色 / 强调）上的文字 */
+  --ok: #047857; /* emerald-700 */
+  --ok-soft: #ecfdf5; /* emerald-50 */
+  --bad: #dc2626; /* red-600 */
+  --bad-soft: #fef2f2; /* red-50 */
+  --selection-bg: #fde68a; /* amber-200 */
+  --selection-ink: #451a03; /* amber-950 */
+}
+
+/* ── 夜间 ────────────────────────────────────────────────────
+ * 调性不变：暖灰（stone 色相）+ amber，不引入冷色。
+ * 对比度由 scripts/check-contrast.mjs 逐对核算，正文与按钮文字均 ≥ 4.5:1（WCAG AA）。
+ *
+ * 只有公开层会进入夜间：工作台路由被 lib/theme.ts 锁定为浅色，
+ * 所以这里不需要照顾工作台专用的状态色。 */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #171412;
+  --surface: #211d1a;
+  --surface-muted: #2a2522;
+  --line: #3a3430;
+  --line-strong: #544c47;
+  --ink-strong: #f5f5f4;
+  --ink: #e7e5e4;
+  --ink-body: #d6d3d1;
+  --ink-muted: #bfb9b4;
+  --ink-subtle: #a8a29e;
+  --ink-faint: #948c86;
+  /* amber-700 在深底上只有约 3.6:1，强调文字提亮到 amber-400 / 300 */
+  --accent: #fbbf24;
+  --accent-strong: #fcd34d;
+  --accent-mark: #f59e0b;
+  /* 强调按钮反过来：亮琥珀底 + 深字（白字在亮琥珀上过不了 AA） */
+  --accent-solid: #f59e0b;
+  --accent-solid-hover: #fbbf24;
+  --accent-soft: #241a0c;
+  --accent-line: #4d3511;
+  --solid: #f5f5f4;
+  --solid-hover: #d6d3d1;
+  --on-solid: #1c1917;
+  --ok: #6ee7b7;
+  --ok-soft: #0f241b;
+  --bad: #f87171;
+  --bad-soft: #2b1414;
+  --selection-bg: #6e4a14;
+  --selection-ink: #fef3c7;
+
+  /* 色阶重映射：历史代码通篇写 neutral-* / slate-* / amber-*，这里把每一级在夜间
+   * 指到校对过的值（不是简单镜像——500 级直接镜像对比度不够），
+   * 于是几百处既有用法不用逐个改写。浅色下这一段不生效。 */
+  --color-neutral-50: var(--page);
+  --color-neutral-100: var(--surface-muted);
+  --color-neutral-200: var(--line);
+  --color-neutral-300: var(--line-strong);
+  --color-neutral-400: var(--ink-faint);
+  --color-neutral-500: var(--ink-subtle);
+  --color-neutral-600: var(--ink-muted);
+  --color-neutral-700: var(--ink-body);
+  --color-neutral-800: var(--ink);
+  --color-neutral-900: var(--ink-strong);
+  --color-neutral-950: #fafaf9;
+  --color-slate-50: var(--page);
+  --color-slate-100: var(--surface-muted);
+  --color-slate-200: var(--line);
+  --color-slate-300: var(--line-strong);
+  --color-slate-400: var(--ink-faint);
+  --color-slate-500: var(--ink-subtle);
+  --color-slate-600: var(--ink-muted);
+  --color-slate-700: var(--ink-body);
+  --color-slate-800: var(--ink);
+  --color-slate-900: var(--ink-strong);
+  --color-slate-950: #fafaf9;
+
+  /* amber：50–400 是底色与边框（压暗），600–900 是文字与按钮底（提亮） */
+  --color-amber-50: var(--accent-soft);
+  --color-amber-100: #33240e;
+  --color-amber-200: var(--accent-line);
+  --color-amber-300: #6e4a14;
+  --color-amber-400: #9a6a1c;
+  --color-amber-500: #f59e0b;
+  --color-amber-600: var(--accent-mark);
+  --color-amber-700: var(--accent);
+  --color-amber-800: var(--accent-strong);
+  --color-amber-900: #fde68a;
+
+  /* 状态色：公开层只用到 emerald（免费/成功）与 red（报错） */
+  --color-emerald-50: var(--ok-soft);
+  --color-emerald-200: #1f4d39;
+  --color-emerald-400: #2f7a5a;
+  --color-emerald-600: #34d399;
+  --color-emerald-700: var(--ok);
+  --color-emerald-800: #a7f3d0;
+  --color-emerald-900: #d1fae5;
+  --color-red-50: var(--bad-soft);
+  --color-red-600: var(--bad);
 }
 
 body {
   /* 手机端兜底：任何个别元素超宽也不把整页撑出横向滚动 */
   overflow-x: clip;
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--page);
+  color: var(--ink);
   font-family: -apple-system, "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei",
     "PingFang SC", "Noto Sans SC", sans-serif;
   font-size: 15px;
@@ -78,32 +226,32 @@ body {
 
 /* 选中文本给一点品牌色——细节层面的「有人在意」信号 */
 ::selection {
-  background: #fde68a; /* amber-200 */
-  color: #451a03; /* amber-950 */
+  background: var(--selection-bg);
+  color: var(--selection-ink);
 }
 
 /* 渲染后的 markdown 正文（checklist、成稿预览等） */
 .md-body {
   font-size: 15px;
   line-height: 1.9;
-  color: #44403c;
+  color: var(--ink-body);
   word-break: break-word;
 }
 .md-body h1,
 .md-body h2 {
   font-size: 17px;
   font-weight: 700;
-  color: #1c1917;
+  color: var(--ink-strong);
   margin: 1.4em 0 0.6em;
   padding-left: 10px;
-  border-left: 3px solid #d97706;
+  border-left: 3px solid var(--accent-mark);
   line-height: 1.5;
 }
 .md-body h3,
 .md-body h4 {
   font-size: 15.5px;
   font-weight: 700;
-  color: #1c1917;
+  color: var(--ink-strong);
   margin: 1.2em 0 0.5em;
 }
 .md-body p {
@@ -118,14 +266,14 @@ body {
   margin: 0.4em 0;
 }
 .md-body li::marker {
-  color: #a8a29e;
+  color: var(--ink-faint);
 }
 .md-body blockquote {
   margin: 0.9em 0;
   padding: 0.5em 1em;
-  background: #f5f5f4;
-  border-left: 3px solid #d6d3d1;
-  color: #57534e;
+  background: var(--surface-muted);
+  border-left: 3px solid var(--line-strong);
+  color: var(--ink-muted);
   border-radius: 0 4px 4px 0;
 }
 .md-body table {
@@ -139,23 +287,23 @@ body {
 }
 .md-body th,
 .md-body td {
-  border: 1px solid #e7e5e4;
+  border: 1px solid var(--line);
   padding: 6px 12px;
   text-align: left;
 }
 .md-body thead {
-  background: #f5f5f4;
+  background: var(--surface-muted);
 }
 .md-body code {
-  background: #f5f5f4;
+  background: var(--surface-muted);
   border-radius: 4px;
   padding: 2px 5px;
   font-size: 13px;
   font-family: ui-monospace, Consolas, "Courier New", monospace;
-  color: #b45309;
+  color: var(--accent);
 }
 .md-body pre {
-  background: #f5f5f4;
+  background: var(--surface-muted);
   border-radius: 6px;
   padding: 12px 14px;
   overflow-x: auto;
@@ -164,12 +312,12 @@ body {
 .md-body pre code {
   background: none;
   padding: 0;
-  color: #44403c;
+  color: var(--ink-body);
   font-size: 13px;
   line-height: 1.6;
 }
 .md-body a {
-  color: #b45309;
+  color: var(--accent);
   text-decoration: underline;
   text-underline-offset: 3px;
   /* 长 URL（GitHub raw 图链等）允许任意断行 */
@@ -181,11 +329,11 @@ body {
 }
 .md-body hr {
   border: none;
-  border-top: 1px solid #e7e5e4;
+  border-top: 1px solid var(--line);
   margin: 1.5em 0;
 }
 .md-body strong {
-  color: #1c1917;
+  color: var(--ink-strong);
 }
 
 /* 公开层文章阅读版式：叠在 .md-body 上放大阅读尺寸（工作台预览不受影响）。
@@ -193,7 +341,7 @@ body {
 .md-article {
   font-size: 16.5px;
   line-height: 2.05;
-  color: #44403c;
+  color: var(--ink-body);
 }
 .md-article h1,
 .md-article h2 {
@@ -211,7 +359,7 @@ body {
 }
 .md-article img {
   border-radius: 8px;
-  border: 1px solid #e7e5e4;
+  border: 1px solid var(--line);
   margin: 1.2em 0;
 }
 .md-article blockquote {
@@ -228,7 +376,7 @@ body {
   word-break: break-word;
   font-size: 14.5px;
   line-height: 1.85;
-  color: #57534e;
+  color: var(--ink-muted);
 }
 
 /* markdown 编辑区：中文为主的内容不用等宽字体 */
@@ -236,83 +384,9 @@ body {
   font-family: inherit;
   font-size: 15px;
   line-height: 1.85;
-  color: #292524;
+  color: var(--ink);
 }
 
-
-/* ── 以下来自 decider（出海开户决策），随该应用并入主站 ──────────────
- * 这些 token 名（--bg/--surface/--ink/--accent/--radius…）主站自身不使用，
- * 只有 decider 子树的组件读取，全局声明不会影响其它页面。
- * 放普通选择器而非 @theme：它们要在运行时随 data-theme 切换，@theme 在构建期固化。
- * 三套配色由 data-theme 切换，默认（:root / a）为「深蓝」。 */
-:root,
-[data-theme="a"] {
-  --bg: #f3f5f9;
-  --surface: #fff;
-  --surface2: #f6f8fc;
-  --ink: #0e1a2e;
-  --soft: #46546b;
-  --mute: #8b97a9;
-  --line: #e5e9f0;
-  --accent: #2f64d6;
-  --accent-ink: #fff;
-  --accent-soft: #e9f0fe;
-  --accent-line: #bcd2fb;
-  --radius: 16px;
-  --radius-sm: 11px;
-  --pill: 999px;
-  --shadow: 0 1px 2px rgba(16, 26, 46, 0.05), 0 10px 34px rgba(16, 26, 46, 0.06);
-}
-
-/* 墨黑 */
-[data-theme="b"] {
-  --bg: #faf9f6;
-  --surface: #fff;
-  --surface2: #f7f5f0;
-  --ink: #161512;
-  --soft: #55504a;
-  --mute: #9c968c;
-  --line: #e8e3da;
-  --accent: #c2570f;
-  --accent-ink: #fff;
-  --accent-soft: #fbeede;
-  --accent-line: #eec6a0;
-  --radius: 5px;
-  --radius-sm: 5px;
-  --pill: 6px;
-  --shadow: none;
-}
-
-/* 暖棕 */
-[data-theme="c"] {
-  --bg: #eeebe2;
-  --surface: #fbfaf5;
-  --surface2: #f3f0e7;
-  --ink: #272219;
-  --soft: #5b5446;
-  --mute: #948b78;
-  --line: #e0d9c8;
-  --accent: #3f7d57;
-  --accent-ink: #fff;
-  --accent-soft: #e7efe6;
-  --accent-line: #b9d0ba;
-  --radius: 14px;
-  --radius-sm: 10px;
-  --pill: 999px;
-  --shadow: 0 1px 2px rgba(60, 50, 30, 0.05), 0 10px 30px rgba(60, 50, 30, 0.06);
-}
-
-/* 结果卡进场动效(参考稿 .rec 的 rise) */
-@keyframes rise {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
 
 /* decider 教程正文首个标题不留上边距（主站文章页不需要，故只补这一条） */
 .md-body h1:first-child,
@@ -489,7 +563,7 @@ body {
  * 子元素画到边界外的 ring，画在容器自己身上则由容器自己绘制，不受裁剪影响。 */
 .cc-tile:has(.cc-hit:focus-visible) {
   --cc-lift: -6px;
-  outline: 2px solid #d97706;
+  outline: 2px solid var(--accent-mark);
   outline-offset: 2px;
   box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.35);
 }

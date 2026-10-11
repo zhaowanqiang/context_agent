@@ -87,6 +87,7 @@ export const config = {
   // 监控推送 API（token 鉴权）、Next 静态资源、favicon。
   // /login 不排除——由 proxy 代码处理（门面模式要能把它 404 掉）
   // 公开段必须带 (?:/|$) 边界：裸前缀会把 /nowhere、/postsadmin 这类将来的私有路由一起放行
+  // 新增公开路由时同步改 lib/theme.ts 的 THEMED_PATH——那边漏了，新页面就不参与夜间模式
   matcher: [
     "/((?!$|(?:posts|about|decider|guides|cards|deals|on-x|numbers)(?:/|$)|opengraph-image|rss\\.xml|sitemap\\.xml|robots\\.txt|api/monitor|api/track|api/checkout|api/webhooks|_next/static|_next/image|favicon\\.ico).*)",
   ],

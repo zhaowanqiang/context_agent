@@ -46,8 +46,8 @@ function Pill({
         // 手机端:加大点击区(min 44px 高、上下内距更足);桌面端 sm: 还原原样式
         "inline-flex min-h-11 items-center justify-center rounded-full border px-4 py-2.5 text-sm font-medium transition sm:min-h-0 sm:py-2",
         active
-          ? "border-slate-900 bg-slate-900 text-white"
-          : "border-slate-300 bg-white text-slate-700 hover:border-slate-400",
+          ? "border-slate-900 bg-slate-900 text-on-solid"
+          : "border-slate-300 bg-surface text-slate-700 hover:border-slate-400",
       ].join(" ")}
     >
       {children}
@@ -80,7 +80,7 @@ function ResultCard({ item }: { item: ScoredProduct }) {
   const price = product.paid_price_cny ?? 29;
 
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+    <div className="flex h-full flex-col rounded-2xl border border-slate-200 bg-surface p-4 shadow-sm sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <h4 className="min-w-0 break-words text-base font-semibold text-slate-900">
           {product.name}
@@ -119,7 +119,7 @@ function ResultCard({ item }: { item: ScoredProduct }) {
         {(product.has_paid_guide || product.has_free_guide) && (
           <Link
             href={`/decider/guide/${product.id}`}
-            className="flex-1 rounded-lg bg-slate-900 px-4 py-2.5 text-center text-sm font-medium text-white transition hover:bg-slate-700"
+            className="flex-1 rounded-lg bg-slate-900 px-4 py-2.5 text-center text-sm font-medium text-on-solid transition hover:bg-slate-700"
           >
             📖 看开卡教程
             {product.has_free_guide ? "(全文免费)" : `(第一步免费 · 完整版首发 ¥${price})`}
@@ -136,7 +136,7 @@ function ResultCard({ item }: { item: ScoredProduct }) {
               "flex-1 rounded-lg px-4 py-2.5 text-center text-sm font-medium transition",
               product.has_paid_guide || product.has_free_guide
                 ? "border border-slate-300 text-slate-700 hover:border-slate-400"
-                : "bg-slate-900 text-white hover:bg-slate-700",
+                : "bg-slate-900 text-on-solid hover:bg-slate-700",
             ].join(" ")}
           >
             免费:去开户 ↗
@@ -197,7 +197,7 @@ export default function Decider({ hero }: { hero?: React.ReactNode }) {
       <div className="gap-10 lg:grid lg:grid-cols-[minmax(0,1fr)_460px] lg:items-start xl:gap-14">
         {hero && <div className="mb-8 lg:mb-0">{hero}</div>}
 
-        <div className="space-y-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 lg:sticky lg:top-6">
+        <div className="space-y-6 rounded-2xl border border-slate-200 bg-surface p-4 shadow-sm sm:p-6 lg:sticky lg:top-6">
         <Question step={1} title="你的证件类型?">
           {passportOptions.map((o) => (
             <Pill
@@ -271,7 +271,7 @@ export default function Decider({ hero }: { hero?: React.ReactNode }) {
               document.getElementById("results")?.scrollIntoView({ behavior: "smooth", block: "start" });
             }, 60);
           }}
-          className="w-full rounded-lg bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition enabled:hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+          className="w-full rounded-lg bg-slate-900 px-4 py-3 text-sm font-semibold text-on-solid transition enabled:hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
           {ready ? "查看我的推荐" : "请先回答上面 4 个问题"}
         </button>
@@ -287,7 +287,7 @@ export default function Decider({ hero }: { hero?: React.ReactNode }) {
             </span>
           </h2>
           {results.length === 0 ? (
-            <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-600">
+            <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-surface p-6 text-sm text-slate-600">
               按你目前的条件,数据库里暂时没有完全匹配的产品。试试放宽
               「海外地址证明」或「KYC 难度」再看看。
             </div>

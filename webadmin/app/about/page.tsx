@@ -112,7 +112,7 @@ export default function AboutPage() {
 
         {/* 粘性资料栏：速览表 + 联系方式，跟随滚动 */}
         <aside className="lg:sticky lg:top-20 lg:self-start">
-          <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white">
+          <div className="overflow-hidden rounded-xl border border-neutral-200 bg-surface">
             <p className="border-b border-neutral-200 bg-neutral-100/70 px-4 py-2.5 font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-neutral-500">
               速览
             </p>
@@ -134,13 +134,13 @@ export default function AboutPage() {
               href={TG_GROUP_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 block rounded-lg bg-amber-700 px-4 py-2.5 text-center text-[13.5px] font-medium text-white transition hover:bg-amber-800"
+              className="mt-3 block rounded-lg bg-amber-700 px-4 py-2.5 text-center text-[13.5px] font-medium text-on-solid transition hover:bg-amber-800"
             >
               加入 TG 交流群 ↗
             </a>
             <a
               href={`mailto:${CONTACT_EMAIL}`}
-              className="mt-2 block rounded-lg border border-amber-300 bg-white px-4 py-2 text-center text-[13px] text-amber-800 transition hover:bg-amber-50"
+              className="mt-2 block rounded-lg border border-amber-300 bg-surface px-4 py-2 text-center text-[13px] text-amber-800 transition hover:bg-amber-50"
             >
               {CONTACT_EMAIL}
             </a>

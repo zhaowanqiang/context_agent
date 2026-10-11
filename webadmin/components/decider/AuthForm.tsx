@@ -65,7 +65,7 @@ export default function AuthForm({ onClose }: { onClose?: () => void }) {
           className={[
             "flex-1 rounded-lg px-3 py-2 text-sm font-medium transition",
             mode === "login"
-              ? "bg-slate-900 text-white"
+              ? "bg-slate-900 text-on-solid"
               : "bg-slate-100 text-slate-600 hover:bg-slate-200",
           ].join(" ")}
         >
@@ -81,7 +81,7 @@ export default function AuthForm({ onClose }: { onClose?: () => void }) {
           className={[
             "flex-1 rounded-lg px-3 py-2 text-sm font-medium transition",
             mode === "signup"
-              ? "bg-slate-900 text-white"
+              ? "bg-slate-900 text-on-solid"
               : "bg-slate-100 text-slate-600 hover:bg-slate-200",
           ].join(" ")}
         >
@@ -130,7 +130,7 @@ export default function AuthForm({ onClose }: { onClose?: () => void }) {
       <button
         type="submit"
         disabled={busy}
-        className="w-full rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition enabled:hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+        className="w-full rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-on-solid transition enabled:hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
       >
         {busy ? "处理中…" : mode === "login" ? "登录" : "注册"}
       </button>

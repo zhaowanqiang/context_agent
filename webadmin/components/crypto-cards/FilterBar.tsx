@@ -51,12 +51,12 @@ export default function FilterBar({
                 onClick={() => onFilter(f.id)}
                 className={`shrink-0 rounded-full border px-3 py-1.5 text-[13px] font-medium transition ${
                   active
-                    ? "border-neutral-900 bg-neutral-900 text-white"
-                    : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-400"
+                    ? "border-neutral-900 bg-neutral-900 text-on-solid"
+                    : "border-neutral-200 bg-surface text-neutral-600 hover:border-neutral-400"
                 }`}
               >
                 {f.label}
-                <span className={`ml-1 tabular-nums ${active ? "text-white/70" : "text-neutral-600"}`}>
+                <span className={`ml-1 tabular-nums ${active ? "text-on-solid/70" : "text-neutral-600"}`}>
                   ({n})
                 </span>
               </button>
@@ -73,7 +73,7 @@ export default function FilterBar({
           id="cc-sort"
           value={sort}
           onChange={(e) => onSort(e.target.value as SortId)}
-          className="rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-[13px] text-neutral-700"
+          className="rounded-lg border border-neutral-200 bg-surface px-2.5 py-1.5 text-[13px] text-neutral-700"
         >
           {SORTS.map((s) => (
             <option key={s.id} value={s.id}>

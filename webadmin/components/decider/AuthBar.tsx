@@ -41,7 +41,7 @@ export default function AuthBar() {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="rounded-lg bg-slate-900 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-slate-700"
+          className="rounded-lg bg-slate-900 px-4 py-1.5 text-sm font-medium text-on-solid transition hover:bg-slate-700"
         >
           登录 / 注册
         </button>
@@ -53,7 +53,7 @@ export default function AuthBar() {
           onClick={() => setOpen(false)}
         >
           <div
-            className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl"
+            className="w-full max-w-sm rounded-2xl bg-surface p-6 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4 flex items-center justify-between">

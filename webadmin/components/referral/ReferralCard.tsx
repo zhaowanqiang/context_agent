@@ -67,7 +67,7 @@ export default function ReferralCard({
                 // sponsored：这是返佣链接，向搜索引擎如实声明
                 rel="sponsored nofollow noopener noreferrer"
                 onClick={() => track("referral_click", { target: r.id, meta: { from } })}
-                className="rounded-lg bg-amber-700 px-3.5 py-1.5 text-[12.5px] font-medium text-white transition hover:bg-amber-800"
+                className="rounded-lg bg-amber-700 px-3.5 py-1.5 text-[12.5px] font-medium text-on-solid transition hover:bg-amber-800"
               >
                 用我的链接开通 ↗
               </a>
@@ -113,7 +113,7 @@ function CopyCode({ code, referralId, from }: { code: string; referralId: string
         type="button"
         onClick={copy}
         aria-label={`复制邀请码 ${code}`}
-        className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 font-mono text-[12.5px] text-amber-800 transition hover:bg-amber-100"
+        className="rounded-lg border border-amber-300 bg-surface px-3 py-1.5 font-mono text-[12.5px] text-amber-800 transition hover:bg-amber-100"
       >
         {copied ? "已复制 ✓" : `邀请码 ${code}`}
       </button>
