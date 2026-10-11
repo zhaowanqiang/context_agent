@@ -4,6 +4,7 @@ import CryptoCardsSection from "@/components/crypto-cards/CryptoCardsSection";
 import ComparisonTable from "@/components/decider/ComparisonTable";
 import { cards } from "@/data/crypto-cards";
 import { siteUrl } from "@/lib/site";
+import { cardTutorialLinks } from "@/lib/tutorials";
 
 export const metadata: Metadata = {
   title: "加密卡片",
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
 export default function CardsPage() {
   return (
     <div className="px-4 py-10 sm:px-6">
-      <CryptoCardsSection />
+      <CryptoCardsSection tutorialLinks={cardTutorialLinks()} />
 
       {/* 对比表复用 /decider 那张，不另建一套：口径、字段和「不编造」的原则都一致 */}
       <div className="decider-scope mx-auto max-w-[1200px]">

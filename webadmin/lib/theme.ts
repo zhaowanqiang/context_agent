@@ -17,7 +17,7 @@ export type Theme = "light" | "dark";
  * 参与主题的路径 = 公开层。**与 proxy.ts matcher 的公开白名单保持一致**：
  * 新增公开路由时两边一起加，漏了这里新页面就永远是浅色。
  */
-const THEMED_PATH = /^\/(?:$|(?:posts|about|decider|guides|cards|deals|on-x|numbers)(?:\/|$))/;
+const THEMED_PATH = /^\/(?:$|(?:posts|about|decider|guides|cards|deals|on-x|tutorials)(?:\/|$))/;
 
 export function isThemedPath(pathname: string): boolean {
   return THEMED_PATH.test(pathname);

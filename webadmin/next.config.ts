@@ -12,6 +12,8 @@ const nextConfig: NextConfig = {
       // 只把列表页入口指回真正有内容的 /decider 教程库
       { source: "/guides", destination: "/decider", statusCode: 301 },
       { source: "/now", destination: "/about", statusCode: 301 },
+      // 2026-10：海外手机号并入教程导航（数据只在 data/tutorials.json 维护一份）
+      { source: "/numbers", destination: "/tutorials#phone-number", statusCode: 301 },
     ];
   },
   experimental: {

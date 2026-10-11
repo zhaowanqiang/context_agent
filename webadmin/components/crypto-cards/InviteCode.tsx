@@ -11,10 +11,17 @@ import { track } from "@/lib/track";
 export default function InviteCode({
   code,
   cardSlug,
+  from = "cards_invite_copy",
+  comfortable = false,
   className = "",
 }: {
   code: string;
+  /** 埋点 target：卡片 slug，教程导航里是教程 slug */
   cardSlug: string;
+  /** 埋点里的位置标识，区分是在哪个模块复制的 */
+  from?: string;
+  /** 放大复制按钮的点击区域（教程导航以手机访客为主，按钮要够得着） */
+  comfortable?: boolean;
   className?: string;
 }) {
   const [copied, setCopied] = useState(false);
@@ -31,7 +38,7 @@ export default function InviteCode({
     } catch {
       return; // 无剪贴板权限（非安全上下文）时静默——不给假的成功反馈
     }
-    track("referral_click", { target: cardSlug, meta: { from: "cards_invite_copy" } });
+    track("referral_click", { target: cardSlug, meta: { from } });
     setCopied(true);
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => setCopied(false), 2000);
@@ -54,7 +61,9 @@ export default function InviteCode({
         type="button"
         onClick={copy}
         aria-label={`复制邀请码 ${code}`}
-        className="shrink-0 rounded p-1 text-neutral-400 transition hover:bg-neutral-200 hover:text-neutral-700"
+        className={`shrink-0 rounded transition hover:bg-neutral-200 hover:text-neutral-700 focus-visible:outline-2 focus-visible:outline-amber-600 ${
+          comfortable ? "-my-1 -mr-1.5 flex size-9 items-center justify-center text-neutral-500" : "p-1 text-neutral-400"
+        }`}
       >
         {copied ? (
           <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2">

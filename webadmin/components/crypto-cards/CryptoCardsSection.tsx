@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { cards, maxUpdatedAt } from "@/data/crypto-cards";
 import { filterCounts, matchesFilter, sortCards, type FilterId, type SortId } from "@/lib/cryptoCards";
+import type { CardTutorialLink } from "@/lib/tutorialTypes";
 import CardDetail, { TABS, type Tab } from "./CardDetail";
 import CardTile from "./CardTile";
 import DecisionHelper from "./DecisionHelper";
@@ -62,7 +63,12 @@ function navigate(mutate: () => void) {
   window.dispatchEvent(new Event(HASH_EVENT));
 }
 
-export default function CryptoCardsSection() {
+export default function CryptoCardsSection({
+  tutorialLinks,
+}: {
+  /** 卡片 slug → 教程导航里的邀请码与注册链接（/cards 页面在服务端从 tutorials.json 算好） */
+  tutorialLinks: Record<string, CardTutorialLink>;
+}) {
   const [filter, setFilter] = useState<FilterId>("all");
   const [sort, setSort] = useState<SortId>("default");
   const url = useSyncExternalStore(subscribeHash, readHash, readHashServer);
@@ -162,7 +168,7 @@ export default function CryptoCardsSection() {
         跨境政策与费率随时会变，标「待核实」的字段表示尚未实测核实，请以官方页面为准。
       </p>
 
-      {openCard && <CardDetail card={openCard} tab={openTab} onTab={selectTab} onClose={close} />}
+      {openCard && <CardDetail card={openCard} tutorialLink={tutorialLinks[openCard.slug]} tab={openTab} onTab={selectTab} onClose={close} />}
     </div>
   );
 }

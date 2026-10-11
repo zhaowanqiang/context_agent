@@ -38,7 +38,7 @@ export const products: Product[] = [
     requires_overseas_address: false,
     kyc_difficulty: 2,
     passport_ok: ["mainland", "hk_macau_permit", "overseas"],
-    referral_url: "https://bybit.com/cards/?ref=RRBQBG1&source=applet_invite",
+    referral_url: "https://www.bybitglobal.com/cards/?ref=RRBQBG1&source=applet_invite",
     referral_code: "RRBQBG1",
     has_paid_guide: true,
     paid_price_cny: 29, // 首发优惠价(原价 39,恢复时改回)
@@ -67,8 +67,9 @@ export const products: Product[] = [
     requires_overseas_address: false,
     kyc_difficulty: 3,
     passport_ok: ["mainland", "hk_macau_permit", "overseas"],
-    referral_url: "",
-    signup_note: "需要邀请码才能注册,且数量有限——可关注 X @zynqorw 蹲邀请码",
+    referral_url: "https://plasma.org/download/H6Z68U",
+    referral_code: "H6Z68U",
+    referral_code_note: "注册必须填邀请码",
     has_paid_guide: false,
     has_free_guide: true,
     pitch: "Visa 借记卡 + 欧洲 IBAN 账户,实体卡 + 虚拟卡,USDT 充值转法币消费",
@@ -76,7 +77,8 @@ export const products: Product[] = [
   },
   {
     id: "bitget-ucard",
-    name: "Bitget U Card",
+    // 这是 Bitget **交易所** 发的 U Card，与教程导航里的「Bitget Wallet U 卡」（钱包产品）是两个产品，别合并
+    name: "Bitget 交易所 U Card",
     tags: ["card", "crypto"],
     requires_overseas_address: false,
     kyc_difficulty: 2,

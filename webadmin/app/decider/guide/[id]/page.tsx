@@ -239,7 +239,9 @@ export default async function GuidePage({
             </p>
             <p className="mt-0.5 text-xs text-slate-500">
               {product.referral_code
-                ? `注册时填邀请码 ${product.referral_code} 可拿新人奖励`
+                ? product.referral_code_note
+                  ? `邀请码 ${product.referral_code}：${product.referral_code_note}`
+                  : `注册时填邀请码 ${product.referral_code} 可拿新人奖励`
                 : "开户免费,几分钟搞定"}
             </p>
           </div>

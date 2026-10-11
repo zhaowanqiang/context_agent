@@ -24,6 +24,9 @@ export interface Product {
   referral_url: string;
   // 邀请码(有则在卡片上展示,注册时填写可拿新人奖励)
   referral_code?: string;
+  /** 邀请码旁的说明。缺省显示「注册时填写可拿新人奖励」——那是有奖励来源的产品的套话；
+   *  没核实过有没有奖励的（如 Plasma One，只知道注册必须填码）在这里写实际情况，别沿用套话 */
+  referral_code_note?: string;
   // 无直达链接时的开户指引,如「App Store 美区搜 SAVO」
   signup_note?: string;
   // 是否有付费实操教程(决定推荐卡上出现「查看教程」+ 教程页有付费墙)

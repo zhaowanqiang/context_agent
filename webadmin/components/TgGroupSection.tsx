@@ -1,14 +1,20 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { TG_KEYWORDS, TG_QR_IMAGE } from "@/data/tg-keywords";
 import { TG_BOT, TG_GROUP_URL } from "@/lib/site";
 
 /**
  * 首页「交流群」区块：说明入群能拿到什么 + 关键词标签云（点击复制）+ 入群按钮。
- * 关键词和二维码都来自 data/tg-keywords.ts，改数据不用动这里。
+ * 关键词和二维码由首页（服务端）从 data/tg-keywords.ts 读出后传进来——
+ * 那份数据派生自 tutorials.json，不能被客户端组件直接 import。
  */
-export default function TgGroupSection() {
+export default function TgGroupSection({
+  keywords,
+  qrImage,
+}: {
+  keywords: string[];
+  qrImage: string | null;
+}) {
   const [copied, setCopied] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -33,7 +39,7 @@ export default function TgGroupSection() {
       {/* 没有二维码时不留右栏：单栏撑满，不显示占位框 */}
       <div
         className={`mt-2 grid gap-8 lg:items-start lg:gap-14 ${
-          TG_QR_IMAGE ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,300px)]" : ""
+          qrImage ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,300px)]" : ""
         }`}
       >
         <div>
@@ -49,7 +55,7 @@ export default function TgGroupSection() {
           </p>
 
           <ul className="mt-6 flex flex-wrap gap-2" aria-label="机器人关键词">
-            {TG_KEYWORDS.map((k) => (
+            {keywords.map((k) => (
               <li key={k}>
                 <button
                   type="button"
@@ -76,11 +82,11 @@ export default function TgGroupSection() {
           </a>
         </div>
 
-        {TG_QR_IMAGE && (
+        {qrImage && (
           // 二维码走 <img>：public/ 下的静态文件，不需要 next/image 的优化链路
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={TG_QR_IMAGE}
+            src={qrImage}
             alt="Telegram 交流群二维码"
             width={240}
             height={240}

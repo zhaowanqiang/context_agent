@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import TgGroupSection from "@/components/TgGroupSection";
 import { cards } from "@/data/crypto-cards";
-import { phoneNumbers } from "@/data/phone-numbers";
+import { TG_KEYWORDS, TG_QR_IMAGE } from "@/data/tg-keywords";
 import { latestXArticle, shortDate } from "@/data/x-articles";
 import { isAdminAuthed } from "@/lib/adminAuth";
 import { MODULES } from "@/lib/modules";
 import { SITE, siteUrl, TG_GROUP_URL, X_URL } from "@/lib/site";
 import { db } from "@/lib/supabase";
+import { tutorialCount } from "@/lib/tutorials";
 
 // ISR：公网门面实例 60s 再验证（isAdminAuthed 在门面模式下不碰 cookie，可静态化）；
 // 本机实例照旧逐请求渲染（cookie 判定登录态）
@@ -140,12 +141,12 @@ const SERVICES: Service[] = [
     title: "拿到一张能用的加密卡 / 海外手机号",
     problem: "想订阅海外服务、注册海外平台，却卡在没有能用的卡、收不到验证码这一步。",
     delivery:
-      "加密卡片按门槛、充值方式、托管方式逐张整理；海外手机号按获取方式、保号规则、能否接码整理——没核实过的一律标「待核实」。",
+      "加密卡片按门槛、充值方式、托管方式逐张整理，没核实过的一律标「待核实」；海外手机号的购买与保号教程按运营商收在教程导航里。",
     proofLabel: "收录中",
-    proof: `加密卡片 ${cards.length} 张 · 海外手机号整理中`,
+    proof: `加密卡片 ${cards.length} 张 · 手机号教程 ${tutorialCount("phone-number")} 篇`,
     links: [
       { label: "看加密卡片", href: "/cards" },
-      ...(phoneNumbers.length > 0 ? [{ label: "看海外手机号", href: "/numbers" }] : []),
+      { label: "看手机号教程", href: "/tutorials#phone-number" },
     ],
   },
   {
@@ -343,7 +344,7 @@ export default async function Home() {
 
       {/* 交流群：网站的第二个转化目标（第一个是 Hero 里的关注 X）。
           紧跟 Hero，让「入群能拿到什么」在第一屏之后立刻出现 */}
-      <TgGroupSection />
+      <TgGroupSection keywords={TG_KEYWORDS} qrImage={TG_QR_IMAGE} />
 
       {/* P0-1 我能帮你什么：访客动线的第一个转化环节。
           每张卡固定四段式——痛点说访客的话，交付说清给什么，证据指向真实产品，最后给去处 */}

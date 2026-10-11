@@ -152,7 +152,7 @@ function ResultCard({ item }: { item: ScoredProduct }) {
       {product.referral_code && (
         <p className="mt-2 text-xs text-slate-500">
           邀请码:<code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono">{product.referral_code}</code>
-          {" "}注册时填写可拿新人奖励
+          {" "}{product.referral_code_note ?? "注册时填写可拿新人奖励"}
         </p>
       )}
     </div>

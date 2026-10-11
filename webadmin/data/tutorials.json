@@ -1,0 +1,1364 @@
+{
+  "source": "tg_keyword_bot.py",
+  "botUsername": "zynqorw_bot",
+  "groupLink": "https://t.me/x_zynqorw",
+  "categories": [
+    {
+      "id": "banking",
+      "name": "银行/账户",
+      "icon": "🏦",
+      "tutorials": [
+        "maya",
+        "wise",
+        "lemfi",
+        "dukascopy",
+        "starryblu",
+        "ifast",
+        "schwab",
+        "firstrade",
+        "usmart",
+        "antbank",
+        "neverless",
+        "worldfirst"
+      ]
+    },
+    {
+      "id": "exchange",
+      "name": "交易所",
+      "icon": "💱",
+      "tutorials": [
+        "okx",
+        "binance",
+        "mexc",
+        "gate",
+        "bybit",
+        "kraken"
+      ]
+    },
+    {
+      "id": "crypto-card",
+      "name": "U卡",
+      "icon": "💳",
+      "tutorials": [
+        "ucard",
+        "bitget",
+        "solid",
+        "ether",
+        "plasma",
+        "muse"
+      ]
+    },
+    {
+      "id": "phone-number",
+      "name": "手机号",
+      "icon": "📱",
+      "tutorials": [
+        "phone",
+        "smarty",
+        "clubsim",
+        "smart",
+        "dito",
+        "saily",
+        "esim"
+      ]
+    },
+    {
+      "id": "network",
+      "name": "网络工具",
+      "icon": "🌐",
+      "tutorials": [
+        "vps",
+        "vpn"
+      ]
+    }
+  ],
+  "tutorials": [
+    {
+      "slug": "maya",
+      "name": "Maya 电子钱包",
+      "keyword": "maya",
+      "summary": "Maya 电子钱包注册",
+      "category": "banking",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=maya",
+      "related": [
+        "bitget",
+        "worldfirst",
+        "esim"
+      ],
+      "sections": [
+        {
+          "title": "Maya 注册教程",
+          "notes": [
+            "注册填写邀请码 @zynqorw，消费100比索可获得50比索奖励"
+          ],
+          "codes": [
+            "@zynqorw"
+          ],
+          "links": [
+            {
+              "label": "点击注册 Maya",
+              "url": "https://official.maya.ph/be7m/gmsb47rr",
+              "kind": "register"
+            },
+            {
+              "label": "Maya 完整注册教程",
+              "url": "https://x.com/zynqorw/status/2086428605677175058?s=20",
+              "kind": "tutorial"
+            }
+          ],
+          "items": []
+        }
+      ]
+    },
+    {
+      "slug": "vps",
+      "name": "VPS 服务器（RackNerd / 搬瓦工）",
+      "keyword": "vps",
+      "summary": "RackNerd / 搬瓦工 VPS 购买",
+      "category": "network",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=vps",
+      "related": [
+        "vpn",
+        "esim"
+      ],
+      "sections": [
+        {
+          "title": "RackNerd VPS 购买教程",
+          "notes": [
+            "自建节点第一步：一年 $21.99 起的 RackNerd VPS"
+          ],
+          "codes": [],
+          "links": [
+            {
+              "label": "点击购买 RackNerd",
+              "url": "https://my.racknerd.com/aff.php?aff=20509",
+              "kind": "register"
+            },
+            {
+              "label": "RackNerd 完整购买教程",
+              "url": "https://x.com/zynqorw/status/2075200578851131891?s=20",
+              "kind": "tutorial"
+            }
+          ],
+          "items": []
+        },
+        {
+          "title": "搬瓦工 VPS 购买教程",
+          "notes": [],
+          "codes": [],
+          "links": [
+            {
+              "label": "点击购买搬瓦工",
+              "url": "https://bandwagonhost.com/aff.php?aff=83316",
+              "kind": "register"
+            },
+            {
+              "label": "搬瓦工完整购买教程",
+              "url": "https://x.com/zynqorw/status/2078165817200689528?s=20",
+              "kind": "tutorial"
+            }
+          ],
+          "items": []
+        }
+      ]
+    },
+    {
+      "slug": "wise",
+      "name": "Wise",
+      "keyword": "wise",
+      "summary": "Wise 注册",
+      "category": "banking",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=wise",
+      "related": [
+        "maya",
+        "lemfi",
+        "worldfirst"
+      ],
+      "sections": [
+        {
+          "title": "Wise 注册教程",
+          "notes": [
+            "需要港元银行账户必须使用身份证进行认证，使用护照没有港元银行账户"
+          ],
+          "codes": [],
+          "links": [
+            {
+              "label": "点击注册 Wise",
+              "url": "https://wise.com/invite/ilpc/zhaowanqiangz1",
+              "kind": "register"
+            },
+            {
+              "label": "Wise 完整注册教程",
+              "url": "https://x.com/zynqorw/status/2061331746231312603?s=20",
+              "kind": "tutorial"
+            }
+          ],
+          "items": []
+        }
+      ]
+    },
+    {
+      "slug": "starryblu",
+      "name": "StarryBlu",
+      "keyword": "starryblu",
+      "summary": "StarryBlu 注册",
+      "category": "banking",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=starryblu",
+      "related": [
+        "wise",
+        "esim"
+      ],
+      "sections": [
+        {
+          "title": "StarryBlu 注册教程",
+          "notes": [
+            "填写邀请码 MZYK009，一定要在注册的时候填写，注册后无法填写",
+            "通过我的邀请码或链接注册的新用户，可以免去预约排队"
+          ],
+          "codes": [
+            "MZYK009"
+          ],
+          "links": [
+            {
+              "label": "点击注册 StarryBlu",
+              "url": "https://sg.starryblu.com/x/6RrDLdBz",
+              "kind": "register"
+            },
+            {
+              "label": "StarryBlu 完整注册教程",
+              "url": "https://x.com/zynqorw/status/2074472343951548567?s=20",
+              "kind": "tutorial"
+            }
+          ],
+          "items": []
+        }
+      ]
+    },
+    {
+      "slug": "ifast",
+      "name": "iFAST",
+      "keyword": "ifast",
+      "summary": "iFAST 注册",
+      "category": "banking",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=ifast",
+      "related": [
+        "wise",
+        "schwab"
+      ],
+      "sections": [
+        {
+          "title": "iFAST 注册教程",
+          "notes": [],
+          "codes": [],
+          "links": [
+            {
+              "label": "点击注册 iFAST",
+              "url": "https://www.ifastgb.com/tellafriend/wanqiangz594",
+              "kind": "register"
+            },
+            {
+              "label": "iFAST 完整注册教程",
+              "url": "https://x.com/zynqorw/status/2083102472554656001?s=20",
+              "kind": "tutorial"
+            }
+          ],
+          "items": []
+        }
+      ]
+    },
+    {
+      "slug": "esim",
+      "name": "Xesim",
+      "keyword": "esim",
+      "summary": "Xesim 购买",
+      "category": "phone-number",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=esim",
+      "related": [
+        "phone",
+        "saily"
+      ],
+      "sections": [
+        {
+          "title": "Xesim 购买教程",
+          "notes": [
+            "付款界面输入我的折扣码 ZWQ66，可以享受9折购卡优惠"
+          ],
+          "codes": [
+            "ZWQ66"
+          ],
+          "links": [
+            {
+              "label": "点击购买 Xesim",
+              "url": "https://xesim.cc/?DIST=REFBFF0%3D",
+              "kind": "register"
+            },
+            {
+              "label": "Xesim 完整购买教程",
+              "url": "https://x.com/zynqorw/status/2082822843826618629?s=20",
+              "kind": "tutorial"
+            }
+          ],
+          "items": []
+        }
+      ]
+    },
+    {
+      "slug": "schwab",
+      "name": "嘉信理财",
+      "keyword": "嘉信",
+      "summary": "嘉信理财开户与入金",
+      "category": "banking",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=schwab",
+      "related": [
+        "firstrade",
+        "ifast",
+        "wise"
+      ],
+      "sections": [
+        {
+          "title": "嘉信理财 开户和入金教程",
+          "notes": [],
+          "codes": [],
+          "links": [
+            {
+              "label": "嘉信开户教程",
+              "url": "https://x.com/zynqorw/status/2062886453840097460?s=20",
+              "kind": "tutorial"
+            },
+            {
+              "label": "嘉信入金教程",
+              "url": "https://x.com/zynqorw/status/2097257422058656047?s=20",
+              "kind": "tutorial"
+            }
+          ],
+          "items": []
+        }
+      ]
+    },
+    {
+      "slug": "firstrade",
+      "name": "第一证券 Firstrade",
+      "keyword": "第一证券",
+      "summary": "Firstrade 开户",
+      "category": "banking",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=firstrade",
+      "related": [
+        "schwab",
+        "usmart",
+        "wise"
+      ],
+      "sections": [
+        {
+          "title": "第一证券 注册开户教程",
+          "notes": [],
+          "codes": [],
+          "links": [
+            {
+              "label": "第一证券完整开户教程",
+              "url": "https://x.com/zynqorw/status/2063901526666723572?s=20",
+              "kind": "tutorial"
+            }
+          ],
+          "items": []
+        }
+      ]
+    },
+    {
+      "slug": "usmart",
+      "name": "新加坡盈立证券",
+      "keyword": "盈立",
+      "summary": "新加坡盈立证券开户",
+      "category": "banking",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=usmart",
+      "related": [
+        "schwab",
+        "firstrade",
+        "ifast"
+      ],
+      "sections": [
+        {
+          "title": "新加坡盈立证券 开户教程",
+          "notes": [],
+          "codes": [
+            "9gjy"
+          ],
+          "links": [
+            {
+              "label": "点击开户",
+              "url": "https://m.usmartsg66.com/promo/overseas/bonus.html?ICode=9gjy&langType=1&Id=",
+              "kind": "register"
+            },
+            {
+              "label": "盈立证券完整开户教程",
+              "url": "https://x.com/zynqorw/status/2103785449823350853?s=20",
+              "kind": "tutorial"
+            }
+          ],
+          "items": []
+        }
+      ]
+    },
+    {
+      "slug": "antbank",
+      "name": "澳门蚂蚁银行",
+      "keyword": "蚂蚁银行",
+      "summary": "澳门蚂蚁银行开户",
+      "category": "banking",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=antbank",
+      "related": [
+        "wise",
+        "worldfirst"
+      ],
+      "sections": [
+        {
+          "title": "澳门蚂蚁银行 开户教程",
+          "notes": [],
+          "codes": [
+            "LPM8GZEW"
+          ],
+          "links": [
+            {
+              "label": "点击开户",
+              "url": "https://render.alipay.com/p/c/180020570000149153/index.html?invite-code=LPM8GZEW",
+              "kind": "register"
+            },
+            {
+              "label": "澳门蚂蚁银行完整开户教程",
+              "url": "https://x.com/zynqorw/status/2105273067148849404?s=20",
+              "kind": "tutorial"
+            }
+          ],
+          "items": []
+        }
+      ]
+    },
+    {
+      "slug": "mexc",
+      "name": "MEXC 抹茶",
+      "keyword": "mexc",
+      "summary": "抹茶交易所",
+      "category": "exchange",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=mexc",
+      "related": [
+        "okx",
+        "ucard"
+      ],
+      "sections": [
+        {
+          "title": "MEXC 抹茶交易所",
+          "notes": [
+            "通过我的邀请链接完成两个奖励任务，可以获得17U奖励，还可以额外找我领取20U奖励！"
+          ],
+          "codes": [
+            "mexc-49zBD"
+          ],
+          "links": [
+            {
+              "label": "点击注册 MEXC",
+              "url": "https://www.mexc.com/zh-MY/acquisition/custom-sign-up?shareCode=mexc-49zBD",
+              "kind": "register"
+            },
+            {
+              "label": "MEXC 奖励任务具体步骤",
+              "url": "https://x.com/zynqorw/status/2100956822823911636?s=20",
+              "kind": "tutorial"
+            }
+          ],
+          "items": []
+        }
+      ]
+    },
+    {
+      "slug": "okx",
+      "name": "欧易 OKX",
+      "keyword": "okx",
+      "summary": "欧易交易所",
+      "category": "exchange",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=okx",
+      "related": [
+        "binance",
+        "ucard"
+      ],
+      "sections": [
+        {
+          "title": "欧易 OKX",
+          "notes": [
+            "通过我的邀请链接注册欧易，即可获得最高100U的奖励",
+            "欧易/OKX 第二大交易所，使用c2c，直接使用微信/支付宝购买U"
+          ],
+          "codes": [
+            "42304979"
+          ],
+          "links": [
+            {
+              "label": "点击注册欧易",
+              "url": "https://www.glneokotyjv.com/join/42304979",
+              "kind": "register"
+            }
+          ],
+          "items": []
+        }
+      ]
+    },
+    {
+      "slug": "binance",
+      "name": "币安 Binance",
+      "keyword": "币安",
+      "summary": "Binance 交易所",
+      "category": "exchange",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=binance",
+      "related": [
+        "okx",
+        "ucard"
+      ],
+      "sections": [
+        {
+          "title": "币安 Binance",
+          "notes": [
+            "通过我的邀请链接注册币安，最高可获得1100$交易手续费返还券",
+            "第一大交易所，不用过多解释"
+          ],
+          "codes": [
+            "CPA_00OYSSDCVI"
+          ],
+          "links": [
+            {
+              "label": "点击注册币安",
+              "url": "https://www.bsmkweb.cc/activity/referral-entry/CPA?ref=CPA_00OYSSDCVI",
+              "kind": "register"
+            }
+          ],
+          "items": []
+        }
+      ]
+    },
+    {
+      "slug": "gate",
+      "name": "Gate 交易所与 U 卡",
+      "keyword": "gate",
+      "summary": "Gate 交易所与 U 卡",
+      "category": "exchange",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=gate",
+      "related": [
+        "okx",
+        "ucard"
+      ],
+      "sections": [
+        {
+          "title": "Gate 交易所",
+          "notes": [
+            "使用我的邀请链接注册 Gate，立享手续费返现，共享40%返佣"
+          ],
+          "codes": [
+            "VFJBVLHZVA"
+          ],
+          "links": [
+            {
+              "label": "点击注册 Gate",
+              "url": "https://www.gatewebsite.com/zh/signup/VFJBVLHZVA?ref_type=103",
+              "kind": "register"
+            }
+          ],
+          "items": []
+        },
+        {
+          "title": "Gate U卡",
+          "notes": [
+            "可办理国区和菲律宾地区的，两者可以同时持有",
+            "使用我的邀请码或者邀请链接办理 Gate U卡，完成消费任务后可获得2U奖励！"
+          ],
+          "codes": [],
+          "links": [
+            {
+              "label": "点击开通 Gate U卡",
+              "url": "https://app.bxjddjt.com/card/redirect?key=invite&invite_code=VFJBVLHZVA",
+              "kind": "register"
+            }
+          ],
+          "items": []
+        }
+      ]
+    },
+    {
+      "slug": "vpn",
+      "name": "节点 / 机场",
+      "keyword": "机场",
+      "summary": "节点 / 机场推荐",
+      "category": "network",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=vpn",
+      "related": [
+        "vps"
+      ],
+      "sections": [
+        {
+          "title": "木瓜云机场",
+          "notes": [],
+          "codes": [],
+          "links": [
+            {
+              "label": "注册木瓜云",
+              "url": "https://muguacloud.cfd/#/register?code=XEAJ6LRt",
+              "kind": "register"
+            }
+          ],
+          "items": []
+        },
+        {
+          "title": "小地球仪 App",
+          "notes": [
+            "直接在应用商店下载即可，注册时输入邀请码可获得3天30GB的免费体验，有较为纯净的英国ip和土耳其节点"
+          ],
+          "codes": [
+            "984420"
+          ],
+          "links": [],
+          "items": []
+        },
+        {
+          "title": "自建节点",
+          "notes": [
+            "想自己搭建节点，可以查看 VPS 教程"
+          ],
+          "codes": [],
+          "links": [],
+          "items": []
+        }
+      ]
+    },
+    {
+      "slug": "ucard",
+      "name": "U 卡汇总",
+      "keyword": "u卡",
+      "summary": "各类 U 卡汇总",
+      "category": "crypto-card",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=ucard",
+      "related": [
+        "bitget",
+        "ether",
+        "solid"
+      ],
+      "sections": [
+        {
+          "title": "U卡汇总",
+          "notes": [
+            "（点名称直达注册，点邀请码可复制）",
+            "还有更多U卡，等待后续分享"
+          ],
+          "codes": [],
+          "links": [],
+          "items": [
+            {
+              "name": "PayFun",
+              "url": "https://invite.payfun.com/WZS3YA",
+              "code": "WZS3YA",
+              "text": "PayFun 邀请码 WZS3YA"
+            },
+            {
+              "name": "Roogoo",
+              "url": "https://wap.roogoo.cloud/register?inviteCode=s61cj1",
+              "code": "s61cj1",
+              "text": "Roogoo 邀请码 s61cj1"
+            },
+            {
+              "name": "Jupiter",
+              "url": "https://jupiter.go.link/amhFq",
+              "code": "F9GKF6Q4",
+              "text": "Jupiter 邀请码 F9GKF6Q4"
+            },
+            {
+              "name": "Infini",
+              "url": "https://join.infini.money/personal/hIseipX",
+              "code": "hIseipX",
+              "text": "Infini 邀请码 hIseipX"
+            },
+            {
+              "name": "DogPay",
+              "url": "https://dogpay.com/us/register?reffercode=23149839",
+              "code": "23149839",
+              "text": "DogPay 邀请码 23149839"
+            },
+            {
+              "name": "Dtcpay",
+              "url": null,
+              "code": null,
+              "text": "Dtcpay：中国护照 + 香港地址，注册后可获得新加坡本地esim流量"
+            },
+            {
+              "name": "BiyaPay U卡等...",
+              "url": null,
+              "code": null,
+              "text": "BiyaPay U卡等..."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "bitget",
+      "name": "Bitget Wallet U 卡",
+      "keyword": "bitget",
+      "summary": "Bitget Wallet U 卡（含免地址证明新卡）",
+      "category": "crypto-card",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=bitget",
+      "related": [
+        "maya",
+        "ucard"
+      ],
+      "sections": [
+        {
+          "title": "Bitget Wallet 新U卡（无需地址证明）",
+          "notes": [
+            "新出的U卡，不需要地址证明即可办理"
+          ],
+          "codes": [
+            "BDe5Rn8m"
+          ],
+          "links": [
+            {
+              "label": "点击注册开卡",
+              "url": "https://web3.bitget.com/share/25ky4A?inviteCode=BDe5Rn8m",
+              "kind": "register"
+            }
+          ],
+          "items": []
+        },
+        {
+          "title": "Bitget Wallet U卡（需地址证明）",
+          "notes": [
+            "需要海外地址证明，可以使用 maya 菲律宾地址证明",
+            "通过本链接注册最高领取20$奖励，消费享最高3%返现"
+          ],
+          "codes": [
+            "AQ6EZ8yc"
+          ],
+          "links": [
+            {
+              "label": "点击注册开卡",
+              "url": "https://web3.bitget.com/share/4beN4z?inviteCode=AQ6EZ8yc",
+              "kind": "register"
+            }
+          ],
+          "items": []
+        }
+      ]
+    },
+    {
+      "slug": "saily",
+      "name": "Saily 美国手机号",
+      "keyword": "saily",
+      "summary": "美国手机号",
+      "category": "phone-number",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=saily",
+      "related": [
+        "esim",
+        "phone"
+      ],
+      "sections": [
+        {
+          "title": "Saily 美国手机号",
+          "notes": [
+            "国行 iPhone 可使用 Xesim 写入 Saily esim，Xesim 官网购买九折优惠码 ZWQ66",
+            "Saily 付款界面输入优惠券代码 WQEWIR4159 可优惠5$"
+          ],
+          "codes": [
+            "ZWQ66",
+            "WQEWIR4159"
+          ],
+          "links": [
+            {
+              "label": "Saily 完整购买教程",
+              "url": "https://x.com/zynqorw/status/2075793525950619710?s=20",
+              "kind": "tutorial"
+            }
+          ],
+          "items": []
+        }
+      ]
+    },
+    {
+      "slug": "neverless",
+      "name": "Neverless",
+      "keyword": "neverless",
+      "summary": "Neverless 开户",
+      "category": "banking",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=neverless",
+      "related": [
+        "wise",
+        "ucard"
+      ],
+      "sections": [
+        {
+          "title": "Neverless 开户教程",
+          "notes": [],
+          "codes": [],
+          "links": [
+            {
+              "label": "Neverless 完整开户教程",
+              "url": "https://x.com/zynqorw/status/2083464611026878976?s=20",
+              "kind": "tutorial"
+            }
+          ],
+          "items": []
+        }
+      ]
+    },
+    {
+      "slug": "worldfirst",
+      "name": "万里汇地址证明",
+      "keyword": "万里汇",
+      "summary": "万里汇地址证明获取",
+      "category": "banking",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=worldfirst",
+      "related": [
+        "bitget",
+        "ether",
+        "solid"
+      ],
+      "sections": [
+        {
+          "title": "万里汇获取（德国）地址证明",
+          "notes": [],
+          "codes": [],
+          "links": [
+            {
+              "label": "万里汇地址证明完整教程",
+              "url": "https://x.com/zynqorw/status/2096507119289741374?s=20",
+              "kind": "tutorial"
+            }
+          ],
+          "items": []
+        }
+      ]
+    },
+    {
+      "slug": "bybit",
+      "name": "Bybit 交易所与 U 卡",
+      "keyword": "bybit",
+      "summary": "Bybit 交易所和 U 卡",
+      "category": "exchange",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=bybit",
+      "related": [
+        "okx",
+        "ucard"
+      ],
+      "sections": [
+        {
+          "title": "Bybit 交易所和 U卡",
+          "notes": [
+            "（点名称直达注册，点邀请码可复制）"
+          ],
+          "codes": [],
+          "links": [],
+          "items": [
+            {
+              "name": "Bybit 交易所",
+              "url": "https://partner.bybit.com/b/166586",
+              "code": "166586",
+              "text": "Bybit 交易所 邀请码 166586"
+            },
+            {
+              "name": "Bybit U卡",
+              "url": "https://www.bybitglobal.com/cards/?ref=RRBQBG1&source=applet_invite",
+              "code": "RRBQBG1",
+              "text": "Bybit U卡 邀请码 RRBQBG1"
+            },
+            {
+              "name": "Bybit EU 交易所",
+              "url": "https://www.bybit.eu/invite?ref=ZEWDNPE",
+              "code": "ZEWDNPE",
+              "text": "Bybit EU 交易所 邀请码 ZEWDNPE"
+            },
+            {
+              "name": "Bybit EU U卡",
+              "url": "https://www.bybit.eu/cards/?ref=ZEWDNPE&source=applet_invite",
+              "code": "ZEWDNPE",
+              "text": "Bybit EU U卡 邀请码 ZEWDNPE"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "solid",
+      "name": "Solid U 卡",
+      "keyword": "solid",
+      "summary": "Solid U 卡（护照+海外地址，Wirex 发行）",
+      "category": "crypto-card",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=solid",
+      "related": [
+        "worldfirst",
+        "ucard"
+      ],
+      "sections": [
+        {
+          "title": "Solid U卡",
+          "notes": [
+            "通过注册开卡链接或邀请码成功开卡后，一月内在三家或三家以上的不同商户消费超过150$，可以获得25$奖励"
+          ],
+          "codes": [
+            "HFO8H"
+          ],
+          "links": [
+            {
+              "label": "点击注册开卡",
+              "url": "https://www.solid.xyz/refer?ref=HFO8H",
+              "kind": "register"
+            }
+          ],
+          "items": []
+        }
+      ]
+    },
+    {
+      "slug": "kraken",
+      "name": "Kraken 海妖",
+      "keyword": "kraken",
+      "summary": "Kraken 英区开户与海妖 U 卡",
+      "category": "exchange",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=kraken",
+      "related": [
+        "bybit",
+        "ucard"
+      ],
+      "sections": [
+        {
+          "title": "Kraken 海妖",
+          "notes": [
+            "推荐开英区 Kraken，可开海妖 U卡",
+            "使用注册开卡链接注册，订购实体卡且完成每笔至少10£的交易，完成5次可获得10£奖励"
+          ],
+          "codes": [
+            "@zynqorw_dev"
+          ],
+          "links": [
+            {
+              "label": "点击注册开卡",
+              "url": "https://krak.app/@zynqorw_dev",
+              "kind": "register"
+            }
+          ],
+          "items": []
+        }
+      ]
+    },
+    {
+      "slug": "ether",
+      "name": "Ether.fi U 卡",
+      "keyword": "ether",
+      "summary": "Ether.fi U 卡（国内护照+海外地址）",
+      "category": "crypto-card",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=ether",
+      "related": [
+        "worldfirst",
+        "ucard"
+      ],
+      "sections": [
+        {
+          "title": "Ether.fi U卡",
+          "notes": [
+            "使用国内护照 + 海外地址即可开卡"
+          ],
+          "codes": [],
+          "links": [
+            {
+              "label": "点击注册开卡",
+              "url": "https://www.ether.fi/@f2993967",
+              "kind": "register"
+            }
+          ],
+          "items": []
+        }
+      ]
+    },
+    {
+      "slug": "plasma",
+      "name": "Plasma One U 卡",
+      "keyword": "plasma",
+      "summary": "Plasma One U 卡",
+      "category": "crypto-card",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=plasma",
+      "related": [
+        "ether",
+        "ucard"
+      ],
+      "sections": [
+        {
+          "title": "Plasma One U卡",
+          "notes": [],
+          "codes": [
+            "H6Z68U"
+          ],
+          "links": [
+            {
+              "label": "点击注册开卡",
+              "url": "https://plasma.org/download/H6Z68U",
+              "kind": "register"
+            }
+          ],
+          "items": []
+        }
+      ]
+    },
+    {
+      "slug": "muse",
+      "name": "MuseWallet U 卡",
+      "keyword": "muse",
+      "summary": "MuseWallet U 卡（注册送 5U 开卡券）",
+      "category": "crypto-card",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=muse",
+      "related": [
+        "plasma",
+        "ucard"
+      ],
+      "sections": [
+        {
+          "title": "MuseWallet U卡",
+          "notes": [
+            "使用我的链接注册，送5U开卡券"
+          ],
+          "codes": [
+            "W3RBZC"
+          ],
+          "links": [
+            {
+              "label": "点击注册开卡",
+              "url": "https://h5.musepayapp.io/h5/?type=person&code=W3RBZC",
+              "kind": "register"
+            }
+          ],
+          "items": []
+        }
+      ]
+    },
+    {
+      "slug": "phone",
+      "name": "海外手机号汇总",
+      "keyword": "手机号",
+      "summary": "海外手机号汇总",
+      "category": "phone-number",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=phone",
+      "related": [
+        "esim",
+        "saily"
+      ],
+      "sections": [
+        {
+          "title": "海外手机号汇总",
+          "notes": [
+            "（点名称查看教程）"
+          ],
+          "codes": [],
+          "links": [],
+          "items": [
+            {
+              "name": "SMARTY 英国手机号",
+              "url": "https://x.com/zynqorw/status/2092493899013165376?s=20",
+              "code": null,
+              "text": "SMARTY 英国手机号：一年约12£保号"
+            },
+            {
+              "name": "Club Sim 香港手机号",
+              "url": "https://x.com/zynqorw/status/2086704904954106116?s=20",
+              "code": null,
+              "text": "Club Sim 香港手机号：一年15港币保号"
+            },
+            {
+              "name": "Smart 菲律宾手机号",
+              "url": "https://x.com/zynqorw/status/2101652460842742032?s=20",
+              "code": null,
+              "text": "Smart 菲律宾手机号：一年五毛钱保号"
+            },
+            {
+              "name": "DITO 菲律宾手机号",
+              "url": "https://x.com/zynqorw/status/2085719783509787135?s=20",
+              "code": null,
+              "text": "DITO 菲律宾手机号：一年五毛钱保号"
+            },
+            {
+              "name": "Saily 美国手机号",
+              "url": null,
+              "code": null,
+              "text": "Saily 美国手机号：群里发送 saily 查看"
+            }
+          ]
+        },
+        {
+          "title": "手机不支持 eSIM？",
+          "notes": [
+            "国行 iPhone 等不支持 eSIM 的手机，可以用 Xesim 把号码写入实体卡使用，付款时输入折扣码 ZWQ66 享9折"
+          ],
+          "codes": [
+            "ZWQ66"
+          ],
+          "links": [
+            {
+              "label": "点击购买 Xesim",
+              "url": "https://xesim.cc/?DIST=REFBFF0%3D",
+              "kind": "register"
+            }
+          ],
+          "items": [],
+          "shared": "xesim-cta"
+        }
+      ]
+    },
+    {
+      "slug": "smarty",
+      "name": "SMARTY 英国手机号",
+      "keyword": "smarty",
+      "summary": "SMARTY 英国手机号（年约 12£ 保号）",
+      "category": "phone-number",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=smarty",
+      "related": [
+        "esim",
+        "clubsim",
+        "lemfi"
+      ],
+      "sections": [
+        {
+          "title": "SMARTY 英国手机号",
+          "notes": [
+            "一年12£左右即可保号"
+          ],
+          "codes": [],
+          "links": [
+            {
+              "label": "点击购买 SMARTY",
+              "url": "https://i.smarty.co.uk/WRRVMe",
+              "kind": "register"
+            },
+            {
+              "label": "SMARTY 完整购买教程",
+              "url": "https://x.com/zynqorw/status/2092493899013165376?s=20",
+              "kind": "tutorial"
+            }
+          ],
+          "items": []
+        },
+        {
+          "title": "手机不支持 eSIM？",
+          "notes": [
+            "国行 iPhone 等不支持 eSIM 的手机，可以用 Xesim 把号码写入实体卡使用，付款时输入折扣码 ZWQ66 享9折"
+          ],
+          "codes": [
+            "ZWQ66"
+          ],
+          "links": [
+            {
+              "label": "点击购买 Xesim",
+              "url": "https://xesim.cc/?DIST=REFBFF0%3D",
+              "kind": "register"
+            }
+          ],
+          "items": [],
+          "shared": "xesim-cta"
+        }
+      ]
+    },
+    {
+      "slug": "clubsim",
+      "name": "Club Sim 香港手机号",
+      "keyword": "clubsim",
+      "summary": "Club Sim 香港手机号（年 15 港币保号）",
+      "category": "phone-number",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=clubsim",
+      "related": [
+        "esim",
+        "smarty",
+        "saily"
+      ],
+      "sections": [
+        {
+          "title": "Club Sim 香港手机号",
+          "notes": [
+            "一年15港币即可保号"
+          ],
+          "codes": [],
+          "links": [
+            {
+              "label": "Club Sim 完整购买教程",
+              "url": "https://x.com/zynqorw/status/2086704904954106116?s=20",
+              "kind": "tutorial"
+            }
+          ],
+          "items": []
+        },
+        {
+          "title": "手机不支持 eSIM？",
+          "notes": [
+            "国行 iPhone 等不支持 eSIM 的手机，可以用 Xesim 把号码写入实体卡使用，付款时输入折扣码 ZWQ66 享9折"
+          ],
+          "codes": [
+            "ZWQ66"
+          ],
+          "links": [
+            {
+              "label": "点击购买 Xesim",
+              "url": "https://xesim.cc/?DIST=REFBFF0%3D",
+              "kind": "register"
+            }
+          ],
+          "items": [],
+          "shared": "xesim-cta"
+        }
+      ]
+    },
+    {
+      "slug": "smart",
+      "name": "Smart 菲律宾手机号",
+      "keyword": "smart",
+      "summary": "Smart 菲律宾手机号（年五毛保号）",
+      "category": "phone-number",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=smart",
+      "related": [
+        "esim",
+        "dito",
+        "maya"
+      ],
+      "sections": [
+        {
+          "title": "Smart 菲律宾手机号",
+          "notes": [
+            "一年五毛钱即可保号"
+          ],
+          "codes": [],
+          "links": [
+            {
+              "label": "Smart 完整购买教程",
+              "url": "https://x.com/zynqorw/status/2101652460842742032?s=20",
+              "kind": "tutorial"
+            }
+          ],
+          "items": []
+        },
+        {
+          "title": "手机不支持 eSIM？",
+          "notes": [
+            "国行 iPhone 等不支持 eSIM 的手机，可以用 Xesim 把号码写入实体卡使用，付款时输入折扣码 ZWQ66 享9折"
+          ],
+          "codes": [
+            "ZWQ66"
+          ],
+          "links": [
+            {
+              "label": "点击购买 Xesim",
+              "url": "https://xesim.cc/?DIST=REFBFF0%3D",
+              "kind": "register"
+            }
+          ],
+          "items": [],
+          "shared": "xesim-cta"
+        }
+      ]
+    },
+    {
+      "slug": "dito",
+      "name": "DITO 菲律宾手机号",
+      "keyword": "dito",
+      "summary": "DITO 菲律宾手机号（年五毛保号）",
+      "category": "phone-number",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=dito",
+      "related": [
+        "esim",
+        "smart",
+        "maya"
+      ],
+      "sections": [
+        {
+          "title": "DITO 菲律宾手机号",
+          "notes": [
+            "一年五毛钱即可保号"
+          ],
+          "codes": [],
+          "links": [
+            {
+              "label": "DITO 完整激活教程",
+              "url": "https://x.com/zynqorw/status/2085719783509787135?s=20",
+              "kind": "tutorial"
+            }
+          ],
+          "items": []
+        },
+        {
+          "title": "手机不支持 eSIM？",
+          "notes": [
+            "国行 iPhone 等不支持 eSIM 的手机，可以用 Xesim 把号码写入实体卡使用，付款时输入折扣码 ZWQ66 享9折"
+          ],
+          "codes": [
+            "ZWQ66"
+          ],
+          "links": [
+            {
+              "label": "点击购买 Xesim",
+              "url": "https://xesim.cc/?DIST=REFBFF0%3D",
+              "kind": "register"
+            }
+          ],
+          "items": [],
+          "shared": "xesim-cta"
+        }
+      ]
+    },
+    {
+      "slug": "dukascopy",
+      "name": "杜高斯贝 Dukascopy",
+      "keyword": "杜高斯贝",
+      "summary": "Dukascopy 多币种账户",
+      "category": "banking",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=dukascopy",
+      "related": [
+        "wise",
+        "lemfi"
+      ],
+      "sections": [
+        {
+          "title": "杜高斯贝 多币种账户",
+          "notes": [],
+          "codes": [
+            "FVK-ZSY"
+          ],
+          "links": [
+            {
+              "label": "杜高斯贝完整开户教程",
+              "url": "https://x.com/zynqorw/status/2063230074539946039?s=20",
+              "kind": "tutorial"
+            }
+          ],
+          "items": []
+        }
+      ]
+    },
+    {
+      "slug": "lemfi",
+      "name": "LemFi",
+      "keyword": "lemfi",
+      "summary": "LemFi 账户（护照+英国ip，带英国地址证明）",
+      "category": "banking",
+      "telegramDeepLink": "https://t.me/zynqorw_bot?start=lemfi",
+      "related": [
+        "wise",
+        "bitget"
+      ],
+      "sections": [
+        {
+          "title": "LemFi 账户",
+          "notes": [
+            "护照 + 英国ip 即可注册，满血版带英国地址证明",
+            "通过链接或邀请码注册，完成50GBP的汇款后即可获得25GBP的奖励"
+          ],
+          "codes": [
+            "WANQPWDP"
+          ],
+          "links": [
+            {
+              "label": "点击注册 LemFi",
+              "url": "https://referral.lemfi.com/ZTC8hwB2U5b",
+              "kind": "register"
+            }
+          ],
+          "items": []
+        }
+      ]
+    }
+  ]
+}

@@ -93,7 +93,7 @@ export const REFERRALS: Referral[] = [
     name: "Bybit Card",
     category: "account",
     emoji: "🟡",
-    url: "https://bybit.com/cards/?ref=RRBQBG1&source=applet_invite",
+    url: "https://www.bybitglobal.com/cards/?ref=RRBQBG1&source=applet_invite",
     code: "RRBQBG1",
     pitch: "全程约 5 分钟开卡，订阅 Claude / ChatGPT 这类 AI 服务很顺手。",
     // perk 留空：首月返现比例是活动价，会变，不写死
@@ -118,9 +118,7 @@ export const REFERRALS: Referral[] = [
     name: "RackNerd VPS",
     category: "server",
     emoji: "🖥️",
-    // TODO(@zynqorw): 填你的 RackNerd 联盟链接（后台 Affiliates → Your Referral URL）。
-    // 空串期间本条不会出现在任何公开页面，填上即自动上线。
-    url: "",
+    url: "https://my.racknerd.com/aff.php?aff=20509", // 与 data/tutorials.json 的 vps 教程一致
     pitch: "低价年付 VPS，跑小服务、自建代理、挂脚本够用——我自己的几台常驻机就在这。",
     // TODO(@zynqorw): perk 写你核实过的当期优惠（如「年付套餐 + 优惠码 X」）。
     // 不确定就留空——写错的优惠比没有优惠更伤信任。
@@ -133,9 +131,11 @@ export const REFERRALS: Referral[] = [
     name: "Xesim eSIM",
     category: "esim",
     emoji: "📶",
-    // TODO(@zynqorw): 填你的 Xesim 推广链接 / 邀请码。空串期间不公开渲染。
-    url: "",
+    // 链接、折扣码、优惠说明与 data/tutorials.json 的 esim 教程一致
+    url: "https://xesim.cc/?DIST=REFBFF0%3D",
+    code: "ZWQ66",
     pitch: "境外上网 eSIM，扫码即用，不用换实体卡；出境短期用比开漫游省事。",
+    perk: "付款界面输入折扣码，可享 9 折购卡优惠",
     guideSlug: "xesim-esim",
   },
 ];

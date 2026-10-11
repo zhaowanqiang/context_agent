@@ -1,4 +1,5 @@
 // 主题切换行为回归：键盘切换 / 记忆 / 防闪烁 / 工作台锁浅色。用法：node scripts/test-theme.mjs [baseUrl]
+// 要对本机实例（非门面模式）跑：第 4 步靠顶栏的「工作台登录」链接做客户端导航，门面模式下没有这个链接
 import puppeteer from "puppeteer-core";
 const B = (process.argv[2] ?? "http://localhost:3000").replace(/\/$/, "");
 const browser = await puppeteer.launch({ executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe", headless: "new" });

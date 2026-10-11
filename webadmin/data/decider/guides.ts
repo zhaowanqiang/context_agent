@@ -193,7 +193,7 @@ Bitget U 卡对大陆用户暂停办卡之后,Bybit Card 是我实测下来最�
 
 Bybit 会限制部分国家的 IP(比如美国 IP)。如果代理节点被拒,可以**直接关闭 VPN 操作**——能正常登录就可以继续。
 
-> 用[邀请链接](https://bybit.com/cards/?ref=RRBQBG1&source=applet_invite)进入开卡页(邀请码 \`RRBQBG1\`)可解锁 **10% 返现和 10 USDT 体验金**。
+> 用[邀请链接](https://www.bybitglobal.com/cards/?ref=RRBQBG1&source=applet_invite)进入开卡页(邀请码 \`RRBQBG1\`)可解锁 **10% 返现和 10 USDT 体验金**。
 
 接下来的国家选择,是整个流程最重要的一步。
 

@@ -15,7 +15,8 @@ const themes = (process.argv[4] ?? "light,dark").split(",");
 const widths = (process.argv[5] ?? "1280,390").split(",").map(Number);
 
 /** [文件名, 路径]。带 hash 的是弹层展开态 */
-const PAGES = [
+// SHOT_ONLY=1 时只截 SHOT_EXTRA 里列的页面（逗号分隔的路径，可带 #hash）
+const DEFAULT_PAGES = [
   ["home", "/"],
   ["about", "/about"],
   ["deals", "/deals"],
@@ -27,11 +28,17 @@ const PAGES = [
   ["decider", "/decider"],
   ["guide-paid", "/decider/guide/kast"],
   ["guide-free", "/decider/guide/savo"],
+  ["tutorials", "/tutorials"],
+  ["tutorial-detail", "/tutorials#bitget"],
   ["notfound", "/posts/__nope__"],
+];
+const PAGES = [
+  ...(process.env.SHOT_ONLY ? [] : DEFAULT_PAGES),
   ...(process.env.SHOT_EXTRA ?? "")
     .split(",")
     .filter(Boolean)
-    .map((p) => [p.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, ""), p]),
+    // 路径可以不带开头的斜杠（Git Bash 会把以 / 开头的环境变量改写成 Windows 路径）
+    .map((p) => [p.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, ""), p.startsWith("/") ? p : `/${p}`]),
 ];
 
 mkdirSync(outDir, { recursive: true });

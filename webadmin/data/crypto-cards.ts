@@ -163,6 +163,11 @@ export interface CryptoCard {
     googlePay: Unknown<boolean>;
   };
 
+  /** 教程导航（/tutorials）里对应的教程。有它，详情面板就会带出那篇教程的邀请码与注册链接，
+   *  两边互相链接。**这里只写指向，不抄码和链接**——那些只在 data/tutorials.json 里维护。
+   *  item：教程是汇总类（如「U 卡汇总」）时，指明是其中哪一行（与 JSON 里 items[].name 完全一致） */
+  tutorial?: { slug: string; item?: string };
+
   /** 详情面板的全部内容。骨架卡也有这个对象（facts 六项全 pending），
    *  不再用整块 null——schema 要求六个字段一个都不能省。 */
   detail: CardDetail;
@@ -195,7 +200,7 @@ const mesh = (...stops: Array<[string, number, number]>): CardFace =>
  */
 function faceOnly(
   card: Pick<CryptoCard, "slug" | "name" | "issuer" | "faceStyle"> &
-    Partial<Pick<CryptoCard, "tier" | "variant" | "badges">>
+    Partial<Pick<CryptoCard, "tier" | "variant" | "badges" | "tutorial">>
 ): CryptoCard {
   const pending: FactValue = { status: "pending" };
   return {
@@ -219,7 +224,8 @@ function faceOnly(
       tutorial: null,
       faq: null,
       risk: ["TODO: 待核实"],
-      // cta 缺席 = 没有可信的开户入口。邀请码属于「不准编造」清单
+      // cta 缺席 = 本文件里没有开户入口。邀请码属于「不准编造」清单——
+      // 骨架卡要挂邀请码，走 tutorial 字段指向教程导航，由 data/tutorials.json 提供
       lastVerified: null,
     },
   };
@@ -284,6 +290,7 @@ export const cards: CryptoCard[] = [
   {
     slug: "bybit-card",
     name: "Bybit Card",
+    tutorial: { slug: "bybit", item: "Bybit U卡" },
     issuer: null, // TODO: 卡组织未核实（仓库素材未提及 Visa/Mastercard）
     faceStyle: linear("#44403c", "#1c1917", 135),
     badges: ["首月最高 10% 返现", "10 USDT 体验金", "约 5 分钟开卡"],
@@ -331,7 +338,7 @@ export const cards: CryptoCard[] = [
       risk: ["TODO: 风控/冻结/跑路风险未实测核实——发布前必须补真实来源，不要凭印象写"],
       cta: {
         label: "立即领取",
-        url: "https://bybit.com/cards/?ref=RRBQBG1&source=applet_invite",
+        url: "https://www.bybitglobal.com/cards/?ref=RRBQBG1&source=applet_invite",
         inviteCode: "RRBQBG1",
       },
       guide: { href: "/decider/guide/bybit-card", free: false },
@@ -343,6 +350,7 @@ export const cards: CryptoCard[] = [
   {
     slug: "plasma-one",
     name: "Plasma One",
+    tutorial: { slug: "plasma" },
     issuer: "Visa",
     faceStyle: linear("#292524", "#0c0a09", 135),
     badges: ["欧洲 IBAN 账户", "实体卡 + 虚拟卡", "USDT 充值"],
@@ -350,7 +358,7 @@ export const cards: CryptoCard[] = [
     traits: { physicalCard: true, applePay: null, googlePay: null },
     detail: {
       summary: "Visa 借记卡 + 欧洲 IBAN 账户，但邀请码和地址证明是两道真门槛。",
-      notice: "需要邀请码才能注册且数量有限——可关注 X @zynqorw 蹲邀请码",
+      notice: "注册需要邀请码——可以直接用我的，邀请码和注册链接在本页底部",
       facts: {
         cashback: { status: "pending" },
         annualFee: { status: "pending" },
@@ -373,7 +381,7 @@ export const cards: CryptoCard[] = [
         {
           title: "拿到邀请码",
           body: "注册必须有邀请码，且数量有限。可以直接向 Grok 要邀请码——AI 检索比你快得多，每次给的几个码可能都无效，多试几次就行。",
-          tip: "没邀请码的可以关注 X @zynqorw，作者有码会发出来。",
+          tip: "没邀请码的可以直接用我的，邀请码和注册链接在本页底部。",
         },
         { title: "注册地区选香港", body: "后续需要提供香港地址与证明，一步一步来。" },
         {
@@ -417,7 +425,7 @@ export const cards: CryptoCard[] = [
   faceOnly({ slug: "unknown-08", name: "待确认", issuer: "Visa", variant: "编号 08", badges: ["Debit"], faceStyle: mesh(["#1E3A8A", 78, 72], ["#5FA8FF", 22, 26], ["#2563EB", 50, 50]) }),
   faceOnly({ slug: "lava", name: "Lava", issuer: "Visa", tier: "Infinite", faceStyle: solid("#141110") }),
   faceOnly({ slug: "kolo", name: "Kolo", issuer: "Visa", faceStyle: pattern("#4ADE50", "dots", 0.2) }),
-  faceOnly({ slug: "kraken", name: "Kraken", issuer: "Mastercard", badges: ["VIRTUAL", "world elite debit"], faceStyle: metallic("#E8E6E3", 102) }),
+  faceOnly({ slug: "kraken", name: "Kraken", tutorial: { slug: "kraken" }, issuer: "Mastercard", badges: ["VIRTUAL", "world elite debit"], faceStyle: metallic("#E8E6E3", 102) }),
   faceOnly({ slug: "unknown-12", name: "待确认", issuer: "Visa", variant: "编号 12", faceStyle: pattern("#22200F", "rays", 0.42, "screen") }),
   faceOnly({ slug: "redotpay", name: "RedotPay", issuer: "Visa", tier: "Platinum", faceStyle: linear("#16A34A", "#04543A", 145) }),
   faceOnly({ slug: "okx", name: "OKX", issuer: "Mastercard", faceStyle: pattern("#2B2B2B", "grid", 0.16) }),
@@ -438,10 +446,10 @@ export const cards: CryptoCard[] = [
   faceOnly({ slug: "hyperbeat", name: "Hyperbeat", issuer: "Visa", tier: "Platinum", faceStyle: wordmark("#6E6763", "#565049", 1.5) }),
   faceOnly({ slug: "xplace-blue", name: "XPlace", issuer: "Visa", tier: "Platinum", variant: "蓝色卡面", faceStyle: mesh(["#16308F", 76, 74], ["#5B8DEF", 24, 30], ["#3B82F6", 48, 48]) }),
   faceOnly({ slug: "unknown-28", name: "待确认", issuer: "Visa", tier: "Platinum", variant: "编号 28", faceStyle: solid("#FCFCFB") }),
-  faceOnly({ slug: "jupiter", name: "Jupiter", issuer: "Visa", tier: "Platinum", faceStyle: pattern("#0F2620", "waves", 0.34, "screen") }),
+  faceOnly({ slug: "jupiter", name: "Jupiter", tutorial: { slug: "ucard", item: "Jupiter" }, issuer: "Visa", tier: "Platinum", faceStyle: pattern("#0F2620", "waves", 0.34, "screen") }),
   faceOnly({ slug: "tuyo", name: "Tuyo", issuer: "Visa", tier: "Platinum", faceStyle: wordmark("#14532D", "#0C3A1F", 1.8) }),
   faceOnly({ slug: "unknown-31", name: "待确认", issuer: "Visa", tier: "Platinum", variant: "编号 31", faceStyle: solid("#232020") }),
-  faceOnly({ slug: "bitget-wallet", name: "Bitget Wallet", issuer: "Mastercard", faceStyle: wordmark("#1D4ED8", "#4F82F0", 1.35) }),
+  faceOnly({ slug: "bitget-wallet", name: "Bitget Wallet", tutorial: { slug: "bitget" }, issuer: "Mastercard", faceStyle: wordmark("#1D4ED8", "#4F82F0", 1.35) }),
 
   // 与 xplace-blue 同品牌不同卡面：刻意不合并，权益是否相同没有来源
   faceOnly({ slug: "xplace-silver", name: "XPlace", issuer: "Visa", tier: "Platinum", variant: "银白卡面", faceStyle: metallic("#F2F1EF", 100) }),

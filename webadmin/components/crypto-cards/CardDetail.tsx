@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import type { CryptoCard, FactValue } from "@/data/crypto-cards";
+import type { CardTutorialLink } from "@/lib/tutorialTypes";
 import { track } from "@/lib/track";
 import CardFace from "./CardFace";
 import InviteCode from "./InviteCode";
@@ -85,11 +86,14 @@ const STATUS_LABEL: Partial<Record<CryptoCard["status"], string>> = {
 
 export default function CardDetail({
   card,
+  tutorialLink,
   tab,
   onTab,
   onClose,
 }: {
   card: CryptoCard;
+  /** 这张卡在教程导航里的邀请码与注册链接（服务端从 tutorials.json 取，卡片数据里不存） */
+  tutorialLink?: CardTutorialLink;
   tab: Tab;
   onTab: (t: Tab) => void;
   onClose: () => void;
@@ -418,6 +422,51 @@ export default function CardDetail({
               ))}
             </ul>
           </div>
+
+          {/* 5.5 教程导航互链。卡片自己有 cta 的（KAST / Bybit）只给教程入口，不把同一个码再列一遍；
+                 没有 cta 的（骨架卡、Plasma One）在这里带出教程里的邀请码与注册链接——
+                 一篇教程有几张卡就列几行（Bitget Wallet 新旧两张卡各有各的码），不替访客挑 */}
+          {tutorialLink && (
+            <div className="mt-6 rounded-xl border border-neutral-200 p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-600">邀请码与注册</p>
+              {!d.cta && tutorialLink.offers.length > 0 && (
+                <ul className="mt-2 divide-y divide-neutral-100">
+                  {tutorialLink.offers.map((o) => (
+                    <li key={o.title} className="flex flex-wrap items-center gap-x-3 gap-y-2 py-2.5 first:pt-0">
+                      <span className="min-w-0 flex-1 basis-[160px] text-[13px] font-medium text-neutral-900">{o.title}</span>
+                      {o.code && (
+                        <InviteCode
+                          code={o.code}
+                          cardSlug={card.slug}
+                          from="cards_tutorial_code"
+                          className="max-w-[190px] basis-[150px]"
+                        />
+                      )}
+                      {o.url && (
+                        <a
+                          href={o.url}
+                          target="_blank"
+                          rel="sponsored nofollow noopener noreferrer"
+                          onClick={() =>
+                            track("referral_click", { target: card.slug, meta: { from: "cards_tutorial_register" } })
+                          }
+                          className="shrink-0 rounded-lg bg-neutral-900 px-3.5 py-2 text-[13px] font-medium text-on-solid transition hover:bg-neutral-700"
+                        >
+                          注册 ↗
+                        </a>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <Link
+                href={`/tutorials#${tutorialLink.tutorialSlug}`}
+                className="mt-2 inline-block text-[13px] font-medium text-amber-700 underline-offset-4 transition hover:text-amber-800 hover:underline"
+              >
+                在教程导航看「{tutorialLink.tutorialName}」→
+              </Link>
+            </div>
+          )}
 
           {/* 6. 底部：核对时间 + CTA（外跳只发生在这里） */}
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-4">

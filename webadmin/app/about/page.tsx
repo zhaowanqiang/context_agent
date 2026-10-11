@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { phoneNumbers } from "@/data/phone-numbers";
 import { xArticles } from "@/data/x-articles";
 import { SITE, siteUrl, TG_BOT, TG_GROUP_URL, X_URL } from "@/lib/site";
 
@@ -62,7 +61,7 @@ export default function AboutPage() {
             <a href={TG_GROUP_URL} target="_blank" rel="noopener noreferrer">
               Telegram 交流群 ↗
             </a>
-            。在群里发关键词（比如 <code>wise</code>、<code>U卡</code>），机器人 {TG_BOT}{" "}
+            。在群里发关键词（比如 <code>wise</code>、<code>u卡</code>），机器人 {TG_BOT}{" "}
             会直接回对应的教程链接；有具体问题也可以在群里问。
           </p>
 
@@ -75,14 +74,12 @@ export default function AboutPage() {
               </li>
             )}
             <li>
+              <strong>教程导航</strong>——银行与账户、交易所、U 卡、海外手机号的教程索引，附邀请码和注册链接。
+              <Link href="/tutorials">进入 →</Link>
+            </li>
+            <li>
               <strong>加密卡片</strong>——逐张整理门槛、充值方式、托管方式和开卡流程。<Link href="/cards">进入 →</Link>
             </li>
-            {phoneNumbers.length > 0 && (
-              <li>
-                <strong>海外手机号</strong>——获取方式、保号规则、能否接收海外平台验证码。
-                <Link href="/numbers">进入 →</Link>
-              </li>
-            )}
             <li>
               <strong>出海开户决策</strong>——答几个问题，当场给出你能开哪些账户/卡、推荐顺序与坑点，
               付费解锁保姆级实操教程。<Link href="/decider">进入 →</Link>

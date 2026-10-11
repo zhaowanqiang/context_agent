@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
-    "prebuild": "node scripts/check-placeholders.mjs",
+    "prebuild": "node scripts/check-placeholders.mjs && node scripts/check-tutorials.mjs",
     "build": "next build",
     "start": "next start -H 0.0.0.0",
     "lint": "eslint"
