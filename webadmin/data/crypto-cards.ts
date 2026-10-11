@@ -160,8 +160,10 @@ export interface CryptoCard {
 
   /** 教程导航（/tutorials）里对应的教程。有它，详情面板就会带出那篇教程的邀请码与注册链接，
    *  两边互相链接。**这里只写指向，不抄码和链接**——那些只在 data/tutorials.json 里维护。
-   *  item：教程是汇总类（如「U 卡汇总」）时，指明是其中哪一行（与 JSON 里 items[].name 完全一致） */
-  tutorial?: { slug: string; item?: string };
+   *  item：教程是汇总类（如「U 卡汇总」）时，指明是其中哪一行（与 JSON 里 items[].name 完全一致）
+   *  section：教程有多个段落、只有一段讲这张卡时（如 Gate 教程的「Gate U卡」），指明是哪一段
+   *  （与 JSON 里 sections[].title 完全一致）；不写 = 整篇教程的段落都算 */
+  tutorial?: { slug: string; item?: string; section?: string };
 
   /** 详情面板的全部内容。骨架卡也有这个对象（facts 六项全 pending），
    *  不再用整块 null——schema 要求六个字段一个都不能省。 */
@@ -395,6 +397,30 @@ export const cards: CryptoCard[] = [
       lastVerified: "2026-07",
     },
   },
+
+  /* ══════════════════════════════════════════════════════════════
+   * 2026-10 收录：教程导航（data/tutorials.json）里有、此前卡片模块没有的卡。
+   *
+   * 这批卡的内容全部来自教程：说明、邀请码、注册链接都由 tutorial 字段指过去现取，
+   * 本文件一个字没抄。除此之外什么都没填——
+   *   · issuer 一律 null：教程里没写卡组织，不猜 Visa / Mastercard，卡面上不会印
+   *   · 没有 tier / badges：手头没有卡面图片可读
+   *   · 卡面配色是**自行设计的装饰**，只为了让十张卡在网格里彼此分得开，
+   *     不是品牌资产，也不代表真实卡面长这样
+   * detail 仍是 faceOnly 钉死的骨架（facts 六项全 pending）。
+   * 教程里 U 卡汇总的最后一行「BiyaPay U卡等...」没有收：它是一句「还有更多」，不是一张具体的卡。
+   * ══════════════════════════════════════════════════════════════ */
+
+  faceOnly({ slug: "solid", name: "Solid", tutorial: { slug: "solid" }, issuer: null, faceStyle: metallic("#2E2B29", 112) }),
+  faceOnly({ slug: "ether-fi", name: "Ether.fi", tutorial: { slug: "ether" }, issuer: null, faceStyle: linear("#4C1D95", "#1E1B4B", 140) }),
+  faceOnly({ slug: "musewallet", name: "MuseWallet", tutorial: { slug: "muse" }, issuer: null, faceStyle: mesh(["#0F766E", 22, 28], ["#134E4A", 78, 70], ["#115E59", 50, 100]) }),
+  faceOnly({ slug: "gate", name: "Gate", tutorial: { slug: "gate", section: "Gate U卡" }, issuer: null, faceStyle: radial("#2563EB", "#0B1F5C", 30, 30) }),
+  faceOnly({ slug: "bybit-eu-card", name: "Bybit EU", tutorial: { slug: "bybit", item: "Bybit EU U卡" }, issuer: null, faceStyle: pattern("#1C1917", "grid", 0.14) }),
+  faceOnly({ slug: "payfun", name: "PayFun", tutorial: { slug: "ucard", item: "PayFun" }, issuer: null, faceStyle: pattern("#111827", "dots", 0.22) }),
+  faceOnly({ slug: "roogoo", name: "Roogoo", tutorial: { slug: "ucard", item: "Roogoo" }, issuer: null, faceStyle: linear("#EA580C", "#7C2D12", 130) }),
+  faceOnly({ slug: "infini", name: "Infini", tutorial: { slug: "ucard", item: "Infini" }, issuer: null, faceStyle: wordmark("#0F172A", "#1E293B", 1.5) }),
+  faceOnly({ slug: "dogpay", name: "DogPay", tutorial: { slug: "ucard", item: "DogPay" }, issuer: null, faceStyle: radial("#CA8A04", "#713F12", 70, 36) }),
+  faceOnly({ slug: "dtcpay", name: "Dtcpay", tutorial: { slug: "ucard", item: "Dtcpay" }, issuer: null, faceStyle: linear("#0E7490", "#083344", 150) }),
 
   /* ══════════════════════════════════════════════════════════════
    * 2026-07 批量收录：只有卡面，没有内容。

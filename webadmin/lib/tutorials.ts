@@ -108,7 +108,11 @@ export function cardTutorialLinks(): Record<string, CardTutorialLink> {
       throw new Error(`[tutorials] 卡片 ${c.slug} 指向不存在的教程 ${c.tutorial.slug}`);
     }
     if (!isVisible(t)) continue; // 教程所在分类暂不上线：卡片上不出这块
-    const own = t.sections.filter((s) => !s.shared);
+    const wanted = c.tutorial.section;
+    const own = t.sections.filter((s) => !s.shared && (wanted === undefined || s.title === wanted));
+    if (wanted !== undefined && own.length === 0) {
+      throw new Error(`[tutorials] 卡片 ${c.slug} 指向教程 ${t.slug} 里不存在的段落「${wanted}」`);
+    }
     let offers: CardTutorialLink["offers"];
     if (c.tutorial.item) {
       const item = own.flatMap((s) => s.items).find((i) => i.name === c.tutorial?.item);
