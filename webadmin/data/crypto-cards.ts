@@ -50,14 +50,17 @@ export type Unknown<T> = T | null;
  * 卡面配方系统
  *
  * 一张卡的视觉身份由 faceStyle 一个字段决定，组件按 kind 分派渲染。
- * 全部是 CSS + 内联 SVG，仓库里没有、也不会有任何品牌位图资产。
+ * 绝大多数卡是 CSS + 内联 SVG 的「配方」卡面；少数卡用 image 类型直接显示卡面图片。
  *
- * 为什么不用官方 logo：调研结论见 docs/card-faces-research.md。
- * 一句话——本环境取不到官方 SVG（工具不通），且已核实的品牌条款里没有
- * 一条明确允许带返佣链接的页面使用其商标。所以卡面识别度靠配方，不靠 logo。
- *
- * ⚠️ 这里的颜色是**装饰性设计**，不是从官方品牌规范抄来的，
+ * 配方卡面为什么不用官方 logo：调研结论见 docs/card-faces-research.md。
+ * 一句话——当时取不到官方 SVG（工具不通），且已核实的品牌条款里没有
+ * 一条明确允许带返佣链接的页面使用其商标。所以这些卡的识别度靠配方，不靠 logo。
+ * ⚠️ 配方的颜色是**装饰性设计**，不是从官方品牌规范抄来的，
  *    也不代表真实卡面就长这样。别把它当事实字段引用。
+ *
+ * image 卡面（2026-10 起）：@zynqorw 提供了自己制作的卡面合集图，按他的决定把其中的
+ * 卡面裁出来放在 public/cards/ 下直接显示。这类卡面上的品牌标识、芯片、卡组织都在图里，
+ * 组件不再往上叠任何文字。加一张 = 把图放进 public/cards/，faceStyle 写 image(路径, 代表色)。
  * ══════════════════════════════════════════════════════════════════ */
 
 /** 图案层可选的纹理。几何定义在 FacePatterns.tsx 里只声明一次，各卡按 id 复用 */
@@ -71,7 +74,10 @@ export type CardFace =
   | { kind: "metallic"; base: string; sheenAngle: number }
   /** 大字 logo 当图案：品牌首字母放大到出血，当作卡面的主视觉 */
   | { kind: "wordmark"; bg: string; markColor: string; scale: number }
-  | { kind: "pattern"; bg: string; pattern: PatternId; opacity: number; blend: string };
+  | { kind: "pattern"; bg: string; pattern: PatternId; opacity: number; blend: string }
+  /** 卡面图片（public/ 下的路径）。base = 图片的代表色：图片加载出来之前垫在下面，
+   *  hover 辉光也用它——取图片的平均色即可 */
+  | { kind: "image"; src: string; base: string };
 
 /* ══════════════════════════════════════════════════════════════════
  * 详情面板 schema
@@ -181,6 +187,7 @@ const wordmark = (bg: string, markColor: string, scale = 1.4): CardFace =>
   ({ kind: "wordmark", bg, markColor, scale });
 const pattern = (bg: string, id: PatternId, opacity: number, blend = "overlay"): CardFace =>
   ({ kind: "pattern", bg, pattern: id, opacity, blend });
+const image = (src: string, base: string): CardFace => ({ kind: "image", src, base });
 const mesh = (...stops: Array<[string, number, number]>): CardFace =>
   ({ kind: "mesh", stops: stops.map(([color, x, y]) => ({ color, at: [x, y] as [number, number] })) });
 
@@ -347,7 +354,8 @@ export const cards: CryptoCard[] = [
     name: "Plasma One",
     tutorial: { slug: "plasma" },
     issuer: "Visa",
-    faceStyle: linear("#292524", "#0c0a09", 135),
+    tier: "Signature",
+    faceStyle: image("/cards/plasma-one.webp", "#292d29"),
     badges: ["欧洲 IBAN 账户", "实体卡 + 虚拟卡", "USDT 充值"],
     status: "invite-only",
     traits: { physicalCard: true, applePay: null, googlePay: null },
@@ -411,8 +419,8 @@ export const cards: CryptoCard[] = [
    * 教程里 U 卡汇总的最后一行「BiyaPay U卡等...」没有收：它是一句「还有更多」，不是一张具体的卡。
    * ══════════════════════════════════════════════════════════════ */
 
-  faceOnly({ slug: "solid", name: "Solid", tutorial: { slug: "solid" }, issuer: null, faceStyle: metallic("#2E2B29", 112) }),
-  faceOnly({ slug: "ether-fi", name: "Ether.fi", tutorial: { slug: "ether" }, issuer: null, faceStyle: linear("#4C1D95", "#1E1B4B", 140) }),
+  faceOnly({ slug: "solid", name: "Solid", tutorial: { slug: "solid" }, issuer: "Visa", tier: "Platinum", faceStyle: image("/cards/solid.webp", "#2c3c26") }),
+  faceOnly({ slug: "ether-fi", name: "Ether.fi", tutorial: { slug: "ether" }, issuer: "Visa", tier: "Signature", faceStyle: image("/cards/ether-fi.webp", "#6f77b3") }),
   faceOnly({ slug: "musewallet", name: "MuseWallet", tutorial: { slug: "muse" }, issuer: null, faceStyle: mesh(["#0F766E", 22, 28], ["#134E4A", 78, 70], ["#115E59", 50, 100]) }),
   faceOnly({ slug: "gate", name: "Gate", tutorial: { slug: "gate", section: "Gate U卡" }, issuer: null, faceStyle: radial("#2563EB", "#0B1F5C", 30, 30) }),
   faceOnly({ slug: "bybit-eu-card", name: "Bybit EU", tutorial: { slug: "bybit", item: "Bybit EU U卡" }, issuer: null, faceStyle: pattern("#1C1917", "grid", 0.14) }),
@@ -464,17 +472,19 @@ export const cards: CryptoCard[] = [
   faceOnly({ slug: "hyperbeat", name: "Hyperbeat", issuer: "Visa", tier: "Platinum", faceStyle: wordmark("#6E6763", "#565049", 1.5) }),
   faceOnly({ slug: "xplace-blue", name: "XPlace", issuer: "Visa", tier: "Platinum", variant: "蓝色卡面", faceStyle: mesh(["#16308F", 76, 74], ["#5B8DEF", 24, 30], ["#3B82F6", 48, 48]) }),
   faceOnly({ slug: "unknown-28", name: "待确认", issuer: "Visa", tier: "Platinum", variant: "编号 28", faceStyle: solid("#FCFCFB") }),
-  faceOnly({ slug: "jupiter", name: "Jupiter", tutorial: { slug: "ucard", item: "Jupiter" }, issuer: "Visa", tier: "Platinum", faceStyle: pattern("#0F2620", "waves", 0.34, "screen") }),
+  faceOnly({ slug: "jupiter", name: "Jupiter", tutorial: { slug: "ucard", item: "Jupiter" }, issuer: "Visa", tier: "Platinum", faceStyle: image("/cards/jupiter.webp", "#2a5f64") }),
   faceOnly({ slug: "tuyo", name: "Tuyo", issuer: "Visa", tier: "Platinum", faceStyle: wordmark("#14532D", "#0C3A1F", 1.8) }),
   faceOnly({ slug: "unknown-31", name: "待确认", issuer: "Visa", tier: "Platinum", variant: "编号 31", faceStyle: solid("#232020") }),
-  faceOnly({ slug: "bitget-wallet", name: "Bitget Wallet", tutorial: { slug: "bitget" }, issuer: "Mastercard", faceStyle: wordmark("#1D4ED8", "#4F82F0", 1.35) }),
+  faceOnly({ slug: "bitget-wallet", name: "Bitget Wallet", tutorial: { slug: "bitget" }, issuer: "Visa", faceStyle: image("/cards/bitget-wallet.webp", "#0d212c") }),
 
   // 与 xplace-blue 同品牌不同卡面：刻意不合并，权益是否相同没有来源
   faceOnly({ slug: "xplace-silver", name: "XPlace", issuer: "Visa", tier: "Platinum", variant: "银白卡面", faceStyle: metallic("#F2F1EF", 100) }),
 
   faceOnly({ slug: "solflare", name: "Solflare", issuer: "Mastercard", badges: ["debit"], faceStyle: pattern("#211E1C", "grid", 0.12) }),
   faceOnly({ slug: "unknown-35", name: "待确认", issuer: "Visa", tier: "Platinum", variant: "编号 35", faceStyle: pattern("#1F1C1B", "topo", 0.3, "screen") }),
-  faceOnly({ slug: "mexc", name: "MEXC", issuer: "Visa", tier: "Signature", faceStyle: linear("#2A2A2A", "#080808", 125) }),
+  // 2026-10：来自 @zynqorw 的卡面合集图，教程导航里暂时没有它的教程
+  faceOnly({ slug: "ethena", name: "Ethena", issuer: "Visa", tier: "Platinum", faceStyle: image("/cards/ethena.webp", "#3c4555") }),
+  faceOnly({ slug: "mexc", name: "MEXC", issuer: "Visa", tier: "Platinum", faceStyle: image("/cards/mexc.webp", "#1d1a19") }),
 
   // ⚠️ 疑似与上面的 bybit-card 是同一产品的不同卡面——待人工确认，见文件头 TODO ②
   faceOnly({ slug: "bybit-mastercard-virtual", name: "Bybit", issuer: "Mastercard", variant: "白色虚拟卡面", badges: ["Virtual", "prepaid"], faceStyle: solid("#FBFBFA") }),

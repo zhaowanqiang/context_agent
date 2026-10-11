@@ -49,6 +49,7 @@ export function baseColorOf(face: CardFace): string {
     case "mesh":
       return face.stops[0]?.color ?? "#44403c";
     case "metallic":
+    case "image":
       return face.base;
     case "wordmark":
     case "pattern":
@@ -109,6 +110,10 @@ export function backgroundOf(face: CardFace): string {
 
     case "pattern":
       return face.bg;
+
+    case "image":
+      // 图片本身由 CardFace 铺在上面；这里只是图片加载出来之前的垫底色
+      return face.base;
   }
 }
 

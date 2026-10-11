@@ -10,6 +10,9 @@ import { NOISE_DATA_URI } from "./FacePatterns";
  *   L3 内容   品牌标识、芯片、闪付、掩码位、等级、卡组织
  *   L4 高光   跟随指针的镜面反射，默认全透明
  *
+ * faceStyle 是 image 时走另一条路：整张卡面就是一张图（品牌、芯片、卡组织都在图里），
+ * L1–L3 全部不渲染，只保留 L4 高光，倾斜和扫光照常生效。
+ *
  * 本组件纯展示、无状态。3D 与高光靠 CardTile 写入的 CSS 变量驱动，
  * 规则在 globals.css，整条链路不触发 React 重渲染。
  *
@@ -106,6 +109,22 @@ export default function CardFace({
         color: ink,
       }}
     >
+      {/* ── 图片卡面：一张图顶替 L1–L3。alt 留空——卡名紧挨着卡面已经有文字，
+             再念一遍图片对读屏用户是重复信息。public/ 下的小图，不走 next/image 的优化链路 ── */}
+      {face.kind === "image" && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={face.src}
+          alt=""
+          width={414}
+          height={260}
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+          className="absolute inset-0 h-full w-full select-none object-cover"
+        />
+      )}
+
       {/* ── L1 图案层 ───────────────────────────────── */}
       {face.kind === "pattern" && (
         <svg
@@ -140,67 +159,71 @@ export default function CardFace({
         </svg>
       )}
 
-      {/* ── L2 噪点层：压掉渐变色带。用平铺背景而不是 CSS filter——
-             filter 会让 43 张卡每帧重算滤镜，背景图只解码一次 ───── */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-[1]"
-        style={{ backgroundImage: NOISE_DATA_URI, backgroundRepeat: "repeat", opacity: 0.05 }}
-      />
-
-      {/* ── L3 内容层 ───────────────────────────────── */}
-      <div className="absolute inset-0 z-[2]">
-        {/* 左上：品牌标识 + 卡名 */}
+      {face.kind !== "image" && (
+        <>
+        {/* ── L2 噪点层：压掉渐变色带。用平铺背景而不是 CSS filter——
+               filter 会让 43 张卡每帧重算滤镜，背景图只解码一次 ───── */}
         <div
-          className={`cc-face-l3 absolute flex items-center ${compact ? "gap-1" : "gap-1.5"}`}
-          style={{ left: "7%", top: "8%", right: "7%" }}
-        >
-          <BrandMark card={card} compact={compact} />
-          <p
-            className={`truncate font-semibold tracking-tight ${compact ? "text-[10px]" : "text-[13px]"}`}
-            style={{ color: ink, opacity: 0.95 }}
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-[1]"
+          style={{ backgroundImage: NOISE_DATA_URI, backgroundRepeat: "repeat", opacity: 0.05 }}
+        />
+
+        {/* ── L3 内容层 ───────────────────────────────── */}
+        <div className="absolute inset-0 z-[2]">
+          {/* 左上：品牌标识 + 卡名 */}
+          <div
+            className={`cc-face-l3 absolute flex items-center ${compact ? "gap-1" : "gap-1.5"}`}
+            style={{ left: "7%", top: "8%", right: "7%" }}
           >
-            {card.name}
-          </p>
-        </div>
-
-        {/* 芯片 + 闪付：真实卡片版式里两者相邻，位于卡面左侧偏上 */}
-        <div className="absolute flex items-center" style={{ left: "7%", top: "38%", gap: compact ? 4 : 7 }}>
-          <svg aria-hidden="true" viewBox="0 0 32 24" className={compact ? "w-[18px]" : "w-[30px]"} style={{ opacity: 0.85 }}>
-            <rect x="0.5" y="0.5" width="31" height="23" rx="4" fill="#d6c08a" stroke="#b09a63" />
-            <path d="M11 .5v23M21 .5v23M.5 8h31M.5 16h31" stroke="#b09a63" strokeWidth="1" fill="none" />
-          </svg>
-          <svg aria-hidden="true" viewBox="0 0 16 20" className={compact ? "w-[8px]" : "w-[13px]"} style={{ opacity: 0.7 }}>
-            <g fill="none" stroke={ink} strokeWidth="1.6" strokeLinecap="round">
-              <path d="M2 4a9 9 0 0 1 0 12" />
-              <path d="M6 6.5a5.5 5.5 0 0 1 0 7" />
-              <path d="M10 9a2 2 0 0 1 0 2" />
-            </g>
-          </svg>
-        </div>
-
-        {/* 掩码位：真实卡片在芯片下方 */}
-        <div className="absolute" style={{ left: "7%", bottom: "22%", color: ink }}>
-          <MaskedDigits compact={compact} />
-        </div>
-
-        {/* 右下：卡组织 + 等级。卡面上印着什么就写什么，没读到就不印 */}
-        {card.issuer && card.issuer !== "Other" && (
-          <div className="absolute text-right" style={{ right: "7%", bottom: "8%", color: ink }}>
+            <BrandMark card={card} compact={compact} />
             <p
-              className={`font-semibold italic tracking-tight ${compact ? "text-[10px]" : "text-[15px]"}`}
-              style={{ opacity: 0.92 }}
+              className={`truncate font-semibold tracking-tight ${compact ? "text-[10px]" : "text-[13px]"}`}
+              style={{ color: ink, opacity: 0.95 }}
             >
-              {card.issuer}
+              {card.name}
             </p>
-            {card.tier && (
-              <p className={`-mt-0.5 tracking-wide ${compact ? "text-[6px]" : "text-[8.5px]"}`} style={{ opacity: 0.78 }}>
-                {card.tier}
-              </p>
-            )}
           </div>
-        )}
-      </div>
+
+          {/* 芯片 + 闪付：真实卡片版式里两者相邻，位于卡面左侧偏上 */}
+          <div className="absolute flex items-center" style={{ left: "7%", top: "38%", gap: compact ? 4 : 7 }}>
+            <svg aria-hidden="true" viewBox="0 0 32 24" className={compact ? "w-[18px]" : "w-[30px]"} style={{ opacity: 0.85 }}>
+              <rect x="0.5" y="0.5" width="31" height="23" rx="4" fill="#d6c08a" stroke="#b09a63" />
+              <path d="M11 .5v23M21 .5v23M.5 8h31M.5 16h31" stroke="#b09a63" strokeWidth="1" fill="none" />
+            </svg>
+            <svg aria-hidden="true" viewBox="0 0 16 20" className={compact ? "w-[8px]" : "w-[13px]"} style={{ opacity: 0.7 }}>
+              <g fill="none" stroke={ink} strokeWidth="1.6" strokeLinecap="round">
+                <path d="M2 4a9 9 0 0 1 0 12" />
+                <path d="M6 6.5a5.5 5.5 0 0 1 0 7" />
+                <path d="M10 9a2 2 0 0 1 0 2" />
+              </g>
+            </svg>
+          </div>
+
+          {/* 掩码位：真实卡片在芯片下方 */}
+          <div className="absolute" style={{ left: "7%", bottom: "22%", color: ink }}>
+            <MaskedDigits compact={compact} />
+          </div>
+
+          {/* 右下：卡组织 + 等级。卡面上印着什么就写什么，没读到就不印 */}
+          {card.issuer && card.issuer !== "Other" && (
+            <div className="absolute text-right" style={{ right: "7%", bottom: "8%", color: ink }}>
+              <p
+                className={`font-semibold italic tracking-tight ${compact ? "text-[10px]" : "text-[15px]"}`}
+                style={{ opacity: 0.92 }}
+              >
+                {card.issuer}
+              </p>
+              {card.tier && (
+                <p className={`-mt-0.5 tracking-wide ${compact ? "text-[6px]" : "text-[8.5px]"}`} style={{ opacity: 0.78 }}>
+                  {card.tier}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+        </>
+      )}
 
       {/* ── L4 高光层：pointer-events-none，不挡点击 ───── */}
       <div className="cc-glare absolute inset-0 z-[3]" aria-hidden="true" />
